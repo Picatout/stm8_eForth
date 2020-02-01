@@ -90,7 +90,7 @@ PROD3 = 30
 CARRY = 32
 SP0	=	34	 ;initial data stack pointer
 RP0	=	36	;initial return stack pointer
-
+MS    =         38      ; millisecond counter 
 ;***********************************************
 ;; Version control
 
@@ -170,7 +170,7 @@ CTOP    =     RAMBASE+0x80
 	int NonHandledInterrupt	; irq20
 	int NonHandledInterrupt	; irq21
 	int NonHandledInterrupt	; irq22
-	int NonHandledInterrupt	; irq23
+	int Timer4Handler	; irq23
 	int NonHandledInterrupt	; irq24
 	int NonHandledInterrupt	; irq25
 	int NonHandledInterrupt	; irq26
@@ -187,6 +187,13 @@ NonHandledInterrupt:
         ld a, #0x80
         ld WWDG_CR,a ; WWDG_CR used to reset mcu
 	;iret
+
+Timer4Handler:
+	clr TIM4_SR 
+        ldw x,MS 
+        incw x 
+        ldw MS,x 
+        iret 
 
 
 ;; Main entry points and COLD start data
@@ -247,14 +254,31 @@ uart1_init:
 	mov UART1_BRR2,#0x05 ; must be loaded first
 	mov UART1_BRR1,#0x4
 	mov UART1_CR2,#((1<<UART_CR2_TEN)|(1<<UART_CR2_REN));|(1<<UART_CR2_RIEN))
+; initialize timer4
+	mov TIM4_PSCR,#7 ; prescale 128  
+	mov TIM4_ARR,#125 ; set for 1msec.
+	mov TIM4_CR1,#((1<<TIM4_CR1_CEN)|(1<<TIM4_CR1_URS))
+	bset TIM4_IER,#TIM4_IER_UIE 
+        rim
         jp  COLD   ;default=MN1
 
-;; Device dependent I/O
-;       All channeled to DOS 21H services
 
+;; get millisecond counter 
+;; msec ( -- u )
+        .word 0 
+LINK = . 
+        .byte 4
+        .ascii "msec"
+MSEC: 
+        subw x,#CELLL 
+        ldw y,MS 
+        ldw (x),y 
+        ret 
+
+;; Device dependent I/O
 ;       ?RX     ( -- c T | F )
 ;         Return input byte and true, or false.
-        .word      0
+        .word      LINK 
 LINK	= .
         .byte      4
         .ascii     "?KEY"
@@ -3310,35 +3334,35 @@ DOTI1:  CALL     DOTQP
 ;       SEE     ( -- ; <string> )
 ;       A simple decompiler.
 ;       Updated for byte machines.
-        .word      LINK
-LINK = . 
-        .byte      3
-        .ascii     "SEE"
-SEE:
-        CALL     TICK    ;starting address
-        CALL     CR
-        CALL     ONEM
-SEE1:   CALL     ONEP
-        CALL     DUPP
-        CALL     AT
-        CALL     DUPP    ;?does it contain a zero
-        CALL     QBRAN
-        .word      SEE2
-        CALL     TNAME   ;?is it a name
-SEE2:   CALL     QDUP    ;name address or zero
-        CALL     QBRAN
-        .word      SEE3
-        CALL     SPACE
-        CALL     DOTID   ;display name
-        CALL     ONEP
-        JRA     SEE4
-SEE3:   CALL     DUPP
-        CALL     CAT
-        CALL     UDOT    ;display number
-SEE4:   CALL     NUFQ    ;user control
-        CALL     QBRAN
-        .word      SEE1
-        JP     DROP
+;        .word      LINK
+;LINK = . 
+;        .byte      3
+;        .ascii     "SEE"
+;SEE:
+;        CALL     TICK    ;starting address
+;        CALL     CR
+;        CALL     ONEM
+;SEE1:   CALL     ONEP
+;        CALL     DUPP
+;        CALL     AT
+;        CALL     DUPP    ;?does it contain a zero
+;        CALL     QBRAN
+;        .word      SEE2
+;        CALL     TNAME   ;?is it a name
+;SEE2:   CALL     QDUP    ;name address or zero
+;        CALL     QBRAN
+;        .word      SEE3
+;        CALL     SPACE
+;        CALL     DOTID   ;display name
+;        CALL     ONEP
+;        JRA     SEE4
+;SEE3:   CALL     DUPP
+;        CALL     CAT
+;        CALL     UDOT    ;display number
+;SEE4:   CALL     NUFQ    ;user control
+;        CALL     QBRAN
+;        .word      SEE1
+;        JP     DROP
 
 ;       WORDS   ( -- )
 ;       Display names in vocabulary.

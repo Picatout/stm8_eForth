@@ -23,5 +23,7 @@ Comme il s'agit de 2 MCU STM8 l'adaptation vers le stm8s208 ne devrait pas néce
 
 ## 2020-01-31
 
-Adaptation complétée.
+* ajout d'un compteur de millisecondes en utilisant TIMER4. Le mot **msec** empile ce compteur.
+* mis en commentaire la commande SEE pas très utile. 
+* Adaptation complétée.
 
