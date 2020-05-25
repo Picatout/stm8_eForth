@@ -44,6 +44,12 @@
 ; 0x80E7 Start of FORTH dictionary in ROM
 ; 0x9584 End of FORTH dictionary
 ;
+;       2020-04-26 Addapted for NUCLEO-8S208RB by Picatout 
+;                  use UART1 instead of UART3 for communication with user.
+;                  UART1 is available as ttyACM* device via USB connection.
+;                  Use TIMER4 for millisecond interrupt to support MS counter 
+;                  and MSEC word that return MS value.
+;
 ;       EF12, Version 2.1, 18apr00cht
 ;               move to 8000H replacing WHYP.
 ;               copy interrupt vectors from WHYPFLSH.S19
@@ -74,11 +80,20 @@
 ;       (650) 571-7639
 ;
 
+;*************************************
+; constant used for conditationnal 
+; assembly for those word I converted 
+; to code.
+; Added by Picatout 2020-05-24 
+;*************************************
+CONVERT_TO_CODE=1 ; words converted in assembly by Picatout
+PICATOUT_MOD=1  ; code modified by Picatout 
+
 ;*********************************************************
 ;	Assembler constants
 ;*********************************************************
 RAMBASE =	0x0000	   ;ram base
-STACK   =	0x17FF	;system (return) stack empty 
+STACK   =	0x17FF 	;system (return) stack empty 
 DATSTK  =	0x16F0	;data stack  empty
 TIBBASE =       0X1700  ; tib addr.
 ;******  System Variables  ******
@@ -188,6 +203,8 @@ NonHandledInterrupt:
         ld WWDG_CR,a ; WWDG_CR used to reset mcu
 	;iret
 
+; used for milliseconds counter 
+; MS is 16 bits counter 
 Timer4Handler:
 	clr TIM4_SR 
         ldw x,MS 
@@ -231,18 +248,22 @@ ORIG:
         LDW     X,#DATSTK ;initialize data stack
         LDW     SP0,X
 ; initialize PC_5 as output to control LED2
+; added by Picatout 
         bset PC_CR1,#LED2_BIT
         bset PC_CR2,#LED2_BIT
         bset PC_DDR,#LED2_BIT
         _ledoff
-; initialize clock to HSE
-; switch to external 8 Mhz crystal 
-clock_init:	
+; initialize clock to HSI
+; no divisor 16Mhz 
+; Added by Picatout 
+clock_init:
+        clr CLK_CKDIVR
 	bset CLK_SWCR,#CLK_SWCR_SWEN
-	ld a,#CLK_SWR_HSE
+	ld a,#CLK_SWR_HSI
 	ld CLK_SWR,a
 1$:	cp a,CLK_CMSR
 	jrne 1$
+        
 ; initialize UART1, 115200 8N1
 uart1_init:
 	bset CLK_PCKENR1,#CLK_PCKENR1_UART1
@@ -251,10 +272,10 @@ uart1_init:
 	bset PA_CR1,#UART1_TX_PIN ; push-pull output
 	bset PA_CR2,#UART1_TX_PIN ; fast output
 	; baud rate 115200 Fmaster=8Mhz  8000000/115200=69=0x45
-	mov UART1_BRR2,#0x05 ; must be loaded first
-	mov UART1_BRR1,#0x4
+	mov UART1_BRR2,#0x0b ; must be loaded first
+	mov UART1_BRR1,#0x8
 	mov UART1_CR2,#((1<<UART_CR2_TEN)|(1<<UART_CR2_REN));|(1<<UART_CR2_RIEN))
-; initialize timer4
+; initialize timer4, used for millisecond interrupt  
 	mov TIM4_PSCR,#7 ; prescale 128  
 	mov TIM4_ARR,#125 ; set for 1msec.
 	mov TIM4_CR1,#((1<<TIM4_CR1_CEN)|(1<<TIM4_CR1_URS))
@@ -265,10 +286,11 @@ uart1_init:
 
 ;; get millisecond counter 
 ;; msec ( -- u )
+;; Added by Picatout 2020-04-26
         .word 0 
 LINK = . 
         .byte 4
-        .ascii "msec"
+        .ascii "MSEC"
 MSEC: 
         subw x,#CELLL 
         ldw y,MS 
@@ -315,14 +337,21 @@ OUTPUT: BTJF UART1_SR,#UART_SR_TXE,OUTPUT  ;loop until tdre
         .word      LINK
 LINK	= 	.
 	.byte      COMPO+5
-        .ascii     "doLit"
+        .ascii     "DOLIT"
 DOLIT:
 	SUBW X,#2
+.if PICATOUT_MOD 
+        ldw y,(1,sp)
+        ldw y,(y)
+        ldw (x),y
+        popw y 
+.else 
         POPW Y
 	LDW YTEMP,Y
 	LDW Y,(Y)
         LDW (X),Y
         LDW Y,YTEMP
+.endif 
 	JP (2,Y)
 
 ;       next    ( -- )
@@ -330,18 +359,22 @@ DOLIT:
         .word      LINK
 LINK	= 	.
 	.byte      COMPO+4
-        .ascii     "next"
+        .ascii     "NEXT"
 DONXT:
 	LDW Y,(3,SP)
 	DECW Y
 	JRPL NEX1
 	POPW Y
+.if PICATOUT_MOD
+        addw sp,#2
+.else        
 	POP A
 	POP A
-    JP (2,Y)
+.endif         
+        JP (2,Y)
 NEX1:
-    LDW (3,SP),Y
-    POPW Y
+        LDW (3,SP),Y
+        POPW Y
 	LDW Y,(Y)
 	JP (Y)
 
@@ -350,7 +383,7 @@ NEX1:
         .word      LINK
 LINK	= 	.
 	.byte      COMPO+7
-        .ascii     "?branch"
+        .ascii     "?BRANCH"
 QBRAN:	
         LDW Y,X
 	ADDW X,#2
@@ -364,7 +397,7 @@ QBRAN:
         .word      LINK
 LINK	= 	.
 	.byte      COMPO+6
-        .ascii     "branch"
+        .ascii     "BRANCH"
 BRAN:
         POPW Y
 	LDW Y,(Y)
@@ -379,8 +412,8 @@ LINK	= 	.
 EXECU:
         LDW Y,X
 	ADDW X,#2
-	LDW     Y,(Y)
-        JP     (Y)
+	LDW  Y,(Y)
+        JP   (Y)
 
 ;       EXIT    ( -- )
 ;       Terminate a colon definition.
@@ -404,8 +437,8 @@ STORE:
         LDW YTEMP,Y
         LDW Y,X
         LDW Y,(2,Y)
-        LDW [YTEMP],Y
-        ADDW X,#4 ;store w at a
+        LDW [YTEMP],Y ;store w at a
+        ADDW X,#4 ; DDROP 
         RET     
 
 ;       @       ( a -- w )
@@ -416,8 +449,8 @@ LINK	= 	.
         .ascii	"@"
 AT:
         LDW Y,X     ;Y = a
-        LDW Y,(Y)
-        LDW Y,(Y)
+        LDW Y,(Y)   ; address 
+        LDW Y,(Y)   ; value 
         LDW (X),Y ;w = @Y
         RET     
 
@@ -432,7 +465,7 @@ CSTOR:
 	LDW Y,(Y)    ;Y=b
         LD A,(3,X)    ;D = c
         LD  (Y),A     ;store c at b
-	ADDW X,#4
+	ADDW X,#4 ; DDROP 
         RET     
 
 ;       C@      ( b -- c )
@@ -454,7 +487,7 @@ CAT:
         .word      LINK
 LINK	= .
         .byte      3
-        .ascii     "rp@"
+        .ascii     "RP@"
 RPAT:
         LDW Y,SP    ;save return addr
         SUBW X,#2
@@ -466,13 +499,14 @@ RPAT:
         .word      LINK
 LINK	= 	. 
 	.byte      COMPO+3
-        .ascii     "rp!"
+        .ascii     "RP!"
 RPSTO:
         POPW Y
         LDW YTEMP,Y
         LDW Y,X
         LDW Y,(Y)
         LDW SP,Y
+        ADDW x,#CELLL ; a was not dropped, Picatout 2020-05-24
         JP [YTEMP]
 
 ;       R>      ( -- w )
@@ -496,6 +530,12 @@ LINK	= 	.
         .byte      2
         .ascii     "R@"
 RAT:
+.if PICATOUT_MOD
+        ldw y,(3,sp)
+        subw x,#CELLL 
+        ldw (x),y 
+        ret 
+.else 
         POPW Y
         LDW YTEMP,Y
         POPW Y
@@ -503,6 +543,7 @@ RAT:
         SUBW X,#2
         LDW (X),Y
         JP [YTEMP]
+.endif         
 
 ;       >R      ( w -- )
 ;       Push data stack to return stack.
@@ -524,7 +565,7 @@ TOR:
         .word      LINK
 LINK	= 	. 
         .byte      3
-        .ascii     "sp@"
+        .ascii     "SP@"
 SPAT:
 	LDW Y,X
         SUBW X,#2
@@ -536,7 +577,7 @@ SPAT:
         .word      LINK
 LINK	= 	. 
         .byte      3
-        .ascii     "sp!"
+        .ascii     "SP!"
 SPSTO:
         LDW     X,(X)     ;X = a
         RET     
@@ -558,10 +599,10 @@ LINK	= 	.
         .byte      3
         .ascii     "DUP"
 DUPP:
-				LDW Y,X
+	LDW Y,X
         SUBW X,#2
-				LDW Y,(Y)
-				LDW (X),Y
+	LDW Y,(Y)
+	LDW (X),Y
         RET     
 
 ;       SWAP    ( w1 w2 -- w2 w1 )
@@ -687,7 +728,7 @@ UPL1:   LD     (1,X),A
         .word      LINK
 LINK	= . 
 	.byte      COMPO+5
-        .ascii     "doVar"
+        .ascii     "DOVAR"
 DOVAR:
 	SUBW X,#2
         POPW Y    ;get return addr (pfa)
@@ -712,7 +753,7 @@ BASE:
         
 LINK = . 
 	.byte      3
-        .ascii     "tmp"
+        .ascii     "TMP"
 TEMP:
 	LDW Y,#RAMBASE+8
 	SUBW X,#2
@@ -748,7 +789,7 @@ NTIB:
         .word      LINK
 LINK = . 
         .byte      5
-        .ascii     "'eval"
+        .ascii     "'EVAL"
 TEVAL:
 	LDW Y,#RAMBASE+16
 	SUBW X,#2
@@ -760,7 +801,7 @@ TEVAL:
         .word      LINK
 LINK = . 
         .byte      3
-        .ascii     "hld"
+        .ascii     "HLD"
 HLD:
 	LDW Y,#RAMBASE+18
 	SUBW X,#2
@@ -784,7 +825,7 @@ CNTXT:
         .word      LINK
 LINK = . 
         .byte      2
-        .ascii     "cp"
+        .ascii     "CP"
 CPP:
 	LDW Y,#RAMBASE+22
 	SUBW X,#2
@@ -796,7 +837,7 @@ CPP:
         .word      LINK
 LINK = . 
         .byte      4
-        .ascii     "last"
+        .ascii     "LAST"
 LAST:
 	LDW Y,#RAMBASE+24
 	SUBW X,#2
@@ -826,6 +867,20 @@ LINK = .
         .byte      3
         .ascii     "ROT"
 ROT:
+.if PICATOUT_MOD
+        ldw y,x 
+        ldw y,(y)
+        pushw y 
+        ldw y,x 
+        ldw y,(4,y)
+        ldw (x),y 
+        ldw y,x 
+        ldw y,(2,y)
+        ldw (4,x),y 
+        popw y 
+        ldw (2,x),y
+        ret 
+.else 
         LDW Y,X
 	LDW Y,(4,Y)
 	LDW YTEMP,Y
@@ -840,6 +895,7 @@ ROT:
         LDW Y,YTEMP
         LDW (X),Y
         RET
+.endif 
 
 ;       2DROP   ( w w -- )
 ;       Discard two items on stack.
@@ -1104,6 +1160,22 @@ UMMOD:
 	LDW (2,X),Y
 	RET
 MMSM1:
+.if  PICATOUT_MOD 
+; take advantage of divw x,y when udh==0
+        tnzw x  ; is udh==0?
+        jrne MMSM2 
+        ldw x,y    ;udl 
+        ldw y,YTEMP ; divisor 
+        divw x,y 
+        pushw x     ; quotient 
+        ldw x,XTEMP 
+        addw x,#CELLL 
+        ldw (2,x),y  ; ur
+        popw y 
+        ldw (x),y ; uq 
+        ret 
+MMSM2:        
+.endif 
 	LD A,#17	; loop count
 MMSM3:
 	CPW X,YTEMP	; compare udh to un
@@ -1201,6 +1273,61 @@ LINK = .
         .byte      3
         .ascii     "UM*"
 UMSTA:	; stack have 4 bytes u1=a,b u2=c,d
+.if PICATOUT_MOD 
+; take advantage of SP addressing modes
+; these PRODx in RAM are not required
+; the product is kept on stack as local variable 
+        ;; bytes offset on data stack 
+        da=2 
+        db=3 
+        dc=0 
+        dd=1 
+        ;; product bytes offset on return stack 
+        UD1=1  ; ud bits 31..24
+        UD2=2  ; ud bits 23..16
+        UD3=3  ; ud bits 15..8 
+        UD4=4  ; ud bits 7..0 
+        ;; local variable for product set to zero   
+        clrw y 
+        pushw y  ; bits 15..0
+        pushw y  ; bits 31..16 
+        ld a,(db,x) ; b 
+        ld yl,a 
+        ld a,(dd,x)   ; d
+        mul y,a    ; b*d  
+        ldw (UD3,sp),y ; lowest weight product 
+        ld a,(db,x)
+        ld yl,a 
+        ld a,(dc,x)
+        mul y,a  ; b*c 
+        ;;; do the partial sum 
+        addw y,(UD2,sp)
+        clr a 
+        rlc a
+        ld (UD1,sp),a 
+        ldw (UD2,sp),y 
+        ld a,(da,x)
+        ld yl,a 
+        ld a,(dd,x)
+        mul y,a   ; a*d 
+        ;; do partial sum 
+        addw y,(UD2,sp)
+        clr a 
+        adc a,(UD1,sp)
+        ld (UD1,sp),a  
+        ldw (UD2,sp),y 
+        ld a,(da,x)
+        ld yl,a 
+        ld a,(dc,x)
+        mul y,a  ;  a*c highest weight product 
+        ;;; do partial sum 
+        addw y,(UD1,sp)
+        ldw (x),y  ; udh 
+        ldw y,(UD3,sp)
+        ldw (2,x),y  ; udl  
+        addw sp,#4 ; drop local variable 
+        ret  
+.else
 	LD A,(2,X)	; b
 	LD YL,A
 	LD A,(X)	; d
@@ -1241,6 +1368,8 @@ UMSTA:	; stack have 4 bytes u1=a,b u2=c,d
 	ADC A,CARRY	; fill in carry bits
 	LD (X),A
 	RET
+.endif 
+
 
 ;       *       ( n n -- n )
 ;       Signed multiply. Return single product.
@@ -1292,7 +1421,7 @@ SSMOD:
         .word      LINK
 LINK = . 
         .byte      2
-        .ascii     ". /"
+        .ascii     "*/"
 STASL:
         CALL	SSMOD
         CALL	SWAPP
@@ -1433,6 +1562,17 @@ LINK = .
         .byte      5
         .ascii     ">CHAR"
 TCHAR:
+.if CONVERT_TO_CODE
+        ld a,(1,x)
+        cp a,#32  
+        jrmi 1$ 
+        cp a,#127 
+        jrpl 1$ 
+        ret 
+1$:     ld a,#'_ 
+        ld (1,x),a 
+        ret 
+.else
         CALL     DOLIT
         .word       0x7F
         CALL     ANDD
@@ -1442,10 +1582,11 @@ TCHAR:
         CALL     BLANK
         CALL     WITHI   ;check for printable
         CALL     QBRAN
-        .word      TCHA1
+        .word    TCHA1
         CALL     DROP
         CALL     DOLIT
         .word     0x5F		; "_"     ;replace non-printables
+.endif 
 TCHA1:  RET
 
 ;       DEPTH   ( -- n )
@@ -1454,12 +1595,15 @@ TCHA1:  RET
 LINK = . 
         .byte      5
         .ascii     "DEPTH"
-DEPTH:
+DEPTH: 
         LDW Y,SP0    ;save data stack ptr
 	LDW XTEMP,X
         SUBW Y,XTEMP     ;#bytes = SP0 - X
-        SRAW Y    ;D = #stack items
-	DECW Y
+        SRAW Y    ;Y = #stack items
+.if PICATOUT_MOD
+; why ? 
+;      	DECW Y
+.endif 
 	SUBW X,#2
         LDW (X),Y     ; if neg, underflow
         RET
@@ -1489,13 +1633,27 @@ LINK = .
         .byte      2
         .ascii     "+!"
 PSTOR:
+.if CONVERT_TO_CODE
+        ldw y,x 
+        ldw y,(y)
+        ldw YTEMP,y  ; address
+        ldw y,(y)  
+        pushw y  ; value at address 
+        ldw y,x 
+        ldw y,(2,y) ; n 
+        addw y,(1,sp) ; n+value
+        ldw [YTEMP],y ;  a!
+        popw y    ;drop local var
+        addw x,#4 ; DDROP 
+        ret 
+.else
         CALL	SWAPP
         CALL	OVER
         CALL	AT
         CALL	PLUS
         CALL	SWAPP
         JP	STORE
-
+.endif 
 ;       2!      ( d a -- )
 ;       Store  double integer to address a.
         .word      LINK
@@ -1503,12 +1661,29 @@ LINK = .
         .byte      2
         .ascii     "2!"
 DSTOR:
+.if CONVERT_TO_CODE
+        ldw y,x 
+        ldw y,(y)
+        ldw YTEMP,y ; address 
+        addw x,#CELLL ; drop a 
+        ldw y,x 
+        ldw y,(y) ; hi word 
+        pushw x 
+        ldw x,(2,x) ; lo word 
+        ldw [YTEMP],y
+        ldw y,x 
+        ldw x,#2 
+        ldw ([YTEMP],x),y 
+        popw x 
+        addw x,#4 ; DDROP 
+        ret 
+.else
         CALL	SWAPP
         CALL	OVER
         CALL	STORE
         CALL	CELLP
         JP	STORE
-
+.endif 
 ;       2@      ( a -- d )
 ;       Fetch double integer from address a.
         .word      LINK
@@ -1516,11 +1691,24 @@ LINK = .
         .byte      2
         .ascii     "2@"
 DAT:
+.if CONVERT_TO_CODE
+        ldw y,x 
+        ldw y,(y) ;address 
+        ldw YTEMP,y 
+        subw x,#CELLL ; space for udh 
+        ldw y,[YTEMP] ; udh 
+        ldw (x),y 
+        ldw y,#2
+        ldw y,([YTEMP],y) ; udl 
+        ldw (2,x),y
+        ret 
+.else 
         CALL	DUPP
         CALL	CELLP
         CALL	AT
         CALL	SWAPP
         JP	AT
+.endif 
 
 ;       COUNT   ( b -- b +n )
 ;       Return count byte of a string
@@ -1530,10 +1718,22 @@ LINK = .
         .byte      5
         .ascii     "COUNT"
 COUNT:
+.if CONVERT_TO_CODE
+        ldw y,x 
+        ldw y,(y) ; address 
+        ld a,(y)  ; count 
+        incw y 
+        ldw (x),y 
+        subw x,#CELLL 
+        ld (1,x),a 
+        clr (x)
+        ret 
+.else 
         CALL     DUPP
         CALL     ONEP
         CALL     SWAPP
         JP     CAT
+.endif 
 
 ;       HERE    ( -- a )
 ;       Return  top of  code dictionary.
@@ -1542,8 +1742,16 @@ LINK = .
         .byte      4
         .ascii     "HERE"
 HERE:
+.if CONVERT_TO_CODE
+      	ldw y,#RAMBASE+22
+        ldw y,(y)
+        subw x,#CELLL 
+        ldw (x),y 
+        ret 
+.else
         CALL     CPP
         JP     AT
+.endif 
 
 ;       PAD     ( -- a )
 ;       Return address of text buffer
@@ -1613,6 +1821,29 @@ LINK = .
         .byte       4
         .ascii     "FILL"
 FILL:
+.if CONVERT_TO_CODE
+        ldw y,x 
+        ld a,(1,y) ; c 
+        addw x,#CELLL ; drop c 
+        ldw y,x 
+        ldw y,(y) ; count
+        pushw y 
+        addw x,#CELLL ; drop u 
+        ldw y,x 
+        addw x,#CELLL ; drop b 
+        ldw y,(y) ; address
+        ldw YTEMP,y
+        popw y ; count 
+FILL1:  
+        ld [YTEMP],a 
+        inc YTEMP+1
+        jrnc FILL2 
+        inc YTEMP
+FILL2: 
+        decw y ; count 
+        jrne FILL1  
+        ret 
+.else 
         CALL	SWAPP
         CALL	TOR
         CALL	SWAPP
@@ -1624,6 +1855,7 @@ FILL1:	CALL	DDUP
 FILL2:	CALL	DONXT
         .word	FILL1
         JP	DDROP
+.endif
 
 ;       ERASE   ( b u -- )
 ;       Erase u bytes beginning at b.
@@ -1632,16 +1864,22 @@ LINK = .
         .byte      5
         .ascii     "ERASE"
 ERASE:
+.if CONVERT_TO_CODE
+        clrw y 
+        subw x,#CELLL 
+        ldw (x),y 
+        jp FILL 
+.else 
         CALL     ZERO
         JP     FILL
-
+.endif 
 ;       PACK0x   ( b u a -- a )
 ;       Build a counted string with
 ;       u characters from b. Null fill.
         .word      LINK
 LINK = . 
         .byte      5
-        .ascii     "PACK0x"
+        .ascii     "PACK0X"
 PACKS:
         CALL     DUPP
         CALL     TOR     ;strings only on cell boundary
@@ -1777,7 +2015,7 @@ EDIGS:
         .word      LINK
 LINK = . 
         .byte      3
-        .ascii     "str"
+        .ascii     "STR"
 STR:
         CALL     DUPP
         CALL     TOR
@@ -1936,10 +2174,19 @@ LINK = .
         .byte      3
         .ascii     "KEY"
 KEY:
+.if CONVERT_TO_CODE
+        btjf UART1_SR,#UART_SR_RXNE,. 
+        ld a,UART1_DR 
+        subw x,#CELLL 
+        ld (1,x),a 
+        clr (x)
+        ret 
+.else 
 KEY1:   CALL     QKEY
         CALL     QBRAN
         .word      KEY1
         RET
+.endif 
 
 ;       NUF?    ( -- t )
 ;       Return false if no input,
@@ -1952,7 +2199,7 @@ NUFQ:
         CALL     QKEY
         CALL     DUPP
         CALL     QBRAN
-        .word      NUFQ1
+        .word    NUFQ1
         CALL     DDROP
         CALL     KEY
         CALL     DOLIT
@@ -1981,10 +2228,10 @@ SPACS:
         CALL     ZERO
         CALL     MAX
         CALL     TOR
-        JRA     CHAR2
+        JRA      CHAR2
 CHAR1:  CALL     SPACE
 CHAR2:  CALL     DONXT
-        .word      CHAR1
+        .word    CHAR1
         RET
 
 ;       TYPE    ( b u -- )
@@ -2025,7 +2272,7 @@ CR:
         .word      LINK
 LINK = . 
 	.byte      COMPO+3
-        .ascii     "do$"
+        .ascii     "DO$"
 DOSTR:
         CALL     RFROM
         CALL     RAT
@@ -2155,7 +2402,7 @@ PARS:
         CALL     TOR
         CALL     DUPP
         CALL     QBRAN
-        .word      PARS8
+        .word    PARS8
         CALL     ONEM
         CALL     TEMP
         CALL     AT
@@ -2270,13 +2517,24 @@ PAREN:
 ;       end of line.
         .word      LINK
 LINK = . 
-			.byte      IMEDD+1
-        .ascii     "\\"
+	.byte      IMEDD+1
+        .ascii     "\"
 BKSLA:
+.if CONVERT_TO_CODE
+        ldw y,#RAMBASE+12 ; #TIB  
+        ldw y,(y)
+        pushw y ; count in TIB 
+        ldw y,#RAMBASE+10 ; >IN 
+        ldw YTEMP,y
+        popw y 
+        ldw [YTEMP],y
+        ret 
+.else
         CALL     NTIB
         CALL     AT
         CALL     INN
         JP     STORE
+.endif 
 
 ;       WORD    ( c -- a ; <string> )
 ;       Parse a word from input stream
@@ -2353,7 +2611,7 @@ SAME2:  CALL     DONXT
         .word      LINK
 LINK = . 
         .byte      4
-        .ascii     "find"
+        .ascii     "FIND"
 FIND:
         CALL     SWAPP
         CALL     DUPP
@@ -2424,7 +2682,7 @@ NAMEQ:
         .word      LINK
 LINK = . 
         .byte      2
-        .ascii     "^h"
+        .ascii     "^H"
 BKSP:
         CALL     TOR
         CALL     OVER
@@ -2465,7 +2723,7 @@ TAP:
         .word      LINK
 LINK = . 
         .byte      4
-        .ascii     "kTAP"
+        .ascii     "KTAP"
 KTAP:
         CALL     DUPP
         CALL     DOLIT
@@ -2554,7 +2812,7 @@ ABORT:
         .word      LINK
 LINK = . 
 	.byte      COMPO+6
-        .ascii     "abort"
+        .ascii     "ABORT"
         .byte      '"'
 ABORQ:
         CALL     QBRAN
@@ -2587,7 +2845,7 @@ INTER:
         .word      INTE1
         CALL     AT
         CALL     DOLIT
-		.word       0x4000	; COMPO*256
+	.word       0x4000	; COMPO*256
         CALL     ANDD    ;?compile only lexicon bits
         CALL     ABORQ
         .byte      13
@@ -2595,7 +2853,7 @@ INTER:
         JP     EXECU
 INTE1:  CALL     NUMBQ   ;convert a number
         CALL     QBRAN
-        .word      ABOR1
+        .word    ABOR1
         RET
 
 ;       [       ( -- )
@@ -2635,7 +2893,7 @@ DOTO1:  JP     CR
 LINK = . 
         .byte      6
         .ascii     "?STACK"
-QSTAC:
+QSTAC: 
         CALL     DEPTH
         CALL     ZLESS   ;check only for underflow
         CALL     ABORQ
@@ -2654,14 +2912,14 @@ EVAL1:  CALL     TOKEN
         CALL     DUPP
         CALL     CAT     ;?input stream empty
         CALL     QBRAN
-        .word      EVAL2
+        .word    EVAL2
         CALL     TEVAL
         CALL     ATEXE
         CALL     QSTAC   ;evaluate input, check stack
         CALL     BRAN
-        .word      EVAL1
+        .word    EVAL1
 EVAL2:  CALL     DROP
-        JP     DOTOK
+        JP       DOTOK
 
 ;       PRESET  ( -- )
 ;       Reset data stack pointer and
@@ -3566,10 +3824,19 @@ COLD1:  CALL     DOLIT
         CALL     OVERT
         JP     QUIT    ;start interpretation
 
-
+; for debug ;;;;
+prdsp:
+pushw y 
+ldw y,x
+subw x,#2 
+ldw (x),y 
+call DOT 
+popw y 
+ret
+;;;;;;;;;
 ;       
 ;===============================================================
 
-LASTN   =	LINK   ;last name defined
+LASTN =	LINK   ;last name defined
 
 

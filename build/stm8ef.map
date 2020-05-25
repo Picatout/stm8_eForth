@@ -7,19 +7,19 @@ Area                                    Addr        Size        Decimal Bytes (A
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-     FFFFFFFF  s_SSEG                          
      00000000  .__.ABS.                           EFORTH
      00000000  l_DATA                          
      00000000  l_DATA0                         
      00000000  l_SSEG                          
      00000000  l__CODE                         
      00000000  s_DATA0                         
+     00000000  s_SSEG                          
      00000000  s_SSEG1                         
      00000000  s__CODE                         
      00000001  s_DATA                          
      00000080  l_HOME                          
      00000100  l_SSEG1                         
-     000014EB  l_CODE                          
+     00001528  l_CODE                          
      00008000  s_HOME                          
      00008080  s_CODE                          
 ASxxxx Linker V03.00 + NoICE + sdld,  page 2.
@@ -45,7 +45,7 @@ Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-CODE                                00008080    000014EB =        5355. bytes (REL,CON)
+CODE                                00008080    00001528 =        5416. bytes (REL,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
@@ -61,6 +61,5 @@ User Base Address Definitions
 
 HOME = 0x8000
 DATA = 0x0001
-SSEG = 0xffffffff
 
 

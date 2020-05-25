@@ -338,9 +338,9 @@ LINK	CEQU	*
         DC.B     "EXECUTE"
 EXECU
         LDW Y,X
-				ADDW X,#2
-				LDW     Y,(Y)
-        JP     (Y)
+		ADDW X,#2
+		LDW Y,(Y)
+        JP  (Y)
 
 ;       EXIT    ( -- )
 ;       Terminate a colon definition.
@@ -1532,11 +1532,11 @@ LINK CEQU *
         DC.B     "DEPTH"
 DEPTH
         LDW Y,SP0    ;save data stack ptr
-				LDW XTEMP,X
+	LDW XTEMP,X
         SUBW Y,XTEMP     ;#bytes = SP0 - X
         SRAW Y    ;D = #stack items
-				DECW Y
-				SUBW X,#2
+	DECW Y
+	SUBW X,#2
         LDW (X),Y     ; if neg, underflow
         RET
 
