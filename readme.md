@@ -2,6 +2,7 @@
 
 Le but de ce projet est d'adapter le ficheir [stm8ef.asm.org](stm8ef.asm.org) pour la carte **NUCLEO_8S208RB** et l'assembleur **SDAS**.
 
+Pour les détails consultez le [journal.md](journal.md).
 ## À propos de eForth
 
 Eforth est un Forth développé à l'origine par Bill Muench dans le but d'avoir un système Forth qui soit rapidement adaptable d'un système à l'autre. C'était dans les années 80, les années glorieuses du Forth. À cette époque chaque PC 8 bits avait son Forth: Apple II, TRS-80, ZX-SPECTRUM, etc.
