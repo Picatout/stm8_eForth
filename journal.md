@@ -1,3 +1,8 @@
+#### 2020-05-25
+
+* Ajout des mots EE-C! UNLKFL UNLKEE FC@ F@ EEPROM FP! pour écriture/lecture des mémoires EEPROM/OPTION/FLASH. 
+
+
 #### 2020-05-24
 
 * Quelque mots définis comme 'colon definition' était simple a réécrire en assembleur.

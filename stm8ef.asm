@@ -3589,38 +3589,41 @@ DOTI1:  CALL     DOTQP
         .ascii     " noName"
         RET
 
+WANT_SEE=0 
+.if WANT_SEE 
 ;       SEE     ( -- ; <string> )
 ;       A simple decompiler.
 ;       Updated for byte machines.
-;        .word      LINK
-;LINK = . 
-;        .byte      3
-;        .ascii     "SEE"
-;SEE:
-;        CALL     TICK    ;starting address
-;        CALL     CR
-;        CALL     ONEM
-;SEE1:   CALL     ONEP
-;        CALL     DUPP
-;        CALL     AT
-;        CALL     DUPP    ;?does it contain a zero
-;        CALL     QBRAN
-;        .word      SEE2
-;        CALL     TNAME   ;?is it a name
-;SEE2:   CALL     QDUP    ;name address or zero
-;        CALL     QBRAN
-;        .word      SEE3
-;        CALL     SPACE
-;        CALL     DOTID   ;display name
-;        CALL     ONEP
-;        JRA     SEE4
-;SEE3:   CALL     DUPP
-;        CALL     CAT
-;        CALL     UDOT    ;display number
-;SEE4:   CALL     NUFQ    ;user control
-;        CALL     QBRAN
-;        .word      SEE1
-;        JP     DROP
+        .word      LINK
+LINK = . 
+        .byte      3
+        .ascii     "SEE"
+SEE:
+        CALL     TICK    ;starting address
+        CALL     CR
+        CALL     ONEM
+SEE1:   CALL     ONEP
+        CALL     DUPP
+        CALL     AT
+        CALL     DUPP    ;?does it contain a zero
+        CALL     QBRAN
+        .word    SEE2
+        CALL     TNAME   ;?is it a name
+SEE2:   CALL     QDUP    ;name address or zero
+        CALL     QBRAN
+        .word    SEE3
+        CALL     SPACE
+        CALL     DOTID   ;display name
+        CALL     ONEP
+        JRA      SEE4
+SEE3:   CALL     DUPP
+        CALL     CAT
+        CALL     UDOT    ;display number
+SEE4:   CALL     NUFQ    ;user control
+        CALL     QBRAN
+        .word    SEE1
+        JP     DROP
+.endif ; WANT_SEE 
 
 ;       WORDS   ( -- )
 ;       Display names in vocabulary.
@@ -3663,135 +3666,139 @@ HI:
 	.byte      EXT+'0' ;version
         JP     CR
 
+WANT_DEBUG=0
+.if WANT_DEBUG 
 ;       DEBUG      ( -- )
 ;       Display sign-on message.
 ;        .word      LINK
-;LINK = . 
-;        .byte      5
-;        .ascii     "DEBUG"
-;DEBUG:
-;	CALL DOLIT
-;	.word 0x65
-;	CALL EMIT
-;	CALL DOLIT
-;	.word 0
-; 	CALL ZLESS 
-;	CALL DOLIT
-;	.word 0xFFFE
-;	CALL ZLESS 
-;	CALL UPLUS 
-; 	CALL DROP 
-;	CALL DOLIT
-;	.word 3
-;	CALL UPLUS 
-;	CALL UPLUS 
-; 	CALL DROP
-;	CALL DOLIT
-;	.word 0x43
-;	CALL UPLUS 
-; 	CALL DROP
-;	CALL EMIT
-;	CALL DOLIT
-;	.word 0x4F
-;	CALL DOLIT
-;	.word 0x6F
-; 	CALL XORR
-;	CALL DOLIT
-;	.word 0xF0
-; 	CALL ANDD
-;	CALL DOLIT
-;	.word 0x4F
-; 	CALL ORR
-;	CALL EMIT
-;	CALL DOLIT
-;	.word 8
-;	CALL DOLIT
-;	.word 6
-; 	CALL SWAPP
-;	CALL OVER
-;	CALL XORR
-;	CALL DOLIT
-;	.word 3
-;	CALL ANDD 
-;	CALL ANDD
-;	CALL DOLIT
-;	.word 0x70
-;	CALL UPLUS 
-;	CALL DROP
-;	CALL EMIT
-;	CALL DOLIT
-;	.word 0
-;	CALL QBRAN
-;	.word DEBUG1
-;	CALL DOLIT
-;	.word 0x3F
-;DEBUG1:
-;	CALL DOLIT
-;	.word 0xFFFF
-;	CALL QBRAN
-;	.word DEBUG2
-;	CALL DOLIT
-;	.word 0x74
-;	CALL BRAN
-;	.word DEBUG3
-;DEBUG2:
-;	CALL DOLIT
-;	.word 0x21
-;DEBUG3:
-;	CALL EMIT
-;	CALL DOLIT
-;	.word 0x68
-;	CALL DOLIT
-;	.word 0x80
-;	CALL STORE
-;	CALL DOLIT
-;	.word 0x80
-;	CALL AT
-;	CALL EMIT
-;	CALL DOLIT
-;	.word 0x4D
-;	CALL TOR
-;	CALL RAT
-;	CALL RFROM
-;	CALL ANDD
-;	CALL EMIT
-;	CALL DOLIT
-;	.word 0x61
-;	CALL DOLIT
-;	.word 0xA
-;	CALL TOR
-;DEBUG4:
-;	CALL DOLIT
-;	.word 1
-;	CALL UPLUS 
-;	CALL DROP
-;	CALL DONXT
-;	.word DEBUG4
-;	CALL EMIT
-;	CALL DOLIT
-;	.word 0x656D
-;	CALL DOLIT
-;	.word 0x100
-;	CALL UMSTA
-;	CALL SWAPP
-;	CALL DOLIT
-;	.word 0x100
-;	CALL UMSTA
-;	CALL SWAPP 
-;	CALL DROP
-;	CALL EMIT
-;	CALL EMIT
-;	CALL DOLIT
-;	.word 0x2043
-;	CALL DOLIT
-;	.word 0
-;	CALL DOLIT
-;	.word 0x100
-;	CALL UMMOD
-;	CALL EMIT
-;	CALL EMIT
+LINK = . 
+        .byte      5
+        .ascii     "DEBUG"
+DEBUG:
+	CALL DOLIT
+	.word 0x65
+	CALL EMIT
+	CALL DOLIT
+	.word 0
+ 	CALL ZLESS 
+	CALL DOLIT
+	.word 0xFFFE
+	CALL ZLESS 
+	CALL UPLUS 
+ 	CALL DROP 
+	CALL DOLIT
+	.word 3
+	CALL UPLUS 
+	CALL UPLUS 
+ 	CALL DROP
+	CALL DOLIT
+	.word 0x43
+	CALL UPLUS 
+ 	CALL DROP
+	CALL EMIT
+	CALL DOLIT
+	.word 0x4F
+	CALL DOLIT
+	.word 0x6F
+ 	CALL XORR
+	CALL DOLIT
+	.word 0xF0
+ 	CALL ANDD
+	CALL DOLIT
+	.word 0x4F
+ 	CALL ORR
+	CALL EMIT
+	CALL DOLIT
+	.word 8
+	CALL DOLIT
+	.word 6
+ 	CALL SWAPP
+	CALL OVER
+	CALL XORR
+	CALL DOLIT
+	.word 3
+	CALL ANDD 
+	CALL ANDD
+	CALL DOLIT
+	.word 0x70
+	CALL UPLUS 
+	CALL DROP
+	CALL EMIT
+	CALL DOLIT
+	.word 0
+	CALL QBRAN
+	.word DEBUG1
+	CALL DOLIT
+	.word 0x3F
+DEBUG1:
+	CALL DOLIT
+	.word 0xFFFF
+	CALL QBRAN
+	.word DEBUG2
+	CALL DOLIT
+	.word 0x74
+	CALL BRAN
+	.word DEBUG3
+DEBUG2:
+	CALL DOLIT
+	.word 0x21
+DEBUG3:
+	CALL EMIT
+	CALL DOLIT
+	.word 0x68
+	CALL DOLIT
+	.word 0x80
+	CALL STORE
+	CALL DOLIT
+	.word 0x80
+	CALL AT
+	CALL EMIT
+	CALL DOLIT
+	.word 0x4D
+	CALL TOR
+	CALL RAT
+	CALL RFROM
+	CALL ANDD
+	CALL EMIT
+	CALL DOLIT
+	.word 0x61
+	CALL DOLIT
+	.word 0xA
+	CALL TOR
+DEBUG4:
+	CALL DOLIT
+	.word 1
+	CALL UPLUS 
+	CALL DROP
+	CALL DONXT
+	.word DEBUG4
+	CALL EMIT
+	CALL DOLIT
+	.word 0x656D
+	CALL DOLIT
+	.word 0x100
+	CALL UMSTA
+	CALL SWAPP
+	CALL DOLIT
+	.word 0x100
+	CALL UMSTA
+	CALL SWAPP 
+	CALL DROP
+	CALL EMIT
+	CALL EMIT
+	CALL DOLIT
+	.word 0x2043
+	CALL DOLIT
+	.word 0
+	CALL DOLIT
+	.word 0x100
+	CALL UMMOD
+	CALL EMIT
+	CALL EMIT
 	;JP ORIG
-;	RET
+	RET
+.endif ; WANT_DEBUG 
+
 
 ;       'BOOT   ( -- a )
 ;       The application startup vector.
@@ -3810,7 +3817,9 @@ LINK = .
         .byte      4
         .ascii     "COLD"
 COLD:
-;        CALL DEBUG
+.if WANT_DEBUG
+        CALL DEBUG
+.endif 
 COLD1:  CALL     DOLIT
         .word      UZERO
 	CALL     DOLIT
@@ -3824,17 +3833,9 @@ COLD1:  CALL     DOLIT
         CALL     OVERT
         JP     QUIT    ;start interpretation
 
-; for debug ;;;;
-prdsp:
-pushw y 
-ldw y,x
-subw x,#2 
-ldw (x),y 
-call DOT 
-popw y 
-ret
-;;;;;;;;;
-;       
+
+        .include "flash.asm"
+        
 ;===============================================================
 
 LASTN =	LINK   ;last name defined
