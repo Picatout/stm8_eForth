@@ -1384,9 +1384,9 @@ Hexadecimal [24-Bits]
       000028 17 00                  235         .word      TIBB    ;TIB
       00002A 0F 6D                  236         .word      INTER   ;'EVAL
       00002C 00 00                  237         .word      0       ;HLD
-      00002E 15 BB                  238         .word       LASTN   ;CONTEXT pointer
+      00002E 16 9E                  238         .word       LASTN   ;CONTEXT pointer
       000030 00 80                  239         .word       CTOP   ;CP in RAM
-      000032 15 BB                  240         .word      LASTN   ;LAST
+      000032 16 9E                  240         .word      LASTN   ;LAST
       000034 00 00                  241 ULAST:  .word      0
                                     242 
       000036                        243 ORIG:   
@@ -5396,7 +5396,7 @@ Hexadecimal [24-Bits]
       00154B 81               [ 4]   65     ret
                                      66 
                                      67 ;----------------------------------
-                                     68 ; fetch address over 65535
+                                     68 ; fetch integer at address over 65535
                                      69 ;  F@   ( ud -- n )
                                      70 ;----------------------------------
       00154C 15 38                   71     .word LINK 
@@ -5468,286 +5468,376 @@ Hexadecimal [24-Bits]
       0015B3 72 03 50 5F FB   [ 2]  132 	btjf FLASH_IAPSR,#FLASH_IAPSR_PUL,.
       0015B8 81               [ 4]  133 	ret
                                     134 
-                                    135 ;---------------------------------------
-                                    136 ; write a byte to FLASH or EEPROM/OPTION  
-                                    137 ; EE-C!  (c ud -- )
-                                    138 ;---------------------------------------
-      0015B9 15 9C                  139     .word LINK 
-                           0015BB   140 LINK=.
-      0015BB 05                     141     .byte 5 
-      0015BC 45 45 2D 43 21         142     .ascii "EE-C!"
-                                    143 	; local variables 
-                           000001   144 	BTW = 1   ; byte to write offset on stack
-                           000002   145 	OPT = 2   ; OPTION flag offset on stack
-                           000002   146     VSIZE = 2
-      0015C1                        147 write_byte:
-      0015C1 52 02            [ 2]  148 	sub sp,#VSIZE
-      0015C3 CD 15 20         [ 4]  149     call fptr_store
-      0015C6 E6 01            [ 1]  150     ld a,(1,x)
-      0015C8 6B 01            [ 1]  151 	ld (BTW,sp),a ; byte to write 
-      0015CA 0F 02            [ 1]  152 	clr (OPT,sp)  ; OPTION flag
-      0015CC 1C 00 02         [ 2]  153     addw x,#CELLL 
-                                    154 ; put addr[15:0] in Y, for bounds check.
-      0015CF 90 BE 03         [ 2]  155 	ldw y,ptr16   ; Y=addr15:0
-                                    156 ; check addr[23:16], if <> 0 then it is extened flash memory
-      0015D2 3D 02            [ 1]  157 	tnz farptr 
-      0015D4 26 14            [ 1]  158 	jrne write_flash
-      0015D6 90 A3 16 3C      [ 2]  159     cpw y,#user_space
-      0015DA 24 0E            [ 1]  160     jruge write_flash
-      0015DC 90 A3 40 00      [ 2]  161 	cpw y,#EEPROM_BASE  
-      0015E0 25 57            [ 1]  162     jrult write_exit
-      0015E2 90 A3 48 7F      [ 2]  163 	cpw y,#OPTION_END 
-      0015E6 22 51            [ 1]  164 	jrugt write_exit
+                                    135 ;-----------------------------
+                                    136 ; unlock FLASH or EEPROM 
+                                    137 ; according to farptr address 
+                                    138 ;  UNLOCK ( -- )
+                                    139 ;-----------------------------
+      0015B9 15 9C                  140 	.word LINK 
+                           0015BB   141 	LINK=.
+      0015BB 06                     142 	.byte 6
+      0015BC 55 4E 4C 4F 43 4B      143 	.ascii "UNLOCK"
+      0015C2                        144 unlock:
+                                    145 ; put addr[15:0] in Y, for bounds check.
+      0015C2 90 BE 03         [ 2]  146 	ldw y,ptr16   ; Y=addr15:0
+                                    147 ; check addr[23:16], if <> 0 then it is extened flash memory
+      0015C5 3D 02            [ 1]  148 	tnz farptr 
+      0015C7 26 16            [ 1]  149 	jrne 4$
+      0015C9 90 A3 17 1C      [ 2]  150     cpw y,#user_space
+      0015CD 24 10            [ 1]  151     jruge 4$
+      0015CF 90 A3 40 00      [ 2]  152 	cpw y,#EEPROM_BASE  
+      0015D3 25 0D            [ 1]  153     jrult 9$
+      0015D5 90 A3 48 7F      [ 2]  154 	cpw y,#OPTION_END 
+      0015D9 22 07            [ 1]  155 	jrugt 9$
+      0015DB CD 15 84         [ 4]  156 	call unlock_eeprom
+      0015DE 81               [ 4]  157 	ret 
+      0015DF CD 15 A3         [ 4]  158 4$: call unlock_flash
+      0015E2 81               [ 4]  159 9$: ret 
+                                    160 
+                                    161 ;-------------------------
+                                    162 ; lock write access to 
+                                    163 ; FLASH and EEPROM 
+                                    164 ; LOCK ( -- )
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 75.
 Hexadecimal [24-Bits]
 
 
 
-      0015E8 20 16            [ 2]  165 	jra write_eeprom 
-                                    166 ; write program memory
-      0015EA                        167 write_flash:
-      0015EA CD 15 A3         [ 4]  168 	call unlock_flash 
-      0015ED 9B               [ 1]  169 1$:	sim 
-      0015EE 7B 01            [ 1]  170 	ld a,(BTW,sp)
-      0015F0 92 BD 00 02      [ 4]  171 	ldf [farptr],a ; farptr[x]=A
-      0015F4 72 05 50 5F FB   [ 2]  172 	btjf FLASH_IAPSR,#FLASH_IAPSR_EOP,.
-      0015F9 9A               [ 1]  173     rim 
-      0015FA 72 13 50 5F      [ 1]  174     bres FLASH_IAPSR,#FLASH_IAPSR_PUL
-      0015FE 20 39            [ 2]  175     jra write_exit
-                                    176 ; write eeprom and option
-      001600                        177 write_eeprom:
-      001600 CD 15 84         [ 4]  178 	call unlock_eeprom
-                                    179 	; check for data eeprom or option eeprom
-      001603 90 A3 48 00      [ 2]  180 	cpw y,#OPTION_BASE
-      001607 2B 08            [ 1]  181 	jrmi 1$
-      001609 90 A3 48 80      [ 2]  182 	cpw y,#OPTION_END+1
-      00160D 2A 02            [ 1]  183 	jrpl 1$
-      00160F 03 02            [ 1]  184 	cpl (OPT,sp)
-      001611                        185 1$: 
-      001611 0D 02            [ 1]  186     tnz (OPT,sp)
-      001613 27 08            [ 1]  187     jreq 2$
-                                    188 	; pour modifier une option il faut modifier ces 2 bits
-      001615 72 1E 50 5B      [ 1]  189     bset FLASH_CR2,#FLASH_CR2_OPT
-      001619 72 1F 50 5C      [ 1]  190     bres FLASH_NCR2,#FLASH_CR2_OPT 
-      00161D                        191 2$: 
-      00161D 7B 01            [ 1]  192     ld a,(BTW,sp)
-      00161F 92 BD 00 02      [ 4]  193     ldf [farptr],a
-      001623 0D 02            [ 1]  194     tnz (OPT,sp)
-      001625 27 0D            [ 1]  195     jreq 3$
-      001627 3C 04            [ 1]  196     inc ptr8 
-      001629 26 02            [ 1]  197     jrne 21$
-      00162B 3C 03            [ 1]  198     inc ptr16      
-      00162D                        199 21$:
-      00162D 7B 01            [ 1]  200     ld a,(BTW,sp)
-      00162F 43               [ 1]  201     cpl a
-      001630 92 BD 00 02      [ 4]  202     ldf [farptr],a
-      001634 72 05 50 5F FB   [ 2]  203 3$: btjf FLASH_IAPSR,#FLASH_IAPSR_EOP,.
-      001639                        204 write_exit:
-      001639 5B 02            [ 2]  205 	addw sp,#VSIZE 
-      00163B 81               [ 4]  206     ret
-                                    207 
-                           000000   208 .if 0
-                                    209 ;----------------------------
-                                    210 ; erase block code must be 
-                                    211 ; executed from RAM
-                                    212 ; input:
-                                    213 ;-----------------------------
-                                    214 row_erase:
-                                    215 	mov FLASH_CR2,#(1<<FLASH_CR2_ERASE) 
-                                    216 	mov FLASH_NCR2,#~(1<<FLASH_CR2_ERASE)
-                                    217 	clr a 
-                                    218 	clrw y 
-                                    219 	ldf ([farptr],y),a
+                                    165 ;-------------------------
+      0015E3 15 BB                  166 	.word LINK 
+                           0015E5   167 	LINK=.
+      0015E5 04                     168 	.byte 4 
+      0015E6 4C 4F 43 4B            169 	.ascii "LOCK" 
+      0015EA                        170 lock: 
+      0015EA 72 13 50 5F      [ 1]  171 	bres FLASH_IAPSR,#FLASH_IAPSR_PUL
+      0015EE 72 17 50 5F      [ 1]  172 	bres FLASH_IAPSR,#FLASH_IAPSR_DUL
+      0015F2 81               [ 4]  173 	ret 
+                                    174 
+                                    175 ;-------------------------
+                                    176 ; increment farptr 
+                                    177 ; INC-FPTR ( -- )
+                                    178 ;-------------------------
+      0015F3 15 E5                  179 	.word LINK 
+                           0015F5   180 	LINK=. 
+      0015F5 08                     181 	.byte 8 
+      0015F6 49 4E 43 2D 46 50 54   182 	.ascii "INC-FPTR" 
+             52
+      0015FE                        183 inc_fptr:
+      0015FE 3C 04            [ 1]  184 	inc ptr8 
+      001600 26 08            [ 1]  185 	jrne 1$
+      001602 90 BE 02         [ 2]  186 	ldw y,farptr 
+      001605 90 5C            [ 2]  187 	incw y 
+      001607 90 BF 02         [ 2]  188 	ldw farptr,y 
+      00160A 81               [ 4]  189 1$: ret 
+                                    190 
+                                    191 
+                                    192 ;----------------------------
+                                    193 ; write a byte at address pointed 
+                                    194 ; by farptr and increment farptr.
+                                    195 ; Expect pointer already initialized 
+                                    196 ; and memory unlocked 
+                                    197 ; WR-BYTE ( c -- )
+                                    198 ;----------------------------
+                                    199 
+      00160B 15 F5                  200 	.word LINK 
+                           00160D   201 	LINK=. 
+      00160D 07                     202 	.byte 7 
+      00160E 57 52 2D 42 59 54 45   203 	.ascii "WR-BYTE" 
+                                    204 
+      001615                        205 write_byte:
+      001615 90 93            [ 1]  206 	ldw y,x 
+      001617 90 FE            [ 2]  207 	ldw y,(y)
+      001619 1C 00 02         [ 2]  208 	addw x,#CELLL 
+      00161C 90 9F            [ 1]  209 	ld a,yl
+      00161E 92 BD 00 02      [ 4]  210 	ldf [farptr],a
+      001622 72 05 50 5F FB   [ 2]  211 	btjf FLASH_IAPSR,#FLASH_IAPSR_EOP,.
+      001627 20 D5            [ 2]  212 	jra inc_fptr 
+                                    213 
+                                    214 
+                                    215 
+                                    216 ;---------------------------------------
+                                    217 ; write a byte to FLASH or EEPROM/OPTION  
+                                    218 ; EEC!  (c ud -- )
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 76.
 Hexadecimal [24-Bits]
 
 
 
-                                    220     incw y
-                                    221 	ldf ([farptr],y),a
-                                    222     incw y
-                                    223 	ldf ([farptr],y),a
-                                    224     incw y
-                                    225 	ldf ([farptr],y),a
-                                    226 	btjf FLASH_IAPSR,#FLASH_IAPSR_EOP,.
-                                    227 	ret
-                                    228 row_erase_end:
-                                    229 
-                                    230 ; copy erase_start in RAM 
-                                    231 move_erase_to_ram:
-                                    232 	ldw x,#row_erase_end 
-                                    233 	subw x,#row_erase
-                                    234 	ldw acc16,x 
-                                    235 	ldw x,#tib 
-                                    236 	ldw y,#row_erase 
-                                    237 	call move 
-                                    238 	ret 
-                                    239 
-                                    240 ;-----------------------------------
-                                    241 ; block programming must be 
-                                    242 ; executed from RAM 
-                                    243 ; initial contidions: 
-                                    244 ; 	memory unlocked
-                                    245 ;   bit PRG set in 
-                                    246 ; input:
-                                    247 ;   x        128 bytes row to program 
-                                    248 ;   farptr   row address 
-                                    249 ; output:
-                                    250 ;   none 
-                                    251 ;----------------------------------
-                                    252 	BCNT=1 
-                                    253 program_row:
-                                    254 	push #BLOCK_SIZE  
-                                    255 ;enable block programming 
-                                    256 	bset FLASH_CR2,#FLASH_CR2_PRG 
-                                    257 	bres FLASH_NCR2,#FLASH_CR2_PRG
-                                    258 	clrw y 
-                                    259 1$:	ld a,(x)
-                                    260 	ldf ([farptr],y),a
-                                    261 	incw x 
-                                    262 	incw y 
-                                    263 	dec (BCNT,sp)
-                                    264 	jrne 1$
-                                    265 ; wait EOP bit 
-                                    266 	btjf FLASH_IAPSR,#FLASH_IAPSR_EOP,. 
-                                    267 	_drop 1 
-                                    268 	ret 
-                                    269 program_row_end:
-                                    270 
-                                    271 ;-------------------------
-                                    272 ; move program_row to RAM 
-                                    273 ; at txtubound address 
-                                    274 ;------------------------
+                                    219 ;---------------------------------------
+      001629 16 0D                  220     .word LINK 
+                           00162B   221 	LINK=.
+      00162B 04                     222     .byte 4 
+      00162C 45 45 43 21            223     .ascii "EEC!"
+                                    224 	; local variables 
+                           000001   225 	BTW = 1   ; byte to write offset on stack
+                           000002   226     OPT = 2 
+                           000002   227 	VSIZE = 2
+      001630                        228 ee_cstore:
+      001630 52 02            [ 2]  229 	sub sp,#VSIZE
+      001632 CD 15 20         [ 4]  230     call fptr_store
+      001635 E6 01            [ 1]  231 	ld a,(1,x)
+      001637 43               [ 1]  232 	cpl a 
+      001638 6B 01            [ 1]  233 	ld (BTW,sp),a ; byte to write 
+      00163A 0F 02            [ 1]  234 	clr (OPT,sp)  ; OPTION flag
+      00163C CD 15 C2         [ 4]  235 	call unlock 
+                                    236 	; check if option
+      00163F 3D 02            [ 1]  237 	tnz farptr 
+      001641 26 19            [ 1]  238 	jrne 2$
+      001643 90 BE 03         [ 2]  239 	ldw y,ptr16 
+      001646 90 A3 48 00      [ 2]  240 	cpw y,#OPTION_BASE
+      00164A 2B 10            [ 1]  241 	jrmi 2$
+      00164C 90 A3 48 80      [ 2]  242 	cpw y,#OPTION_END+1
+      001650 2A 0A            [ 1]  243 	jrpl 2$
+      001652 03 02            [ 1]  244 	cpl (OPT,sp)
+                                    245 	; OPTION WRITE require this unlock 
+      001654 72 1E 50 5B      [ 1]  246     bset FLASH_CR2,#FLASH_CR2_OPT
+      001658 72 1F 50 5C      [ 1]  247     bres FLASH_NCR2,#FLASH_CR2_OPT 
+      00165C                        248 2$: 
+      00165C CD 16 15         [ 4]  249 	call write_byte 	
+      00165F 0D 02            [ 1]  250 	tnz (OPT,sp)
+      001661 27 0D            [ 1]  251 	jreq 3$ 
+      001663 7B 01            [ 1]  252     ld a,(BTW,sp)
+      001665 90 5F            [ 1]  253     clrw y
+      001667 90 97            [ 1]  254 	ld yl,a 
+      001669 1D 00 02         [ 2]  255 	subw x,#CELLL 
+      00166C FF               [ 2]  256 	ldw (x),y 
+      00166D CD 16 15         [ 4]  257 	call write_byte
+      001670                        258 3$: 
+      001670 CD 15 EA         [ 4]  259 	call lock 
+      001673 5B 02            [ 2]  260 	addw sp,#VSIZE 
+      001675 81               [ 4]  261     ret
+                                    262 
+                                    263 ;------------------------------
+                                    264 ; write integer in FLASH|EEPROM
+                                    265 ; EE! ( n ud -- )
+                                    266 ;------------------------------
+      001676 16 2B                  267 	.word LINK 
+                           001678   268 	LINK=.
+      001678 03                     269 	.byte 3 
+      001679 45 45 21               270 	.ascii "EE!"
+      00167C                        271 ee_store:
+      00167C CD 15 20         [ 4]  272 	call fptr_store 
+      00167F CD 15 C2         [ 4]  273 	call unlock 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 77.
 Hexadecimal [24-Bits]
 
 
 
-                                    275 move_prg_to_ram:
-                                    276 	ldw x,#program_row_end 
-                                    277 	subw x,#program_row 
-                                    278 	ldw acc16,x 
-                                    279 	ldw x,#tib 
-                                    280 	ldw y,#program_row 
-                                    281 	call move 
-                                    282 	ret 
-                                    283 
-                                    284 
-                                    285 ;-----------------------------
-                                    286 ; write a row in FLASH/EEPROM 
-                                    287 ; input:
-                                    288 ;    farptr   destination address 
-                                    289 ;    x        source address 
-                                    290 ;-----------------------------
-                                    291 write_row:
-                                    292 	pushw x 
-                                    293 	tnz farptr 
-                                    294 	jrne to_flash 
-                                    295 	ldw x,#FLASH_BASE 
-                                    296 	cpw x,farptr+1 
-                                    297 	jruge to_flash 
-                                    298 to_eeprom:
-                                    299 	ldw x,#EEPROM_BASE 
-                                    300 	cpw x,farptr+1 
-                                    301 	jruge 1$
-                                    302 	ret ; bad address 
-                                    303 1$: ldw x,#EEPROM_END 
-                                    304 	jrule 2$ 
-                                    305 	ret ; bad address 
-                                    306 2$:	call unlock_eeprom
-                                    307 	jra do_programming
-                                    308 to_flash:
-                                    309 	call unlock_flash 
-                                    310 do_programming:
-                                    311 	popw x 
-                                    312 	call tib
-                                    313 	bres FLASH_IAPSR,#FLASH_IAPSR_PUL 
-                                    314 	bres FLASH_IAPSR,#FLASH_IAPSR_DUL  
-                                    315 	ret 
-                                    316 
-                                    317 
-                                    318 ;-----------------------------------
-                                    319 ; erase flash or EEPROM block
-                                    320 ; a blow is 128 bytes 
-                                    321 ; input:
-                                    322 ;   farptr  address row begin
-                                    323 ; output:
-                                    324 ;   none
-                                    325 ;--------------------------------------
-                                    326 block_erase:
-                                    327 	ldw x,farptr+1
-                                    328 	cpw x,#user_space 
-                                    329 	jrpl erase_flash 
+      001682 90 93            [ 1]  274 	ldw y,x 
+      001684 90 FE            [ 2]  275 	ldw y,(y)
+      001686 90 89            [ 2]  276 	pushw y 
+      001688 90 5E            [ 1]  277 	swapw y 
+      00168A FF               [ 2]  278 	ldw (x),y 
+      00168B CD 16 15         [ 4]  279 	call write_byte 
+      00168E 90 85            [ 2]  280 	popw y 
+      001690 1D 00 02         [ 2]  281 	subw x,#CELLL
+      001693 FF               [ 2]  282 	ldw (x),y 
+      001694 CD 16 15         [ 4]  283 	call write_byte
+      001697 72 13 50 5F      [ 1]  284 	bres FLASH_IAPSR,#FLASH_IAPSR_PUL
+      00169B 81               [ 4]  285 	ret 
+                                    286 
+                                    287 ;----------------------------
+                                    288 ; Erase flash memory row 
+                                    289 ; stm8s208 as 128 bytes rows
+                                    290 ; ROW-ERASE ( ud -- )
+                                    291 ;----------------------------
+      00169C 16 78                  292 	.word LINK 
+                           00169E   293 	LINK=. 
+      00169E 09                     294 	.byte 9 
+      00169F 52 4F 57 2D 45 52 41   295 	.ascii "ROW-ERASE" 
+             53 45
+      0016A8                        296 row_erase:
+      0016A8 CD 15 20         [ 4]  297 	call fptr_store
+                                    298 ;code must be execute from RAM 
+                                    299 ;copy routine to PAD 
+      0016AB 1D 00 02         [ 2]  300 	subw x,#CELLL 
+      0016AE 90 AE 16 F5      [ 2]  301 	ldw y,#row_erase_proc
+      0016B2 FF               [ 2]  302 	ldw (x),y 
+      0016B3 CD 07 B8         [ 4]  303 	call PAD 
+      0016B6 90 AE 17 1C      [ 2]  304 	ldw y,#row_erase_proc_end 
+      0016BA 72 A2 16 F5      [ 2]  305 	subw y,#row_erase_proc
+      0016BE 1D 00 02         [ 2]  306 	subw x,#CELLL 
+      0016C1 FF               [ 2]  307 	ldw (x),y 
+      0016C2 CD 07 F4         [ 4]  308 	call CMOVE 
+      0016C5                        309 block_erase:
+      0016C5 90 BE 03         [ 2]  310 	ldw y,farptr+1
+      0016C8 90 A3 17 1C      [ 2]  311 	cpw y,#user_space 
+      0016CC 2A 13            [ 1]  312 	jrpl erase_flash 
+                                    313 ; erase eeprom block
+      0016CE 90 A3 40 00      [ 2]  314 	cpw y,#EEPROM_BASE 
+      0016D2 24 01            [ 1]  315 	jruge 1$
+      0016D4 81               [ 4]  316 	ret ; bad address 
+      0016D5 90 A3 47 FF      [ 2]  317 1$: cpw y,#EEPROM_END 
+      0016D9 23 01            [ 2]  318 	jrule 2$ 
+      0016DB 81               [ 4]  319 	ret ; bad address 
+      0016DC                        320 2$:	
+      0016DC CD 15 84         [ 4]  321 	call unlock_eeprom 
+      0016DF 20 03            [ 2]  322 	jra proceed_erase
+                                    323 ; erase flash block:
+      0016E1                        324 erase_flash:
+      0016E1 CD 15 A3         [ 4]  325 	call unlock_flash 
+      0016E4                        326 proceed_erase:
+      0016E4 CD 07 B8         [ 4]  327 	call PAD 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 78.
 Hexadecimal [24-Bits]
 
 
 
-                                    330 ; erase eeprom block
-                                    331 	cpw x,#EEPROM_BASE 
-                                    332 	jruge 1$
-                                    333 	ret ; bad address 
-                                    334 1$: ldw x,#EEPROM_END 
-                                    335 	jrule 2$ 
-                                    336 	ret ; bad address 
-                                    337 2$:	call unlock_eeprom 
-                                    338 	call tib 
-                                    339 	bres FLASH_IAPSR,#FLASH_IAPSR_DUL
-                                    340 	ret 
-                                    341 ; erase flash block:
-                                    342 erase_flash:
-                                    343 	call unlock_flash 
-                                    344 	call tib 
-                                    345     bres FLASH_IAPSR,#FLASH_IAPSR_PUL
-                                    346 	ret 
-                                    347 
-                                    348 
-                                    349 ;--------------------------------------------
-                                    350 ; write a data block to eeprom or flash 
-                                    351 ; input:
-                                    352 ;   Y        source address   
-                                    353 ;   X        array index  destination  farptr[x]
-                                    354 ;   BSIZE    block size bytes 
-                                    355 ;   farptr   write address , byte* 
-                                    356 ; output:
-                                    357 ;	X 		after last byte written 
-                                    358 ;   Y 		after last byte read 
-                                    359 ;  farptr   point after block
-                                    360 ;---------------------------------------------
-                                    361 	_argofs 2 
-                                    362 	_arg BSIZE 1  ; block size
-                                    363 	; local var 
-                                    364 	XSAVE=1 
-                                    365 	VSIZE=2 
-                                    366 write_block:
-                                    367 	_vars VSIZE
-                                    368 	ldw (XSAVE,sp),x 
-                                    369 	ldw x,(BSIZE,sp) 
-                                    370 	jreq 9$
-                                    371 1$:	ldw x,(XSAVE,sp)
-                                    372 	ld a,(y)
-                                    373 	call write_byte 
-                                    374 	incw x 
-                                    375 	incw y 
-                                    376 	ldw (XSAVE,sp),x
-                                    377 	ldw x,(BSIZE,sp)
-                                    378 	decw x
-                                    379 	ldw (BSIZE,sp),x 
-                                    380 	jrne 1$
-                                    381 9$:
-                                    382 	ldw x,(XSAVE,sp)
-                                    383 	call incr_farptr
-                                    384 	_drop VSIZE
+      0016E7 90 93            [ 1]  328 	ldw y,x
+      0016E9 90 FE            [ 2]  329 	ldw y,(y)
+      0016EB 1C 00 02         [ 2]  330 	addw x,#CELLL  
+      0016EE 90 FD            [ 4]  331 	call (y) 
+      0016F0 72 17 50 5F      [ 1]  332 	bres FLASH_IAPSR,#FLASH_IAPSR_DUL
+      0016F4 81               [ 4]  333 	ret 
+                                    334 
+                                    335 ; this routine is to be copied to PAD 
+      0016F5                        336 row_erase_proc:
+      0016F5 35 20 50 5B      [ 1]  337 	mov FLASH_CR2,#(1<<FLASH_CR2_ERASE) 
+      0016F9 35 DF 50 5C      [ 1]  338 	mov FLASH_NCR2,#~(1<<FLASH_CR2_ERASE)
+      0016FD 4F               [ 1]  339 	clr a 
+      0016FE 90 5F            [ 1]  340 	clrw y 
+      001700 91 A7 00 02      [ 1]  341 	ldf ([farptr],y),a
+      001704 90 5C            [ 2]  342     incw y
+      001706 91 A7 00 02      [ 1]  343 	ldf ([farptr],y),a
+      00170A 90 5C            [ 2]  344     incw y
+      00170C 91 A7 00 02      [ 1]  345 	ldf ([farptr],y),a
+      001710 90 5C            [ 2]  346     incw y
+      001712 91 A7 00 02      [ 1]  347 	ldf ([farptr],y),a
+      001716 72 05 50 5F FB   [ 2]  348 	btjf FLASH_IAPSR,#FLASH_IAPSR_EOP,.
+      00171B 81               [ 4]  349 	ret
+      00171C                        350 row_erase_proc_end:
+                                    351 
+                                    352 
+                           000000   353 .if 0
+                                    354 ;-----------------------------------
+                                    355 ; block programming must be 
+                                    356 ; executed from RAM 
+                                    357 ; initial contidions: 
+                                    358 ; 	memory unlocked
+                                    359 ;   bit PRG set in 
+                                    360 ; input:
+                                    361 ;   x        128 bytes row to program 
+                                    362 ;   farptr   row address 
+                                    363 ; output:
+                                    364 ;   none 
+                                    365 ;----------------------------------
+                                    366 	BCNT=1 
+                                    367 program_row:
+                                    368 	push #BLOCK_SIZE  
+                                    369 ;enable block programming 
+                                    370 	bset FLASH_CR2,#FLASH_CR2_PRG 
+                                    371 	bres FLASH_NCR2,#FLASH_CR2_PRG
+                                    372 	clrw y 
+                                    373 1$:	ld a,(x)
+                                    374 	ldf ([farptr],y),a
+                                    375 	incw x 
+                                    376 	incw y 
+                                    377 	dec (BCNT,sp)
+                                    378 	jrne 1$
+                                    379 ; wait EOP bit 
+                                    380 	btjf FLASH_IAPSR,#FLASH_IAPSR_EOP,. 
+                                    381 	_drop 1 
+                                    382 	ret 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 79.
 Hexadecimal [24-Bits]
 
 
 
-                                    385 	ret 
-                                    386 .endif 
-                                    387 
-      00163C                        388 user_space: 
+                                    383 program_row_end:
+                                    384 
+                                    385 ;-------------------------
+                                    386 ; move program_row to RAM 
+                                    387 ; at txtubound address 
+                                    388 ;------------------------
+                                    389 move_prg_to_ram:
+                                    390 	ldw x,#program_row_end 
+                                    391 	subw x,#program_row 
+                                    392 	ldw acc16,x 
+                                    393 	ldw x,#tib 
+                                    394 	ldw y,#program_row 
+                                    395 	call move 
+                                    396 	ret 
+                                    397 
+                                    398 
+                                    399 ;-----------------------------
+                                    400 ; write a row in FLASH/EEPROM 
+                                    401 ; input:
+                                    402 ;    farptr   destination address 
+                                    403 ;    x        source address 
+                                    404 ;-----------------------------
+                                    405 write_row:
+                                    406 	pushw x 
+                                    407 	tnz farptr 
+                                    408 	jrne to_flash 
+                                    409 	ldw x,#FLASH_BASE 
+                                    410 	cpw x,farptr+1 
+                                    411 	jruge to_flash 
+                                    412 to_eeprom:
+                                    413 	ldw x,#EEPROM_BASE 
+                                    414 	cpw x,farptr+1 
+                                    415 	jruge 1$
+                                    416 	ret ; bad address 
+                                    417 1$: ldw x,#EEPROM_END 
+                                    418 	jrule 2$ 
+                                    419 	ret ; bad address 
+                                    420 2$:	call unlock_eeprom
+                                    421 	jra do_programming
+                                    422 to_flash:
+                                    423 	call unlock_flash 
+                                    424 do_programming:
+                                    425 	popw x 
+                                    426 	call tib
+                                    427 	bres FLASH_IAPSR,#FLASH_IAPSR_PUL 
+                                    428 	bres FLASH_IAPSR,#FLASH_IAPSR_DUL  
+                                    429 	ret 
+                                    430 
+                                    431 
+                                    432 ;--------------------------------------------
+                                    433 ; write a data block to eeprom or flash 
+                                    434 ; input:
+                                    435 ;   Y        source address   
+                                    436 ;   X        array index  destination  farptr[x]
+                                    437 ;   BSIZE    block size bytes 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 80.
+Hexadecimal [24-Bits]
+
+
+
+                                    438 ;   farptr   write address , byte* 
+                                    439 ; output:
+                                    440 ;	X 		after last byte written 
+                                    441 ;   Y 		after last byte read 
+                                    442 ;  farptr   point after block
+                                    443 ;---------------------------------------------
+                                    444 	_argofs 2 
+                                    445 	_arg BSIZE 1  ; block size
+                                    446 	; local var 
+                                    447 	XSAVE=1 
+                                    448 	VSIZE=2 
+                                    449 write_block:
+                                    450 	_vars VSIZE
+                                    451 	ldw (XSAVE,sp),x 
+                                    452 	ldw x,(BSIZE,sp) 
+                                    453 	jreq 9$
+                                    454 1$:	ldw x,(XSAVE,sp)
+                                    455 	ld a,(y)
+                                    456 	call write_byte 
+                                    457 	incw x 
+                                    458 	incw y 
+                                    459 	ldw (XSAVE,sp),x
+                                    460 	ldw x,(BSIZE,sp)
+                                    461 	decw x
+                                    462 	ldw (BSIZE,sp),x 
+                                    463 	jrne 1$
+                                    464 9$:
+                                    465 	ldw x,(XSAVE,sp)
+                                    466 	call incr_farptr
+                                    467 	_drop VSIZE
+                                    468 	ret 
+                                    469 .endif 
+                                    470 
+      00171C                        471 user_space: 
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 81.
 Hexadecimal [24-Bits]
 
 
@@ -5755,10 +5845,10 @@ Hexadecimal [24-Bits]
                                    3838         
                                    3839 ;===============================================================
                                    3840 
-                           0015BB  3841 LASTN =	LINK   ;last name defined
+                           00169E  3841 LASTN =	LINK   ;last name defined
                                    3842 
                                    3843 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 81.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 82.
 Hexadecimal [24-Bits]
 
 Symbol Table
@@ -5818,7 +5908,7 @@ Symbol Table
     CLKOPT_P=  000001     |     CLK_CCOR=  0050C9     |     CLK_CKDI=  0050C6 
     CLK_CKDI=  000000     |     CLK_CKDI=  000001     |     CLK_CKDI=  000002 
     CLK_CKDI=  000003     |     CLK_CKDI=  000004     |     CLK_CMSR=  0050C3 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 82.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 83.
 Hexadecimal [24-Bits]
 
 Symbol Table
@@ -5878,7 +5968,7 @@ Symbol Table
   6 FIND1      000DB4 R   |   6 FIND2      000DE2 R   |   6 FIND3      000DEE R
   6 FIND4      000E02 R   |   6 FIND5      000E0F R   |   6 FIND6      000DF3 R
     FLASH_BA=  008000     |     FLASH_CR=  00505A     |     FLASH_CR=  000002 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 83.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 84.
 Hexadecimal [24-Bits]
 
 Symbol Table
@@ -5938,7 +6028,7 @@ Symbol Table
     INT_UART=  000011     |     INT_UART=  000015     |     INT_UART=  000014 
     INT_VECT=  008060     |     INT_VECT=  00800C     |     INT_VECT=  008028 
     INT_VECT=  00802C     |     INT_VECT=  008010     |     INT_VECT=  008014 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 84.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 85.
 Hexadecimal [24-Bits]
 
 Symbol Table
@@ -5956,9 +6046,9 @@ Symbol Table
     IWDG_KR =  0050E0     |     IWDG_PR =  0050E1     |     IWDG_RLR=  0050E2 
   6 JSRC       001306 R   |   6 KEY        000AA0 R   |   6 KTAP       000E87 R
   6 KTAP1      000EAA R   |   6 KTAP2      000EAD R   |   6 LAST       000346 R
-  6 LASTN   =  0015BB R   |   6 LBRAC      000FA4 R   |     LED2_BIT=  000005 
+  6 LASTN   =  00169E R   |   6 LBRAC      000FA4 R   |     LED2_BIT=  000005 
     LED2_MAS=  000020     |     LED2_POR=  00500A     |   6 LESS       00046A R
-    LF      =  00000A     |   6 LINK    =  0015BB R   |   6 LITER      0010D9 R
+    LF      =  00000A     |   6 LINK    =  00169E R   |   6 LITER      0010D9 R
   6 LT1        000480 R   |     MASKK   =  001F7F     |   6 MAX        00048A R
   6 MAX1       00049D R   |   6 MIN        0004A7 R   |   6 MIN1       0004BA R
   6 MMOD1      00055D R   |   6 MMOD2      000571 R   |   6 MMOD3      000588 R
@@ -5998,7 +6088,7 @@ Symbol Table
     PC_CR1  =  00500D     |     PC_CR2  =  00500E     |     PC_DDR  =  00500C 
     PC_IDR  =  00500B     |     PC_ODR  =  00500A     |     PD      =  00000F 
   6 PDUM1      0013AE R   |   6 PDUM2      0013BF R   |     PD_BASE =  00500F 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 85.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 86.
 Hexadecimal [24-Bits]
 
 Symbol Table
@@ -6058,7 +6148,7 @@ Symbol Table
     TIM1_CCM=  000002     |     TIM1_CCM=  000004     |     TIM1_CCM=  000005 
     TIM1_CCM=  000006     |     TIM1_CCM=  000003     |     TIM1_CCM=  00525A 
     TIM1_CCM=  000000     |     TIM1_CCM=  000001     |     TIM1_CCM=  000004 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 86.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 87.
 Hexadecimal [24-Bits]
 
 Symbol Table
@@ -6118,7 +6208,7 @@ Symbol Table
     TIM4_CR1=  000002     |     TIM4_EGR=  005343     |     TIM4_EGR=  000000 
     TIM4_IER=  005341     |     TIM4_IER=  000000     |     TIM4_PSC=  005345 
     TIM4_PSC=  000000     |     TIM4_PSC=  000007     |     TIM4_PSC=  000004 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 87.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 88.
 Hexadecimal [24-Bits]
 
 Symbol Table
@@ -6178,22 +6268,25 @@ Symbol Table
   6 WHILE      0011B3 R   |   6 WITHI      0004C7 R   |   6 WORDD      000D1E R
   6 WORDS      0014A1 R   |   6 WORS1      0014A7 R   |   6 WORS2      0014C6 R
     WWDG_CR =  0050D1     |     WWDG_WR =  0050D2     |   6 XORR       000281 R
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 88.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 89.
 Hexadecimal [24-Bits]
 
 Symbol Table
 
     XTEMP   =  00001A     |     YTEMP   =  00001C     |   6 ZERO       0006BA R
-  6 ZL1        00024E R   |   6 ZLESS      000245 R   |   6 clear_ra   000012 R
-  6 clock_in   000051 R   |     da      =  000002     |     db      =  000003 
-    dc      =  000000     |     dd      =  000001     |   6 eeprom     00153F R
-  6 farat      001551 R   |   6 farcat     00156D R   |     farptr  =  000002 
-  6 fptr_sto   001520 R   |   6 main       00000F R   |     ptr16   =  000003 
-    ptr8    =  000004     |   6 uart1_in   000063 R   |   6 unlock_e   001584 R
-  6 unlock_f   0015A3 R   |   6 user_spa   00163C R   |   6 write_by   0015C1 R
-  6 write_ee   001600 R   |   6 write_ex   001639 R   |   6 write_fl   0015EA R
+  6 ZL1        00024E R   |   6 ZLESS      000245 R   |   6 block_er   0016C5 R
+  6 clear_ra   000012 R   |   6 clock_in   000051 R   |     da      =  000002 
+    db      =  000003     |     dc      =  000000     |     dd      =  000001 
+  6 ee_cstor   001630 R   |   6 ee_store   00167C R   |   6 eeprom     00153F R
+  6 erase_fl   0016E1 R   |   6 farat      001551 R   |   6 farcat     00156D R
+    farptr  =  000002     |   6 fptr_sto   001520 R   |   6 inc_fptr   0015FE R
+  6 lock       0015EA R   |   6 main       00000F R   |   6 proceed_   0016E4 R
+    ptr16   =  000003     |     ptr8    =  000004     |   6 row_eras   0016A8 R
+  6 row_eras   0016F5 R   |   6 row_eras   00171C R   |   6 uart1_in   000063 R
+  6 unlock     0015C2 R   |   6 unlock_e   001584 R   |   6 unlock_f   0015A3 R
+  6 user_spa   00171C R   |   6 write_by   001615 R
 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 89.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 90.
 Hexadecimal [24-Bits]
 
 Area Table
@@ -6204,5 +6297,5 @@ Area Table
    3 SSEG       size      0   flags    8
    4 SSEG1      size    100   flags    8
    5 HOME       size     80   flags    0
-   6 CODE       size   163C   flags    0
+   6 CODE       size   171C   flags    0
 

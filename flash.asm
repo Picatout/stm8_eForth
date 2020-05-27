@@ -65,7 +65,7 @@ eeprom:
     ret
 
 ;----------------------------------
-; fetch address over 65535
+; fetch integer at address over 65535
 ;  F@   ( ud -- n )
 ;----------------------------------
     .word LINK 
@@ -132,86 +132,208 @@ unlock_flash:
 	btjf FLASH_IAPSR,#FLASH_IAPSR_PUL,.
 	ret
 
-;---------------------------------------
-; write a byte to FLASH or EEPROM/OPTION  
-; EE-C!  (c ud -- )
-;---------------------------------------
-    .word LINK 
-LINK=.
-    .byte 5 
-    .ascii "EE-C!"
-	; local variables 
-	BTW = 1   ; byte to write offset on stack
-	OPT = 2   ; OPTION flag offset on stack
-    VSIZE = 2
-write_byte:
-	sub sp,#VSIZE
-    call fptr_store
-    ld a,(1,x)
-	ld (BTW,sp),a ; byte to write 
-	clr (OPT,sp)  ; OPTION flag
-    addw x,#CELLL 
+;-----------------------------
+; unlock FLASH or EEPROM 
+; according to farptr address 
+;  UNLOCK ( -- )
+;-----------------------------
+	.word LINK 
+	LINK=.
+	.byte 6
+	.ascii "UNLOCK"
+unlock:
 ; put addr[15:0] in Y, for bounds check.
 	ldw y,ptr16   ; Y=addr15:0
 ; check addr[23:16], if <> 0 then it is extened flash memory
 	tnz farptr 
-	jrne write_flash
+	jrne 4$
     cpw y,#user_space
-    jruge write_flash
+    jruge 4$
 	cpw y,#EEPROM_BASE  
-    jrult write_exit
+    jrult 9$
 	cpw y,#OPTION_END 
-	jrugt write_exit
-	jra write_eeprom 
-; write program memory
-write_flash:
-	call unlock_flash 
-1$:	sim 
-	ld a,(BTW,sp)
-	ldf [farptr],a ; farptr[x]=A
-	btjf FLASH_IAPSR,#FLASH_IAPSR_EOP,.
-    rim 
-    bres FLASH_IAPSR,#FLASH_IAPSR_PUL
-    jra write_exit
-; write eeprom and option
-write_eeprom:
+	jrugt 9$
 	call unlock_eeprom
-	; check for data eeprom or option eeprom
+	ret 
+4$: call unlock_flash
+9$: ret 
+
+;-------------------------
+; lock write access to 
+; FLASH and EEPROM 
+; LOCK ( -- )
+;-------------------------
+	.word LINK 
+	LINK=.
+	.byte 4 
+	.ascii "LOCK" 
+lock: 
+	bres FLASH_IAPSR,#FLASH_IAPSR_PUL
+	bres FLASH_IAPSR,#FLASH_IAPSR_DUL
+	ret 
+
+;-------------------------
+; increment farptr 
+; INC-FPTR ( -- )
+;-------------------------
+	.word LINK 
+	LINK=. 
+	.byte 8 
+	.ascii "INC-FPTR" 
+inc_fptr:
+	inc ptr8 
+	jrne 1$
+	ldw y,farptr 
+	incw y 
+	ldw farptr,y 
+1$: ret 
+
+
+;----------------------------
+; write a byte at address pointed 
+; by farptr and increment farptr.
+; Expect pointer already initialized 
+; and memory unlocked 
+; WR-BYTE ( c -- )
+;----------------------------
+
+	.word LINK 
+	LINK=. 
+	.byte 7 
+	.ascii "WR-BYTE" 
+
+write_byte:
+	ldw y,x 
+	ldw y,(y)
+	addw x,#CELLL 
+	ld a,yl
+	ldf [farptr],a
+	btjf FLASH_IAPSR,#FLASH_IAPSR_EOP,.
+	jra inc_fptr 
+
+
+
+;---------------------------------------
+; write a byte to FLASH or EEPROM/OPTION  
+; EEC!  (c ud -- )
+;---------------------------------------
+    .word LINK 
+	LINK=.
+    .byte 4 
+    .ascii "EEC!"
+	; local variables 
+	BTW = 1   ; byte to write offset on stack
+    OPT = 2 
+	VSIZE = 2
+ee_cstore:
+	sub sp,#VSIZE
+    call fptr_store
+	ld a,(1,x)
+	cpl a 
+	ld (BTW,sp),a ; byte to write 
+	clr (OPT,sp)  ; OPTION flag
+	call unlock 
+	; check if option
+	tnz farptr 
+	jrne 2$
+	ldw y,ptr16 
 	cpw y,#OPTION_BASE
-	jrmi 1$
+	jrmi 2$
 	cpw y,#OPTION_END+1
-	jrpl 1$
+	jrpl 2$
 	cpl (OPT,sp)
-1$: 
-    tnz (OPT,sp)
-    jreq 2$
-	; pour modifier une option il faut modifier ces 2 bits
+	; OPTION WRITE require this unlock 
     bset FLASH_CR2,#FLASH_CR2_OPT
     bres FLASH_NCR2,#FLASH_CR2_OPT 
 2$: 
+	call write_byte 	
+	tnz (OPT,sp)
+	jreq 3$ 
     ld a,(BTW,sp)
-    ldf [farptr],a
-    tnz (OPT,sp)
-    jreq 3$
-    inc ptr8 
-    jrne 21$
-    inc ptr16      
-21$:
-    ld a,(BTW,sp)
-    cpl a
-    ldf [farptr],a
-3$: btjf FLASH_IAPSR,#FLASH_IAPSR_EOP,.
-write_exit:
+    clrw y
+	ld yl,a 
+	subw x,#CELLL 
+	ldw (x),y 
+	call write_byte
+3$: 
+	call lock 
 	addw sp,#VSIZE 
     ret
 
-.if 0
+;------------------------------
+; write integer in FLASH|EEPROM
+; EE! ( n ud -- )
+;------------------------------
+	.word LINK 
+	LINK=.
+	.byte 3 
+	.ascii "EE!"
+ee_store:
+	call fptr_store 
+	call unlock 
+	ldw y,x 
+	ldw y,(y)
+	pushw y 
+	swapw y 
+	ldw (x),y 
+	call write_byte 
+	popw y 
+	subw x,#CELLL
+	ldw (x),y 
+	call write_byte
+	bres FLASH_IAPSR,#FLASH_IAPSR_PUL
+	ret 
+
 ;----------------------------
-; erase block code must be 
-; executed from RAM
-; input:
-;-----------------------------
+; Erase flash memory row 
+; stm8s208 as 128 bytes rows
+; ROW-ERASE ( ud -- )
+;----------------------------
+	.word LINK 
+	LINK=. 
+	.byte 9 
+	.ascii "ROW-ERASE" 
 row_erase:
+	call fptr_store
+;code must be execute from RAM 
+;copy routine to PAD 
+	subw x,#CELLL 
+	ldw y,#row_erase_proc
+	ldw (x),y 
+	call PAD 
+	ldw y,#row_erase_proc_end 
+	subw y,#row_erase_proc
+	subw x,#CELLL 
+	ldw (x),y 
+	call CMOVE 
+block_erase:
+	ldw y,farptr+1
+	cpw y,#user_space 
+	jrpl erase_flash 
+; erase eeprom block
+	cpw y,#EEPROM_BASE 
+	jruge 1$
+	ret ; bad address 
+1$: cpw y,#EEPROM_END 
+	jrule 2$ 
+	ret ; bad address 
+2$:	
+	call unlock_eeprom 
+	jra proceed_erase
+; erase flash block:
+erase_flash:
+	call unlock_flash 
+proceed_erase:
+	call PAD 
+	ldw y,x
+	ldw y,(y)
+	addw x,#CELLL  
+	call (y) 
+	bres FLASH_IAPSR,#FLASH_IAPSR_DUL
+	ret 
+
+; this routine is to be copied to PAD 
+row_erase_proc:
 	mov FLASH_CR2,#(1<<FLASH_CR2_ERASE) 
 	mov FLASH_NCR2,#~(1<<FLASH_CR2_ERASE)
 	clr a 
@@ -225,18 +347,10 @@ row_erase:
 	ldf ([farptr],y),a
 	btjf FLASH_IAPSR,#FLASH_IAPSR_EOP,.
 	ret
-row_erase_end:
+row_erase_proc_end:
 
-; copy erase_start in RAM 
-move_erase_to_ram:
-	ldw x,#row_erase_end 
-	subw x,#row_erase
-	ldw acc16,x 
-	ldw x,#tib 
-	ldw y,#row_erase 
-	call move 
-	ret 
 
+.if 0
 ;-----------------------------------
 ; block programming must be 
 ; executed from RAM 
@@ -312,37 +426,6 @@ do_programming:
 	call tib
 	bres FLASH_IAPSR,#FLASH_IAPSR_PUL 
 	bres FLASH_IAPSR,#FLASH_IAPSR_DUL  
-	ret 
-
-
-;-----------------------------------
-; erase flash or EEPROM block
-; a blow is 128 bytes 
-; input:
-;   farptr  address row begin
-; output:
-;   none
-;--------------------------------------
-block_erase:
-	ldw x,farptr+1
-	cpw x,#user_space 
-	jrpl erase_flash 
-; erase eeprom block
-	cpw x,#EEPROM_BASE 
-	jruge 1$
-	ret ; bad address 
-1$: ldw x,#EEPROM_END 
-	jrule 2$ 
-	ret ; bad address 
-2$:	call unlock_eeprom 
-	call tib 
-	bres FLASH_IAPSR,#FLASH_IAPSR_DUL
-	ret 
-; erase flash block:
-erase_flash:
-	call unlock_flash 
-	call tib 
-    bres FLASH_IAPSR,#FLASH_IAPSR_PUL
 	ret 
 
 
