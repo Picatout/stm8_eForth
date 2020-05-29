@@ -106,6 +106,8 @@ CARRY = 32
 SP0	=	34	 ;initial data stack pointer
 RP0	=	36	;initial return stack pointer
 MS    =         38      ; millisecond counter 
+CNTDWN =        40      ; count down timer 
+
 ;***********************************************
 ;; Version control
 
@@ -136,6 +138,24 @@ SPP     =     RAMBASE+DATSTK
 RPP     =     RAMBASE+STACK
 TIBB    =     RAMBASE+TIBBASE
 CTOP    =     RAMBASE+0x80
+
+.if PICATOUT_MOD 
+; user variables constants 
+UBASE = RAMBASE+6 ; numeric base 
+UTMP = UBASE+2    ; temporary storage
+UINN = UTMP+2     ; >IN tib pointer 
+UCTIB = UINN+2    ; tib count 
+UTIB = UCTIB+2    ; tib address 
+UINTER = UTIB+2   ; interpreter vector 
+UHLD = UINTER+2   ; hold 
+UCNTXT = UHLD+2   ; context 
+UCP = UCNTXT+2    ; ram dictionary pointer 
+ULAST = UCP+2     ; flash dictionary pointer 
+APP_LAST = EEPROM_BASE ; Application last word pointer  
+APP_RUN = APP_LAST+2   ; application autorun address 
+APP_HERE = APP_RUN+2   ; free application space 
+.endif ; PICATOUT_MOD
+
 
         .macro _ledon
         bset PC_ODR,#LED2_BIT
@@ -209,7 +229,12 @@ Timer4Handler:
 	clr TIM4_SR 
         ldw x,MS 
         incw x 
-        ldw MS,x 
+        ldw MS,x
+        ldw x,CNTDWN 
+        jreq 1$
+        decw x 
+        ldw CNTDWN,x 
+1$:         
         iret 
 
 
@@ -235,10 +260,10 @@ UZERO:
         .word      TIBB    ;TIB
         .word      INTER   ;'EVAL
         .word      0       ;HLD
-        .word       LASTN   ;CONTEXT pointer
+        .word       LASTN  ;CNTXT pointer
         .word       CTOP   ;CP in RAM
         .word      LASTN   ;LAST
-ULAST:  .word      0
+UEND:  .word      0
 
 ORIG:   
 ; initialize SP
@@ -296,6 +321,51 @@ MSEC:
         ldw y,MS 
         ldw (x),y 
         ret 
+
+; suspend execution for u msec 
+;  pause ( u -- )
+        .word LINK 
+        LINK=.
+        .byte 5 
+        .ascii "PAUSE"
+PAUSE:
+        ldw y,x
+        ldw y,(y)
+        addw y,MS 
+1$:     wfi  
+        cpw y,MS  
+        jrne 1$        
+        addw x,#CELLL 
+        ret 
+
+; initialize count down timer 
+;  TIMER ( u -- )  milliseconds 
+        .word LINK 
+        LINK=.
+        .byte 5 
+        .ascii "TIMER" 
+TIMER:
+        ldw y,x
+        ldw y,(y) 
+        ldw CNTDWN,y
+        addw x,#CELLL 
+        ret 
+
+; check for TIMER exiparition 
+;  TIMEOUT? ( -- 0|-1 )
+        .word LINK 
+        LINK=. 
+        .byte 8 
+        .ascii "TIMEOUT?"
+TIMEOUTQ: 
+        clr a
+        subw x,#CELLL 
+        ldw y,CNTDWN 
+        jrne 1$ 
+        cpl a 
+1$:     ld (1,x),a 
+        ld (x),a 
+        ret         
 
 ;; Device dependent I/O
 ;       ?RX     ( -- c T | F )
@@ -742,7 +812,7 @@ LINK = .
         .byte      4
         .ascii     "BASE"
 BASE:
-	LDW Y,#RAMBASE+6
+	LDW Y,#UBASE 
 	SUBW X,#2
         LDW (X),Y
         RET
@@ -755,7 +825,7 @@ LINK = .
 	.byte      3
         .ascii     "TMP"
 TEMP:
-	LDW Y,#RAMBASE+8
+	LDW Y,#UTMP
 	SUBW X,#2
         LDW (X),Y
         RET
@@ -767,7 +837,7 @@ LINK = .
         .byte      3
         .ascii    ">IN"
 INN:
-	LDW Y,#RAMBASE+10
+	LDW Y,#UINN 
 	SUBW X,#2
         LDW (X),Y
         RET
@@ -779,7 +849,7 @@ LINK = .
         .byte      4
         .ascii     "#TIB"
 NTIB:
-	LDW Y,#RAMBASE+12
+	LDW Y,#UCTIB 
 	SUBW X,#2
         LDW (X),Y
         RET
@@ -791,7 +861,7 @@ LINK = .
         .byte      5
         .ascii     "'EVAL"
 TEVAL:
-	LDW Y,#RAMBASE+16
+	LDW Y,#UINTER 
 	SUBW X,#2
         LDW (X),Y
         RET
@@ -803,7 +873,7 @@ LINK = .
         .byte      3
         .ascii     "HLD"
 HLD:
-	LDW Y,#RAMBASE+18
+	LDW Y,#UHLD 
 	SUBW X,#2
         LDW (X),Y
         RET
@@ -815,7 +885,7 @@ LINK = .
         .byte      7
         .ascii     "CONTEXT"
 CNTXT:
-	LDW Y,#RAMBASE+20
+	LDW Y,#UCNTXT
 	SUBW X,#2
         LDW (X),Y
         RET
@@ -827,7 +897,7 @@ LINK = .
         .byte      2
         .ascii     "CP"
 CPP:
-	LDW Y,#RAMBASE+22
+	LDW Y,#UCP 
 	SUBW X,#2
         LDW (X),Y
         RET
@@ -839,7 +909,7 @@ LINK = .
         .byte      4
         .ascii     "LAST"
 LAST:
-	LDW Y,#RAMBASE+24
+	LDW Y,#ULAST 
 	SUBW X,#2
         LDW (X),Y
         RET
@@ -1144,10 +1214,10 @@ LINK = .
         .ascii     "UM/MOD"
 UMMOD:
 	LDW XTEMP,X	; save stack pointer
-	LDW X,(X)		; un
-	LDW YTEMP,X ; save un
+	LDW X,(X)	; un
+	LDW YTEMP,X     ; save un
 	LDW Y,XTEMP	; stack pointer
-	LDW Y,(4,Y) ; Y=udl
+	LDW Y,(4,Y)     ; Y=udl
 	LDW X,XTEMP
 	LDW X,(2,X)	; X=udh
 	CPW X,YTEMP
@@ -1743,7 +1813,7 @@ LINK = .
         .ascii     "HERE"
 HERE:
 .if CONVERT_TO_CODE
-      	ldw y,#RAMBASE+22
+      	ldw y,#UCP 
         ldw y,(y)
         subw x,#CELLL 
         ldw (x),y 
@@ -2521,10 +2591,10 @@ LINK = .
         .ascii     "\"
 BKSLA:
 .if CONVERT_TO_CODE
-        ldw y,#RAMBASE+12 ; #TIB  
+        ldw y,#UCTIB ; #TIB  
         ldw y,(y)
         pushw y ; count in TIB 
-        ldw y,#RAMBASE+10 ; >IN 
+        ldw y,#UINN ; >IN 
         ldw YTEMP,y
         popw y 
         ldw [YTEMP],y
@@ -2672,7 +2742,7 @@ LINK = .
         .byte      5
         .ascii     "NAME?"
 NAMEQ:
-        CALL     CNTXT
+        CALL   CNTXT
         JP     FIND
 
 ;; Terminal response
@@ -3825,15 +3895,45 @@ COLD1:  CALL     DOLIT
 	CALL     DOLIT
         .word      UPP
         CALL     DOLIT
-	.word      ULAST-UZERO
+	.word      UEND-UZERO
         CALL     CMOVE   ;initialize user area
+
+.if  PICATOUT_MOD
+; update LAST with APP_LAST 
+; if APP_LAST > LAST else do the opposite
+        ldw y,APP_LAST 
+        cpw y,ULAST 
+        jrugt 1$ 
+; save LAST at APP_LAST  
+        call LAST 
+        call AT  
+        call eeprom 
+        call ee_store 
+        jra 2$
+1$: ; update LAST with APP_LAST 
+        ldw ULAST,y
+2$:  
+; update APP_HERE if < app_space 
+        ldw y,APP_HERE 
+        cpw y,#app_space 
+        jruge 3$ 
+        subw x,#6 
+        ldw y,#app_space 
+        ldw (4,x),y 
+        ldw y,#APP_HERE 
+        ldw (2,x),y
+        clrw y 
+        ldw (x),y
+        call ee_store 
+3$:
+.endif ; PICATOUT_MOD
         CALL     PRESE   ;initialize data stack and TIB
         CALL     TBOOT
         CALL     ATEXE   ;application boot
         CALL     OVERT
         JP     QUIT    ;start interpretation
 
-
+        ; keep this include at end 
         .include "flash.asm"
         
 ;===============================================================

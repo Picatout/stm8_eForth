@@ -147,7 +147,7 @@ unlock:
 ; check addr[23:16], if <> 0 then it is extened flash memory
 	tnz farptr 
 	jrne 4$
-    cpw y,#user_space
+    cpw y,#app_space
     jruge 4$
 	cpw y,#EEPROM_BASE  
     jrult 9$
@@ -308,7 +308,7 @@ row_erase:
 	call CMOVE 
 block_erase:
 	ldw y,farptr+1
-	cpw y,#user_space 
+	cpw y,#app_space 
 	jrpl erase_flash 
 ; erase eeprom block
 	cpw y,#EEPROM_BASE 
@@ -468,4 +468,5 @@ write_block:
 	ret 
 .endif 
 
-user_space: 
+; application code begin here
+app_space: 

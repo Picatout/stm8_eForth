@@ -1,3 +1,24 @@
+#### 2020-05-28
+
+* Lorsque les mots composés par l'utilisateur seront sauvegardés en mémoire FLASH il faudra que la variable système **LAST** soit mise à jour. La nouvelle valeur de LAST sera sauvegardée dans l'EEPROM à adresse 0x4000. J'ai modifié le mot **COLD** pour qu'il compare la valeur de la variable **LAST** avec la valeur dans l'EEPROM appellée **APP_LAST**. La plus grande valeur est celle qui est utilisée et copiée dans la variable système **LAST**. 
+
+* Ajout des variables systèmes suivantes dans l'EEPROM:
+    * **APP_LAST**   LIEN du dernier mot de l'application utilisateur 
+    * **APP_RUN**    adresse de démarrage de l'application utilisateur 
+    * **APP_HERE**   adresse du pointeur HERE pour l'application en mémoire FLASH.
+
+* Lorsqu'un nouveau mot sera ajouté par l'utilisateur dans la mémoire FLASH il faudra mettre à jour la valeur de **APP_LAST** et **APP_HERE** dans l'EEPROM. 
+
+* Il faut que je réfléchisse à la meilleure manière de procéder pour la compilation des mots en mémoire FLASH. 
+    1. toujours compiler en RAM et transférer ensuite en FLASH. Dans ce cas il faudra ajuster les liens lors de la copie.  
+    1. Compiler directement en FLASH évite l'ajustement des liens met rends plus complexe la compilation qui devra utiliser des opérations d'écritures différente selon la destination.  
+
+* Ajout de **PAUSE** ( u -- ) suspend l'exécution pour **u** millisecondes.
+
+* Ajout de **TIMER** ( u -- ) minuterire à rebours non bloquante. **u** millisecondes.
+
+* Ajout de **TIMEOUT?** ( -- 0|-1 ) vérifie l'état de la minuterie à rebours.
+
 #### 2020-05-26
 
 
