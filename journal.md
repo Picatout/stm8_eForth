@@ -7,12 +7,12 @@
 
     * le mot **MARKER** sera ajouter. 
 
-    
-* Ajout de **SET-IVEC** ( ud n -- ) set interrupt vector **n** with isr address **ud**. vector **0** is **TLI**. Vector **24** is **FLASH**. 
 
-* Ajout de **RST-IVEC** ( n -- )  reset interrupt vector to its default value. Default value is address of **NonHandledInterrupt**. 
+* Ajout de **SET-IVEC** ( ud n -- ) Initialize le vecteur d'interruption **n** avec l'adresse de l'ISR **ud**. Le vecteur **0** est **TLI**. Le vecteur **24** est **FLASH**. 
 
-* Ajout du mot **PRISTINE** ( -- ) Ce mot ramène le système à son état initiale avant toute modification par l'utilisateur. 
+* Ajout de **RST-IVEC** ( n -- )  Réinitialise un vecteur d'interruption à sa valeur par défault. Le gestionnaire par défaut est **NonHandledInterrupt** qui a pour effet de réinitialiser le MCU. 
+
+* Ajout du mot **PRISTINE** ( -- ) Ce mot ramène le système à son état initial avant toute modification par l'utilisateur. 
 
 #### 2020-05-29
 

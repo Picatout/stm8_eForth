@@ -1,6 +1,6 @@
 # STM8EF
 
-Le but de ce projet est d'adapter le ficheir [stm8ef.asm.org](stm8ef.asm.org) pour la carte **NUCLEO_8S208RB** et l'assembleur **SDAS**.
+Le but de ce projet est d'adapter le fichier [stm8ef.asm.org](stm8ef.asm.org) pour la carte **NUCLEO_8S208RB** et l'assembleur **SDAS**.
 
 Pour les détails consultez le [journal.md](journal.md).
 
