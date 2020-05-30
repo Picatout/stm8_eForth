@@ -1,3 +1,12 @@
+#### 2020-05-29
+
+* Ajout de **CONSTANT** (n -- ; &lt;string&gt;) curieusement absent du vocabulaire original.
+<BR/>**USAGE:** n CONSTANT nom 
+
+* Ajout de **WR-ROW** ( a ud -- )  copie 128 octets de la mémoire RAM vers la mémoire FLASH ou EEPROM. <br/>**USAGE:** addr_buffer addr_row WR-ROW.  
+
+* Je viens de réaliser qu'il y a un problème pour le transfert des définitions  vers la mémoire FLASH en ce qui conserne les variables. Tel que le système a été conçu au départ ce n'est tout simplement pas possible car le champ paramètre est à la suite du champ code. Il faudrait modifier le système pour que le champ paramètre demeure en RAM, **Ayayaya!** Une autre solution est de créer l'application en RAM, de la sauvegarder en FLASH mais avant de l'exécuter de la recopier en RAM. **Ayayaya!** Encore une autre solution est de modifier le compilateur pour que le dictionnaire ainsi que le code soit en FLASH et les données variables en RAM. **Ça demande réflexion!** je ne veux pas avoir à recréer le système au complet.
+
 #### 2020-05-28
 
 * Lorsque les mots composés par l'utilisateur seront sauvegardés en mémoire FLASH il faudra que la variable système **LAST** soit mise à jour. La nouvelle valeur de LAST sera sauvegardée dans l'EEPROM à adresse 0x4000. J'ai modifié le mot **COLD** pour qu'il compare la valeur de la variable **LAST** avec la valeur dans l'EEPROM appellée **APP_LAST**. La plus grande valeur est celle qui est utilisée et copiée dans la variable système **LAST**. 

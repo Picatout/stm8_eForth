@@ -3513,6 +3513,37 @@ VARIA:
         CALL     ZERO
         JP     COMMA
 
+.if PICATOUT_MOD
+;       CONSTANT  ( n -- ; <string> )
+;       Compile a new constant 
+;       n CONSTANT name 
+        .word LINK 
+        LINK=. 
+        .byte 8 
+        .ascii "CONSTANT" 
+constant:          
+        CALL TOKEN
+        CALL SNAME 
+        CALL OVERT 
+        CALL COMPI 
+        CALL DOCONST
+        CALL COMMA 
+        RET          
+
+; CONSTANT runtime semantic 
+; doCONST  ( -- n )
+        .word LINK 
+        LINK=.
+        .byte DOCONST
+DOCONST:
+        subw x,#CELLL
+        popw y 
+        ldw y,(y) 
+        ldw (x),y 
+        ret 
+.endif ;PICATOUT_MOD
+
+
 ;; Tools
 
 ;       _TYPE   ( b u -- )
@@ -3933,9 +3964,11 @@ COLD1:  CALL     DOLIT
         CALL     OVERT
         JP     QUIT    ;start interpretation
 
+.if PICATOUT_MOD
         ; keep this include at end 
         .include "flash.asm"
-        
+.endif ; PICATOUT_MOD
+
 ;===============================================================
 
 LASTN =	LINK   ;last name defined

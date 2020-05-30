@@ -350,26 +350,22 @@ row_erase_proc:
 row_erase_proc_end:
 
 
-.if 0
 ;-----------------------------------
 ; block programming must be 
 ; executed from RAM 
 ; initial contidions: 
-; 	memory unlocked
-;   bit PRG set in 
-; input:
-;   x        128 bytes row to program 
-;   farptr   row address 
-; output:
-;   none 
-;----------------------------------
+; 		memory unlocked
+;       farptr initialized 
+; input: 
+;    x   buffer address 
+;-----------------------------------
 	BCNT=1 
-program_row:
+copy_buffer:
 	push #BLOCK_SIZE  
 ;enable block programming 
 	bset FLASH_CR2,#FLASH_CR2_PRG 
 	bres FLASH_NCR2,#FLASH_CR2_PRG
-	clrw y 
+	clrw y
 1$:	ld a,(x)
 	ldf ([farptr],y),a
 	incw x 
@@ -378,95 +374,73 @@ program_row:
 	jrne 1$
 ; wait EOP bit 
 	btjf FLASH_IAPSR,#FLASH_IAPSR_EOP,. 
-	_drop 1 
+	pop a ; remove BCNT from stack 
 	ret 
-program_row_end:
+copy_buffer_end:
 
 ;-------------------------
 ; move program_row to RAM 
-; at txtubound address 
+; in TIB 
 ;------------------------
-move_prg_to_ram:
-	ldw x,#program_row_end 
-	subw x,#program_row 
-	ldw acc16,x 
-	ldw x,#tib 
-	ldw y,#program_row 
-	call move 
+copy_prog_to_ram:
+	subw x,#6
+	ldw y,#copy_buffer 
+	ldw (4,x),y 
+	ldw y,#TIBBASE
+	ldw (2,x),y 
+	ldw y,#copy_buffer_end 
+	subw y,#copy_buffer  
+	ldw (x),y 
+	call CMOVE 
 	ret 
 
 
 ;-----------------------------
 ; write a row in FLASH/EEPROM 
-; input:
-;    farptr   destination address 
-;    x        source address 
+; WR-ROW ( a ud -- )
+; a -> address 128 byte buffer to write 
+; ud ->  row address in FLASH|EEPROM 
 ;-----------------------------
+	.word LINK 
+	LINK=.
+	.byte 6 
+	.ascii "WR-ROW"
 write_row:
+	call fptr_store 
+	call copy_prog_to_ram
+	call unlock
+	ldw y,x 
+	ldw y,(y)
+	addw x,#CELLL 
 	pushw x 
-	tnz farptr 
-	jrne to_flash 
-	ldw x,#FLASH_BASE 
-	cpw x,farptr+1 
-	jruge to_flash 
-to_eeprom:
-	ldw x,#EEPROM_BASE 
-	cpw x,farptr+1 
-	jruge 1$
-	ret ; bad address 
-1$: ldw x,#EEPROM_END 
-	jrule 2$ 
-	ret ; bad address 
-2$:	call unlock_eeprom
-	jra do_programming
-to_flash:
-	call unlock_flash 
-do_programming:
+	ldw x,y ; buffer address in x 
+	call TIBBASE
+	call lock
 	popw x 
-	call tib
-	bres FLASH_IAPSR,#FLASH_IAPSR_PUL 
-	bres FLASH_IAPSR,#FLASH_IAPSR_DUL  
 	ret 
 
-
-;--------------------------------------------
-; write a data block to eeprom or flash 
-; input:
-;   Y        source address   
-;   X        array index  destination  farptr[x]
-;   BSIZE    block size bytes 
-;   farptr   write address , byte* 
-; output:
-;	X 		after last byte written 
-;   Y 		after last byte read 
-;  farptr   point after block
-;---------------------------------------------
-	_argofs 2 
-	_arg BSIZE 1  ; block size
-	; local var 
-	XSAVE=1 
-	VSIZE=2 
-write_block:
-	_vars VSIZE
-	ldw (XSAVE,sp),x 
-	ldw x,(BSIZE,sp) 
-	jreq 9$
-1$:	ldw x,(XSAVE,sp)
-	ld a,(y)
-	call write_byte 
-	incw x 
-	incw y 
-	ldw (XSAVE,sp),x
-	ldw x,(BSIZE,sp)
-	decw x
-	ldw (BSIZE,sp),x 
-	jrne 1$
-9$:
-	ldw x,(XSAVE,sp)
-	call incr_farptr
-	_drop VSIZE
-	ret 
+.if 0
+;----------------------------
+; transfert one or more définition 
+; from RAM to FLASH 
+; USAGE: FLASH name 
+; 'name' and all following are 
+; transfered to FLASH memory 
+; FLASH ( -- ; <string> )
+;-----------------------------------
+	.word LINK 
+	LINK=. 
+	.byte 5 
+	.ascii "FLASH"
+flash_colon: 
+    call TOKEN 
+	call SNAME 
+	call DROP	
 .endif 
 
+
+
+
 ; application code begin here
+	.bndry 128 ; align on flash block  
 app_space: 
