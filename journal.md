@@ -1,3 +1,19 @@
+#### 2020-05-30
+
+* **NOTE:**<br/>  
+    * **SET-IVEC** et **RST-IVEC** ne sont pas prêt pour utilisation il faut d'abord ajouter les mots pour compiler les interruptions. Quelque chose comme   **:I** au lieu de **:** et **I;** au lieu de **;**. Ceci est nécessaire car les routines d'interruptions se termine par instruction machine *iret* au lieu de *ret* et elles ne doivent pas apparaître dans le dictionnaire. Le compilateur devra retourné le **ca** de la routine et **SET-IVEC** devra être appellée avec cette valeur.
+
+    * J'ai décidé que le compilateur compilerait dans la mémoire FLASH et que la RAM serait réservée seulement pour les variables. Il faudra donc maintenir un  pointer RAM_HERE un pointer FLASH_HERE. 
+
+    * le mot **MARKER** sera ajouter. 
+
+    
+* Ajout de **SET-IVEC** ( ud n -- ) set interrupt vector **n** with isr address **ud**. vector **0** is **TLI**. Vector **24** is **FLASH**. 
+
+* Ajout de **RST-IVEC** ( n -- )  reset interrupt vector to its default value. Default value is address of **NonHandledInterrupt**. 
+
+* Ajout du mot **PRISTINE** ( -- ) Ce mot ramène le système à son état initiale avant toute modification par l'utilisateur. 
+
 #### 2020-05-29
 
 * Ajout de **CONSTANT** (n -- ; &lt;string&gt;) curieusement absent du vocabulaire original.

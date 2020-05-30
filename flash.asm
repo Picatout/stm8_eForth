@@ -147,7 +147,7 @@ unlock:
 ; check addr[23:16], if <> 0 then it is extened flash memory
 	tnz farptr 
 	jrne 4$
-    cpw y,#app_space
+    cpw y,#FLASH_BASE
     jruge 4$
 	cpw y,#EEPROM_BASE  
     jrult 9$
@@ -406,7 +406,11 @@ copy_prog_to_ram:
 	.byte 6 
 	.ascii "WR-ROW"
 write_row:
-	call fptr_store 
+	call fptr_store
+; align to FLASH block 
+	ld a,#0x80 
+	and a,ptr8 
+	ld ptr8,a  
 	call copy_prog_to_ram
 	call unlock
 	ldw y,x 
@@ -418,6 +422,149 @@ write_row:
 	call lock
 	popw x 
 	ret 
+
+;--------------------------------------
+; reset system to its original state 
+; before any user modification
+; PRISTINE ( -- )
+;-------------------------------------
+	.word LINK  
+	LINK=.
+	.byte 8 
+	.ascii "PRISTINE"
+pristine:
+;;; erase EEPROM
+	call eeprom 
+1$:	call DDUP 
+	call row_erase
+	ldw y,x 
+	ldw y,(2,y)
+	addw y,#BLOCK_SIZE
+	ldw (2,x),y
+	cpw y,#OPTION_BASE 
+	jrult 1$
+;;; reset OPTION to default values
+	ldw y,#0x4801 ; OPT1 
+2$:	ldw (2,x),y 
+	call DDUP   ; ( 0x480n 0 0x480n 0 -- )
+	ldw y,#255 
+	subw x,#CELLL 
+	ldw (x),y   ; ( 0x480n 0 0x480n 0 0x00ff -- ) 
+	call ROT 
+	call ROT 
+	call ee_store ; ( 0x480n 0 0x00ff 0x480n 0 -- 0x480n 0 )
+	ldw y,x 
+	ldw y,(2,y)
+	addw y,#2  ; next OPTION 
+	cpw y,#0x480F 
+	jrult 2$
+;;; erase first row of app_space 	
+; ( 0x480e 0 -- )	
+	ldw y,#app_space
+	ldw (2,x),y  ; ( app_space 0 -- )
+	call row_erase 
+; reset interrupt vectors 
+	subw x,#CELLL 
+	clrw y  
+4$:	ldw (x),y  ; ( n -- ) int# 
+	call DUPP  
+	call reset_vector
+	ldw y,x 
+	ldw y,(y)
+	incw y   ; next vector 
+	cpw y,#25 
+	jrult 4$
+	jp NonHandledInterrupt ; reset MCU
+
+;------------------------------
+; reset an interrupt vector 
+; to its initial value 
+; i.e. NonHandledInterrupt
+; RST-IVEC ( n -- )
+;-----------------------------
+	.word LINK 
+	LINK=. 
+	.byte 8 
+	.ascii "RST-IVEC"
+reset_vector:
+	ldw y,x
+	addw x,#CELLL 
+	ldw y,(y)
+	cpw y,#23 
+	jreq 9$
+	cpw y,#24 ; last vector for stm8s208 
+	jrugt 9$  
+	sllw y 
+	sllw y 
+	addw y,#0x8008 ; irq0 address 
+	ldw YTEMP,y
+	subw x,#3*CELLL 
+	ldw (2,x),y 
+	clrw y
+	ldw (x),y 
+	ld a,#0x82 
+	ld yh,a
+	ldw (4,x),y
+	call ee_store
+	subw x,#3*CELLL
+	clrw y 
+	ldw (x),y 
+	ldw y,#NonHandledInterrupt
+	ldw (4,x),y 
+	ldw y,YTEMP  
+	addw y,#2
+	ldw (2,x),y 
+	call ee_store
+9$:	ret 
+
+
+	
+;------------------------------
+; set interrupt vector 
+; SET-IVEC ( ud n -- )
+;  ud Handler address
+;  n  vector # 0 .. 29 
+;-----------------------------
+	.word LINK
+	LINK=.
+	.byte 8 
+	.ascii "SET-IVEC" 
+set_vector:
+    ldw y,x 
+	addw x,#CELLL 
+	ldw y,(y) ; vector #
+	cpw y,#24 ; last vector for stm8s208  
+	jrule 2$
+	addw x,#2*CELLL 
+	ret
+2$:	sllw y 
+	sllw y 
+	addw y,#0X8008 ; IRQ0 vector address 
+	ldw YTEMP,y ; vector address 
+	ld a,#0x82 
+	ld yh,a 
+	ld a,(1,x) ; isr address bits 23..16 
+	ld yl,a 
+;  write 0x82 + most significant byte of int address	
+	subw x,#3*CELLL 
+	ldw (4,x),y 
+	ldw y,YTEMP
+	ldw (2,x),y ; vector address 
+	clrw y 
+	ldw (x),y   ; as a double 
+	call ee_store 
+	ldw y,x 
+	ldw y,(2,y) ; bits 15..0 int vector 
+	subw x,#3*CELLL 
+	ldw (4,x),y 
+	ldw y,YTEMP 
+	addw y,#2 
+	ldw (2,x),y 
+	clrw y 
+	ldw (x),y 
+	call ee_store 
+9$: ret 
+
 
 .if 0
 ;----------------------------

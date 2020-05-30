@@ -153,7 +153,7 @@ UCP = UCNTXT+2    ; ram dictionary pointer
 ULAST = UCP+2     ; flash dictionary pointer 
 APP_LAST = EEPROM_BASE ; Application last word pointer  
 APP_RUN = APP_LAST+2   ; application autorun address 
-APP_HERE = APP_RUN+2   ; free application space 
+APP_HERE = APP_RUN+2   ; free application space pointer 
 .endif ; PICATOUT_MOD
 
 
@@ -3534,7 +3534,8 @@ constant:
 ; doCONST  ( -- n )
         .word LINK 
         LINK=.
-        .byte DOCONST
+        .byte 7
+        .ascii "DOCONST"
 DOCONST:
         subw x,#CELLL
         popw y 
