@@ -423,6 +423,36 @@ write_row:
 	popw x 
 	ret 
 
+;-------------------------------------
+; change value of OPTION register 
+; SET-OPT (c n -- ) 
+; c new value.
+; n OPT  number {1..7}
+;--------------------------------------
+		.word LINK 
+		LINK=.
+		.byte 7 
+		.ascii "SET-OPT" 
+set_option: 
+		ldw y,x 
+		ldw y,(y)
+		jreq 1$
+		cpw y,#7 
+		jrule 2$ 
+; invalid OPTION number 		
+1$:		addw x,#2*CELLL
+		ret
+2$:		sllw y 
+		addw y,#OPTION_BASE-1
+		ldw (x),y 
+		subw x,#CELLL 
+		clrw y 
+		ldw (x),y 
+		call ee_cstore
+		ret 
+
+
+
 ;--------------------------------------
 ; reset system to its original state 
 ; before any user modification
@@ -444,24 +474,22 @@ pristine:
 	cpw y,#OPTION_BASE 
 	jrult 1$
 ;;; reset OPTION to default values
-	ldw y,#0x4801 ; OPT1 
-2$:	ldw (2,x),y 
-	call DDUP   ; ( 0x480n 0 0x480n 0 -- )
-	ldw y,#255 
-	subw x,#CELLL 
-	ldw (x),y   ; ( 0x480n 0 0x480n 0 0x00ff -- ) 
-	call ROT 
-	call ROT 
-	call ee_store ; ( 0x480n 0 0x00ff 0x480n 0 -- 0x480n 0 )
+	ldw y,#1 ; OPT1 
+2$:	ldw (x),y   
+	clrw y 
+	ldw (2,x),y  ; ( 0 1 -- ) 
+	call DDUP    ; ( 0 1 0 1 -- )  
+	call set_option
 	ldw y,x 
-	ldw y,(2,y)
-	addw y,#2  ; next OPTION 
-	cpw y,#0x480F 
+	ldw y,(y)
+	incw y  ; next OPTION 
+	cpw y,#8 
 	jrult 2$
 ;;; erase first row of app_space 	
-; ( 0x480e 0 -- )	
 	ldw y,#app_space
-	ldw (2,x),y  ; ( app_space 0 -- )
+	ldw (2,x),y  
+	clrw y 
+	ldw (x),y ; ( app_space 0 -- )
 	call row_erase 
 ; reset interrupt vectors 
 	subw x,#CELLL 

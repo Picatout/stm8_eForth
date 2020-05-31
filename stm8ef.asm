@@ -154,6 +154,7 @@ ULAST = UCP+2     ; flash dictionary pointer
 APP_LAST = EEPROM_BASE ; Application last word pointer  
 APP_RUN = APP_LAST+2   ; application autorun address 
 APP_HERE = APP_RUN+2   ; free application space pointer 
+VAR_HERE = APP_HERE+2  ; free data space pointer 
 .endif ; PICATOUT_MOD
 
 
@@ -366,6 +367,16 @@ TIMEOUTQ:
 1$:     ld (1,x),a 
         ld (x),a 
         ret         
+
+; reboot MCU 
+; REBOOT ( -- )
+        .word LINK 
+        LINK=. 
+        .byte 6 
+        .ascii "REBOOT"
+reboot:
+        jp NonHandledInterrupt
+        
 
 ;; Device dependent I/O
 ;       ?RX     ( -- c T | F )
@@ -3930,7 +3941,7 @@ COLD1:  CALL     DOLIT
 	.word      UEND-UZERO
         CALL     CMOVE   ;initialize user area
 
-.if  PICATOUT_MOD
+.if PICATOUT_MOD
 ; update LAST with APP_LAST 
 ; if APP_LAST > LAST else do the opposite
         ldw y,APP_LAST 
@@ -3958,6 +3969,23 @@ COLD1:  CALL     DOLIT
         ldw (x),y
         call ee_store 
 3$:
+; update UCP with VAR_APP 
+; if VAR_APP>UCP else do the opposite 
+        ldw y,VAR_HERE 
+        cpw y,UCP 
+        jrugt 4$
+        call CPP 
+        call AT 
+        subw x,#2*CELLL 
+        ldw y,#VAR_HERE 
+        ldw (2,x),y 
+        clrw y 
+        ldw (x),y 
+        call ee_store
+        jra 6$
+4$: ; update UCP with VAR_HERE 
+        ldw UCP,y 
+6$:      
 .endif ; PICATOUT_MOD
         CALL     PRESE   ;initialize data stack and TIB
         CALL     TBOOT

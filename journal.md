@@ -1,9 +1,21 @@
 #### 2020-05-30
 
+**Session 2**
+
+* Ajout de la variable EEPROM **VAR_HERE** pour conserver la valeur de **CP** qui maintenant ne servira que comme pointeur de données variables. 
+
+* Modification de **COLD** pour synchroniser **CP** avec **VAR_HERE**.
+
+* Ajout de **SET-OPT** ( c n -- ) Modifie la valeur d'un registre OPT **c** nouvelle valeur et **n** numéro de l'option {1..7}.
+
+* Ajout du mot **REBOOT** ( -- ) pour réinitialiser le MCU. 
+
+**Session 1**
+
 * **NOTE:**<br/>  
     * **SET-IVEC** et **RST-IVEC** ne sont pas prêt pour utilisation il faut d'abord ajouter les mots pour compiler les interruptions. Quelque chose comme   **:I** au lieu de **:** et **I;** au lieu de **;**. Ceci est nécessaire car les routines d'interruptions se termine par instruction machine *iret* au lieu de *ret* et elles ne doivent pas apparaître dans le dictionnaire. Le compilateur devra retourné le **ca** de la routine et **SET-IVEC** devra être appellée avec cette valeur.
 
-    * J'ai décidé que le compilateur compilerait dans la mémoire FLASH et que la RAM serait réservée seulement pour les variables. Il faudra donc maintenir un  pointer RAM_HERE un pointer FLASH_HERE. 
+    * J'ai décidé que le compilateur compilerait dans la mémoire FLASH et que la RAM serait réservée seulement pour les variables. Il faudra donc maintenir un  pointer VAR_HERE et un pointer FLASH_HERE. 
 
     * le mot **MARKER** sera ajouter. 
 
