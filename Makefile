@@ -40,12 +40,19 @@ clean: build
 	@echo "***************"
 	rm -f $(BUILD)*
 
+clear_eevars:
+	@echo
+	@echo "***************"
+	@echo "erase EEPROM"
+	@echo "***************"
+	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -s eeprom -b 128 -w /dev/zero
+
 build:
 	mkdir build
 
 .PHONY: test 
 
-flash: $(LIB)
+flash: clear_eevars $(LIB)
 	@echo
 	@echo "***************"
 	@echo "flashing device"
@@ -57,3 +64,7 @@ eforth: $(NAME).asm
 	$(SDAS) -g -l -o $(BUILD)$(NAME).rel $(NAME).asm 
 	$(SDCC) $(CFLAGS) -Wl-u -o $(BUILD)$(NAME).ihx  $(BUILD)$(NAME).rel
 	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -w $(BUILD)$(NAME).ihx
+
+eevars_read:
+	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -s eeprom -b 16 -r eevars.bin
+	@hexdump -C eevars.bin 

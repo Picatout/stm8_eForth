@@ -94,19 +94,59 @@ PICATOUT_MOD=1  ; code modified by Picatout
 ;*********************************************************
 RAMBASE =	0x0000	   ;ram base
 STACK   =	0x17FF 	;system (return) stack empty 
-DATSTK  =	0x16F0	;data stack  empty
+DATSTK  =	0x1670	;data stack  empty
+TBUFFBASE =     0x1680  ; flash read/write transaction buffer 
 TIBBASE =       0X1700  ; tib addr.
+
+
+
+;; Memory allocation
+
+UPP     =     RAMBASE+6
+SPP     =     RAMBASE+DATSTK
+RPP     =     RAMBASE+STACK
+ROWBUFF =     RAMBASE+TBUFFBASE 
+TIBB    =     RAMBASE+TIBBASE
+CTOP    =     RAMBASE+0x80
+
+.if PICATOUT_MOD 
+; user variables constants 
+UBASE = UPP       ; numeric base 
+UTMP = UBASE+2    ; temporary storage
+UINN = UTMP+2     ; >IN tib pointer 
+UCTIB = UINN+2    ; tib count 
+UTIB = UCTIB+2    ; tib address 
+UINTER = UTIB+2   ; interpreter vector 
+UHLD = UINTER+2   ; hold 
+UCNTXT = UHLD+2   ; context, dictionary first link 
+UCP = UCNTXT+2    ; ram dictionary pointer 
+UFCP = UCP+2      ; flash code pointer 
+ULAST = UFCP+2    ; flash dictionary pointer 
+.endif ; PICATOUT_MOD
+
 ;******  System Variables  ******
-XTEMP	=	26	;address called by CREATE
-YTEMP	=	28	;address called by CREATE
-PROD1 = 26	;space for UM*
-PROD2 = 28
-PROD3 = 30
-CARRY = 32
-SP0	=	34	 ;initial data stack pointer
-RP0	=	36	;initial return stack pointer
-MS    =         38      ; millisecond counter 
-CNTDWN =        40      ; count down timer 
+XTEMP	=	ULAST+2	;address called by CREATE
+YTEMP	=	XTEMP+2	;address called by CREATE
+PROD1 = XTEMP	;space for UM*
+PROD2 = PROD1+2
+PROD3 = PROD2+2
+CARRY = PROD3+2
+SP0	= CARRY+2	;initial data stack pointer
+RP0	= SP0+2		;initial return stack pointer
+MS    =   RP0+2         ; millisecond counter 
+CNTDWN =  MS+2          ; count down timer 
+FPTR = CNTDWN+2         ; 24 bits farptr 
+PTR16 = FPTR+1          ; middle byte of farptr 
+PTR8 = FPTR+2           ; least byte of farptr 
+
+.if PICATOUT_MOD
+; EEPROM persistant data  
+APP_LAST = EEPROM_BASE ; Application last word pointer  
+APP_RUN = APP_LAST+2   ; application autorun address 
+APP_HERE = APP_RUN+2   ; free application space pointer 
+VAR_HERE = APP_HERE+2  ; free data space pointer 
+.endif ;PICATOUT_MOD
+
 
 ;***********************************************
 ;; Version control
@@ -130,32 +170,6 @@ CRR     =     13      ;carriage return
 ERR     =     27      ;error escape
 TIC     =     39      ;tick
 CALLL   =     0xCD     ;CALL opcodes
-
-;; Memory allocation
-
-UPP     =     RAMBASE+6
-SPP     =     RAMBASE+DATSTK
-RPP     =     RAMBASE+STACK
-TIBB    =     RAMBASE+TIBBASE
-CTOP    =     RAMBASE+0x80
-
-.if PICATOUT_MOD 
-; user variables constants 
-UBASE = RAMBASE+6 ; numeric base 
-UTMP = UBASE+2    ; temporary storage
-UINN = UTMP+2     ; >IN tib pointer 
-UCTIB = UINN+2    ; tib count 
-UTIB = UCTIB+2    ; tib address 
-UINTER = UTIB+2   ; interpreter vector 
-UHLD = UINTER+2   ; hold 
-UCNTXT = UHLD+2   ; context 
-UCP = UCNTXT+2    ; ram dictionary pointer 
-ULAST = UCP+2     ; flash dictionary pointer 
-APP_LAST = EEPROM_BASE ; Application last word pointer  
-APP_RUN = APP_LAST+2   ; application autorun address 
-APP_HERE = APP_RUN+2   ; free application space pointer 
-VAR_HERE = APP_HERE+2  ; free data space pointer 
-.endif ; PICATOUT_MOD
 
 
         .macro _ledon
@@ -261,8 +275,9 @@ UZERO:
         .word      TIBB    ;TIB
         .word      INTER   ;'EVAL
         .word      0       ;HLD
-        .word       LASTN  ;CNTXT pointer
-        .word       CTOP   ;CP in RAM
+        .word      LASTN  ;CNTXT pointer
+        .word      CTOP   ;CP in RAM
+        .word      app_space ; CP in FLASH 
         .word      LASTN   ;LAST
 UEND:  .word      0
 
@@ -444,7 +459,7 @@ LINK	= 	.
 DONXT:
 	LDW Y,(3,SP)
 	DECW Y
-	JRPL NEX1
+	JRPL NEX1 ; jump if N=0
 	POPW Y
 .if PICATOUT_MOD
         addw sp,#2
@@ -813,6 +828,9 @@ LINK	= .
 DOVAR:
 	SUBW X,#2
         POPW Y    ;get return addr (pfa)
+.if PICATOUT_MOD
+        LDW Y,(Y) ; indirect address 
+.endif ;PICATOUT_MOD        
         LDW (X),Y    ;push on stack
         RET     ;go to RET of EXEC
 
@@ -865,6 +883,22 @@ NTIB:
         LDW (X),Y
         RET
 
+.if PICATOUT_MOD
+;       TBUF ( -- a )
+;       address of 128 bytes transaction buffer 
+        .word LINK 
+        LINK=.
+        .byte 4 
+        .ascii "TBUF"
+tbuff:
+        ldw y,#ROWBUFF
+        subw x,#CELLL
+        ldw (x),y 
+        ret 
+
+
+.endif ;PICATOUT_MOD
+
 ;       "EVAL   ( -- a )
 ;       Execution vector of EVAL.
         .word      LINK
@@ -902,7 +936,11 @@ CNTXT:
         RET
 
 ;       CP      ( -- a )
+.if PICATOUT_MOD 
+;       Point to top of variables
+.else 
 ;       Point to top of dictionary.
+.endif ; PICATOUT_MOD
         .word      LINK
 LINK = . 
         .byte      2
@@ -912,6 +950,20 @@ CPP:
 	SUBW X,#2
         LDW (X),Y
         RET
+
+.if PICATOUT_MOD
+;       FCP    ( -- a )
+;       Pointer to top of FLASH 
+        .word LINK 
+        LINK=.
+        .byte 3 
+        .ascii "FCP"
+FCP: 
+        ldw y,#UFCP 
+        subw x,#CELLL 
+        ldw (x),y 
+        ret                
+.endif ;PICATOUT_MOD
 
 ;       LAST    ( -- a )
 ;       Point to last name in dictionary.
@@ -3052,7 +3104,11 @@ TICK:
         RET     ;yes, push code address
 
 ;       ALLOT   ( n -- )
+.if PICATOUT_MOD
+;       Allocate n bytes to RAM 
+.else 
 ;       Allocate n bytes to  code dictionary.
+.endif 
         .word      LINK
 LINK = . 
         .byte      5
@@ -3507,8 +3563,8 @@ LINK = .
 CREAT:
         CALL     TOKEN
         CALL     SNAME
-        CALL     OVERT
-        CALL     COMPI
+        CALL     OVERT        
+        CALL     COMPI 
         CALL     DOVAR
         RET
 
@@ -3520,9 +3576,24 @@ LINK = .
         .byte      8
         .ascii     "VARIABLE"
 VARIA:
+.if PICATOUT_MOD
+; indirect variable so that VARIABLE definition can be compiled in FLASH 
+        CALL HERE
+        CALL DUPP 
+        CALL CELLP 
+        CALL CPP 
+        CALL STORE 
+.endif         
         CALL     CREAT
+        CALL DUPP
+        CALL COMMA
         CALL     ZERO
-        JP     COMMA
+.if PICATOUT_MOD 
+        call SWAPP 
+        CALL   STORE 
+        CALL FMOVE ; move definition to FLASH
+        RET 
+.endif ;PICATOUT_MOD        
 
 .if PICATOUT_MOD
 ;       CONSTANT  ( n -- ; <string> )
@@ -3921,7 +3992,7 @@ LINK = .
         .ascii     "'BOOT"
 TBOOT:
         CALL     DOVAR
-        .word      HI       ;application to boot
+        .word    APP_RUN      ;application to boot
 
 ;       COLD    ( -- )
 ;       The hilevel cold start s=ence.
@@ -3942,6 +4013,18 @@ COLD1:  CALL     DOLIT
         CALL     CMOVE   ;initialize user area
 
 .if PICATOUT_MOD
+; if APP_RUN==0 initialize with ca de 'hi'  
+        ldw y,APP_RUN 
+        jrne 0$
+        subw x,#3*CELLL 
+        ldw y,#APP_RUN 
+        ldw (2,x),y
+        clrw y 
+        ldw (x),y
+        ldw y,#HI 
+        ldw (4,x),y 
+        call ee_store 
+0$:        
 ; update LAST with APP_LAST 
 ; if APP_LAST > LAST else do the opposite
         ldw y,APP_LAST 
@@ -3967,8 +4050,10 @@ COLD1:  CALL     DOLIT
         ldw (2,x),y
         clrw y 
         ldw (x),y
-        call ee_store 
+        call ee_store
+        ldw y,#app_space
 3$:
+        ldw UFCP,y         
 ; update UCP with VAR_APP 
 ; if VAR_APP>UCP else do the opposite 
         ldw y,VAR_HERE 

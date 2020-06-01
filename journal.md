@@ -1,3 +1,22 @@
+#### 2020-05-31
+
+* Ajout de **FCP** ( -- a ) Retourne le pointeur de la variable système UFCP qui est le pointeur vers le début de la mémoire flash libre. **CP** retourne le pointer vers la RAM libre. 
+
+* Ajout de **EE,** ( w -- ) pour compiler un entier dans la mémoire flash pointée par **FCP**.
+
+* Ajout de **EEC,** ( c -- ) pour compiler un octet dans la mémoire flash pointée par **FCP**.
+
+* Ajout du tampon **ROWBUFF** de 128 octets pour les transactions entre la mémoire FLASH et RAM.
+
+* Ajout de **ROW2BUF** ( ud -- ) Copy a 128 byte block from FLASH or EEPROM to RAM buffer **ROWBUFF**.
+
+* Modification de **VARIABLE** pour que l'adresse de la variable soit un pointeur. Ça va permettre de compiler le code des variables dans la mémoire FLASH tout en gardant le data en RAM.  
+
+* Modification de **COLD** pour initialiser **APP_RUN** avec le ca de **hi**. Lorsqu'une application sera compilée en FLASH son *ca* de démarrage remplacera celui de **hi** dans **APP_RUN**. 
+
+**À faire** 
+* compléter les modifications pour transférer les définitions compilées vers la mémoire flash. La compilation se fera d'abord en RAM pour ensuite copier le code dans la FLASH et finalement mettre à jour les variables **CNTXT**,**APP_HERE**, **APP_LAST**, **UCP** et **CP** s'il s'agit d'une variable. 
+
 #### 2020-05-30
 
 **Session 2**

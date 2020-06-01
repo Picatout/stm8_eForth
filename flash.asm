@@ -22,13 +22,9 @@
 ;  and OPTION 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;pointer to far address 
-    farptr=2
-    ptr16=3
-    ptr8=4
 
 ;--------------------------------
-; initialize farptr 
+; initialize FPTR 
 ; FP!  ( ud -- )
 ;---------------------------------
     .word LINK 
@@ -39,11 +35,11 @@ fptr_store:
     ldw y,x
     ldw y,(y)
     ld a,yl 
-    ld farptr,a 
+    ld FPTR,a 
     addw x,#CELLL 
     ldw y,x 
     ldw y,(y)
-    ldw ptr16,y
+    ldw PTR16,y
     addw x,#CELLL 
     ret 
 
@@ -74,11 +70,11 @@ LINK=.
     .ascii "F@"
 farat:
     call fptr_store
-    ldf a,[farptr]
+    ldf a,[FPTR]
     subw x,#CELLL 
     ld (x),a 
     ldw y,#1
-    ldf a,([farptr],y)
+    ldf a,([FPTR],y)
     ld (1,x),a
     ret 
 
@@ -92,7 +88,7 @@ farat:
     .ascii "FC@" 
 farcat:
     call fptr_store 
-    ldf a,[farptr]
+    ldf a,[FPTR]
     subw x,#CELLL 
     ld (1,x),a 
     clr (x)
@@ -134,7 +130,7 @@ unlock_flash:
 
 ;-----------------------------
 ; unlock FLASH or EEPROM 
-; according to farptr address 
+; according to FPTR address 
 ;  UNLOCK ( -- )
 ;-----------------------------
 	.word LINK 
@@ -143,9 +139,9 @@ unlock_flash:
 	.ascii "UNLOCK"
 unlock:
 ; put addr[15:0] in Y, for bounds check.
-	ldw y,ptr16   ; Y=addr15:0
+	ldw y,PTR16   ; Y=addr15:0
 ; check addr[23:16], if <> 0 then it is extened flash memory
-	tnz farptr 
+	tnz FPTR 
 	jrne 4$
     cpw y,#FLASH_BASE
     jruge 4$
@@ -173,7 +169,7 @@ lock:
 	ret 
 
 ;-------------------------
-; increment farptr 
+; increment FPTR 
 ; INC-FPTR ( -- )
 ;-------------------------
 	.word LINK 
@@ -181,17 +177,17 @@ lock:
 	.byte 8 
 	.ascii "INC-FPTR" 
 inc_fptr:
-	inc ptr8 
+	inc PTR8 
 	jrne 1$
-	ldw y,farptr 
+	ldw y,FPTR 
 	incw y 
-	ldw farptr,y 
+	ldw FPTR,y 
 1$: ret 
 
 
 ;----------------------------
 ; write a byte at address pointed 
-; by farptr and increment farptr.
+; by FPTR and increment FPTR.
 ; Expect pointer already initialized 
 ; and memory unlocked 
 ; WR-BYTE ( c -- )
@@ -207,7 +203,7 @@ write_byte:
 	ldw y,(y)
 	addw x,#CELLL 
 	ld a,yl
-	ldf [farptr],a
+	ldf [FPTR],a
 	btjf FLASH_IAPSR,#FLASH_IAPSR_EOP,.
 	jra inc_fptr 
 
@@ -234,9 +230,9 @@ ee_cstore:
 	clr (OPT,sp)  ; OPTION flag
 	call unlock 
 	; check if option
-	tnz farptr 
+	tnz FPTR 
 	jrne 2$
-	ldw y,ptr16 
+	ldw y,PTR16 
 	cpw y,#OPTION_BASE
 	jrmi 2$
 	cpw y,#OPTION_END+1
@@ -281,8 +277,8 @@ ee_store:
 	subw x,#CELLL
 	ldw (x),y 
 	call write_byte
-	bres FLASH_IAPSR,#FLASH_IAPSR_PUL
-	ret 
+	jp lock 
+
 
 ;----------------------------
 ; Erase flash memory row 
@@ -307,7 +303,7 @@ row_erase:
 	ldw (x),y 
 	call CMOVE 
 block_erase:
-	ldw y,farptr+1
+	ldw y,FPTR+1
 	cpw y,#app_space 
 	jrpl erase_flash 
 ; erase eeprom block
@@ -338,13 +334,13 @@ row_erase_proc:
 	mov FLASH_NCR2,#~(1<<FLASH_CR2_ERASE)
 	clr a 
 	clrw y 
-	ldf ([farptr],y),a
+	ldf ([FPTR],y),a
     incw y
-	ldf ([farptr],y),a
+	ldf ([FPTR],y),a
     incw y
-	ldf ([farptr],y),a
+	ldf ([FPTR],y),a
     incw y
-	ldf ([farptr],y),a
+	ldf ([FPTR],y),a
 	btjf FLASH_IAPSR,#FLASH_IAPSR_EOP,.
 	ret
 row_erase_proc_end:
@@ -355,7 +351,7 @@ row_erase_proc_end:
 ; executed from RAM 
 ; initial contidions: 
 ; 		memory unlocked
-;       farptr initialized 
+;       FPTR initialized 
 ; input: 
 ;    x   buffer address 
 ;-----------------------------------
@@ -367,7 +363,7 @@ copy_buffer:
 	bres FLASH_NCR2,#FLASH_CR2_PRG
 	clrw y
 1$:	ld a,(x)
-	ldf ([farptr],y),a
+	ldf ([FPTR],y),a
 	incw x 
 	incw y 
 	dec (BCNT,sp)
@@ -409,8 +405,8 @@ write_row:
 	call fptr_store
 ; align to FLASH block 
 	ld a,#0x80 
-	and a,ptr8 
-	ld ptr8,a  
+	and a,PTR8 
+	ld PTR8,a  
 	call copy_prog_to_ram
 	call unlock
 	ldw y,x 
@@ -594,25 +590,130 @@ set_vector:
 9$: ret 
 
 
-.if 0
-;----------------------------
-; transfert one or more définition 
-; from RAM to FLASH 
-; USAGE: FLASH name 
-; 'name' and all following are 
-; transfered to FLASH memory 
-; FLASH ( -- ; <string> )
-;-----------------------------------
-	.word LINK 
-	LINK=. 
-	.byte 5 
-	.ascii "FLASH"
-flash_colon: 
-    call TOKEN 
-	call SNAME 
-	call DROP	
-.endif 
+;------------------------
+; Compile word to flash
+; EE, (w -- )
+;-----------------------
+	.word LINK
+	LINK=.
+	.byte 3
+	.ascii "EE,"
+ee_comma:
+	subw x,#2*CELLL 
+	ldw y,UFCP
+	pushw y 
+	ldw (2,x),y 
+	clrw y 
+	ldw (x),y
+	call ee_store
+	popw y 
+	addw y,#2
+	ldw UFCP,y
+	ret 
 
+;-------------------------
+; Compile byte to flash 
+; EEC, ( c -- )	
+;-------------------------
+	.word LINK 
+	LINK=.
+	.byte 4 
+	.ascii "EEC,"
+ee_ccomma:
+	subw x,#2*CELLL 
+	ldw y,UFCP
+	pushw y 
+	ldw (2,x),y 
+	clrw y 
+	ldw (x),y
+	call ee_cstore
+	popw y 
+	incw y 
+	ldw UFCP,y
+	ret 
+
+
+;--------------------------
+; copy FLASH block to ROWBUF
+; ROW2BUF ( ud -- )
+;--------------------------
+	.word LINK 
+	LINK=.
+	.byte 7 
+	.ascii "ROW2BUF"
+ROW2BUF: 
+	call fptr_store 
+	ld a,#BLOCK_SIZE
+	push a 
+	and a,PTR8 ; block align 
+	ld PTR8,a
+	ldw y,#ROWBUFF 
+1$: ldf a,[FPTR]
+	ld (y),a
+	call inc_fptr
+	incw y 
+	dec (1,sp)
+	jrne 1$ 
+	pop a 
+	ret 
+
+
+;--------------------------
+; move now colon definition to FLASH 
+; preserving bytes already used 
+; in the current block. 
+; ud+c must not exceed block boundary 
+; FMOVE ( a ud c -- )
+;	a   RAM buffer address 
+;   ud  FLASH address 
+;   c   byte count {1..128}
+;--------------------------
+	.word LINK 
+	LINK=.
+	.byte 5 
+	.ascii "FMOVE" 
+FMOVE:
+.if 0 ; to be done 
+; bound c to 128 bytes 
+	subw x,#CELLL 
+	ldw y,#BLOCK_SIZE
+	ldw (x),y 
+	call MIN
+	ldw y,x 
+	ldw y,(x)
+	ldw XTEMP,y ; save c 
+	addw x,#CELLL 
+; move FLASH block in ROWBUFF 
+	call DDUP 
+	call BLKCPY
+; how many free in this block ?
+; use MIN(c,bytes_free)
+	ldw y,x 
+	ld a,(3,y) ; ud least byte  
+	jreq 2$
+	cp a,#BLOCK_SIZE
+	jreq 2$ 
+	add a,#BLOCK_SIZE
+	and a,#0x80
+	subc a,(3,y) ; bytes free 
+	subw x,#2*CELLL 
+	clrw y 
+	ldw (2,x),y 
+	ldw y,XTEMP 
+	ldw (x),y
+	call MIN 
+2$: ; ud is block aligned, all bytes free  
+; now copy bytes from a to ROWBUFF+n 
+	ldw y,x 
+	ldw y,(2,y)
+	andw y,#0x7f 
+	addw y,#ROWBUFF
+	ldw YTEMP,y 
+	ldw y,x 
+	ldw y,()
+.else 
+	ret 
+.endif 
 
 
 
