@@ -658,63 +658,193 @@ ROW2BUF:
 	ret 
 
 
+;---------------------------
+; copy ROWBUFF to flash 
+; BUF2ROW ( ud -- )
+; ud is row address as double 
+;---------------------------
+	.word LINK 
+	LINK=.
+	.byte 7 
+	.ascii "BUF2ROW" 
+BUF2ROW:
+	call TBUF ; ( ud rb -- )
+	call ROT 
+	call ROT  ; ( rb ud -- )
+	call write_row 
+	ret 
+
+;---------------------------------
+; how many byte free in that row 
+; RFREE ( a -- n )
+; a is least byte of target address
+;----------------------------------
+	.word LINK 
+	LINK=.
+	.byte 5 
+	.ascii "RFREE"
+RFREE:
+	ld a,(1,x)
+	and a,#BLOCK_SIZE-1 
+	ld YTEMP,a 
+	ld a,#BLOCK_SIZE 
+	sub a,YTEMP 
+	clrw y 
+	ld yl,a
+	ldw (x),y 
+	ret 
+
+;---------------------------------
+; write u bytes to flash/eeprom 
+; constraint to row limit 
+; RAM2EE ( ud a u -- u2 )
+; ud flash address 
+; a ram address 
+; u bytes count
+; return u2 bytes written  
+;-------------------------------
+	.word LINK 
+	LINK=. 
+	.byte 6
+	.ascii "RAM2EE"
+	
+RAM2EE:
+; copy ud on top 
+	ldw y,x 
+	ldw y,(6,y) ; LSW of ud  
+	ldw YTEMP,y 
+	ldw y,x 
+	ldw y,(4,y)  ; MSW of ud 
+	subw x,#2*CELLL 
+	ldw (x),y 
+	ldw y,YTEMP 
+	ldw (2,x),y 
+	call ROW2BUF 
+	ldw y,x 
+	ldw y,(6,y)
+	pushw y ; udl 
+	ld a,yl
+	and a,#BLOCK_SIZE-1 
+	clrw y 
+	ld yl,a 
+	addw y,#ROWBUFF 
+	subw x,#CELLL 
+	ldw (x),y  
+	call SWAPP ;  ( ud a ra u -- )
+	call RFROM  
+	call RFREE 
+	call MIN
+	call DUPP 
+	call TOR  
+	call CMOVE
+	call BUF2ROW 
+	call RFROM 
+	ret 
+
 ;--------------------------
-; move now colon definition to FLASH 
+; expand 16 bit address 
+; to 32 bit address 
+; FADDR ( a -- ud )
+;--------------------------
+	.word LINK 
+	LINK=. 
+	.byte 5 
+	.ascii "FADDR"
+FADDR:
+	subw x,#CELLL 
+	clrw y 
+	ldw (x),y 
+	ret
+
+;--------------------------
+; move new colon definition to FLASH 
+; using WR-ROW for efficiency 
 ; preserving bytes already used 
 ; in the current block. 
 ; ud+c must not exceed block boundary 
-; FMOVE ( a ud c -- )
-;	a   RAM buffer address 
-;   ud  FLASH address 
-;   c   byte count {1..128}
+; at this point the compiler as completed
+; in RAM and pointers CP and CNTXT updated.
+; CNTXT point to nfa of new word and  
+; CP is after compiled word so CP-CNTXT+2=count to write 
+; 
+; FMOVE ( -- )
 ;--------------------------
 	.word LINK 
 	LINK=.
 	.byte 5 
 	.ascii "FMOVE" 
 FMOVE:
-.if 0 ; to be done 
-; bound c to 128 bytes 
-	subw x,#CELLL 
-	ldw y,#BLOCK_SIZE
-	ldw (x),y 
-	call MIN
-	ldw y,x 
-	ldw y,(x)
-	ldw XTEMP,y ; save c 
-	addw x,#CELLL 
-; move FLASH block in ROWBUFF 
-	call DDUP 
-	call BLKCPY
-; how many free in this block ?
-; use MIN(c,bytes_free)
-	ldw y,x 
-	ld a,(3,y) ; ud least byte  
-	jreq 2$
-	cp a,#BLOCK_SIZE
-	jreq 2$ 
-	add a,#BLOCK_SIZE
-	and a,#0x80
-	subc a,(3,y) ; bytes free 
-	subw x,#2*CELLL 
-	clrw y 
-	ldw (2,x),y 
-	ldw y,XTEMP 
-	ldw (x),y
-	call MIN 
-2$: ; ud is block aligned, all bytes free  
-; now copy bytes from a to ROWBUFF+n 
-	ldw y,x 
-	ldw y,(2,y)
-	andw y,#0x7f 
-	addw y,#ROWBUFF
-	ldw YTEMP,y 
-	ldw y,x 
-	ldw y,()
-.else 
-	ret 
-.endif 
+	call FCP
+	call AT  
+	call DUPP ; ( udl udl -- )
+	call CNTXT 
+	call AT 
+	call DOLIT 
+	.word 2 
+	call SUBB ; ( udl udl a -- )
+	call SWAPP 
+	call FADDR 
+	call ROT  ; ( udl ud a -- )
+	call DUPP 
+	call TOR    ; R: a 
+	call HERE 
+	call RAT 
+	call SUBB ; (udl ud a wl -- )
+next_row:
+	call DUPP 
+	call TOR  ; ( udl ud a wl -- ) R: a wl
+	call RAM2EE ; ( udl a u -- udl u2 ) u2 is byte written to FLASH 
+	call DUPP 
+	call TOR 
+	call PLUS 
+	call RFROM  ; u2 
+	call RFROM  ; wl 
+	call OVER  
+	call SUBB  ; ( udl+ u2 wl- R: a )
+	call DUPP 
+	call QBRAN
+	.word fmove_done 
+	call OVER 
+	call RFROM 
+	call PLUS 
+	call DUPP 
+	call TOR 
+	call SWAPP 
+	call BRAN
+	.word next_row  
+fmove_done:	
+	call RFROM  ; ( -- udl+ u2 wl- a  )
+	addw x,#3*CELLL ; (  -- udl+ ) new FCP 
 
+if 0
+ 
+; now adjust CNTXT,FCP,HERE and APP_HERE 	
+
+	ldw UCP,Y  ; adjust HERE 
+	ldw y,UFCP
+	addw y,#2 
+	ldw UCNTXT,y  
+	addw y,YTEMP 
+	subw y,#2 
+	ldw UFCP,y ;new FCP 
+; update APP_HERE 
+	ldw (4,x),y ; new value of fcp to write to eeprom 
+	ldw y,#APP_HERE 
+	ldw (2,x),y 
+	clrw y 
+	ldw (x),y 
+	call ee_store 
+; update APP_LAST 
+	subw x,#3*CELLL 
+	ldw y,UCNTXT 
+	ldw (4,x),y 
+	ldw y,#APP_LAST 
+	ldw (2,x),y 
+	clrw y 
+	ldw (x),y 
+	call ee_store 
+.endif  	
+	ret 
 
 
 ; application code begin here

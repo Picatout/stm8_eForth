@@ -1,3 +1,19 @@
+#### 2020-06-01
+
+* Ajout de **RAM2EE** ( ud a u -- ) pour écrire u octets dans la mémoire flash|eeprom.
+
+* Ajout de **FADDR** ( a -- ud ) étant a à 32 bits par 0. 
+
+* Ajout de **RFREE** ( a -- u ) retourne le nombre d'octets libre en sopposant que **a** est une adresse flash i.e. u=a%128 
+
+* Continue travail sur **FMOVE**. 
+
+#### 2020-06-01
+
+* Travail sur **FMOVE** ( -- ) transfert la dernière définition vers la mémoire flash.
+
+* Ajout de **BUF2ROW** ( a ud -- ) To write ROWBUFF to FLASH. 
+
 #### 2020-05-31
 
 * Ajout de **FCP** ( -- a ) Retourne le pointeur de la variable système UFCP qui est le pointeur vers le début de la mémoire flash libre. **CP** retourne le pointer vers la RAM libre. 
@@ -8,9 +24,9 @@
 
 * Ajout du tampon **ROWBUFF** de 128 octets pour les transactions entre la mémoire FLASH et RAM.
 
-* Ajout de **ROW2BUF** ( ud -- ) Copy a 128 byte block from FLASH or EEPROM to RAM buffer **ROWBUFF**.
+* Ajout de **ROW2BUF** ( ud -- ) Copie un bloc FLASH ou EEPROM dans le tampon  **ROWBUFF**.
 
-* Modification de **VARIABLE** pour que l'adresse de la variable soit un pointeur. Ça va permettre de compiler le code des variables dans la mémoire FLASH tout en gardant le data en RAM.  
+* Modification de **VARIABLE** pour que l'adresse de la variable soit un pointeur. Cette indirection est nécessaire pour permettre de compiler le code des variables dans la mémoire FLASH tout en gardant le data en RAM.  
 
 * Modification de **COLD** pour initialiser **APP_RUN** avec le ca de **hi**. Lorsqu'une application sera compilée en FLASH son *ca* de démarrage remplacera celui de **hi** dans **APP_RUN**. 
 

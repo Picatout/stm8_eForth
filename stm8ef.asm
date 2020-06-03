@@ -441,14 +441,15 @@ DOLIT:
         ldw y,(y)
         ldw (x),y
         popw y 
+        jp (2,y)
 .else 
         POPW Y
 	LDW YTEMP,Y
 	LDW Y,(Y)
         LDW (X),Y
         LDW Y,YTEMP
-.endif 
 	JP (2,Y)
+.endif 
 
 ;       next    ( -- )
 ;       Code for  single index loop.
@@ -890,7 +891,7 @@ NTIB:
         LINK=.
         .byte 4 
         .ascii "TBUF"
-tbuff:
+TBUF:
         ldw y,#ROWBUFF
         subw x,#CELLL
         ldw (x),y 
@@ -2996,9 +2997,9 @@ LINK = .
 	.byte      IMEDD+1
         .ascii     "["
 LBRAC:
-        CALL     DOLIT
-        .word      INTER
-        CALL     TEVAL
+        CALL   DOLIT
+        .word  INTER
+        CALL   TEVAL
         JP     STORE
 
 ;       .OK     ( -- )
@@ -3494,7 +3495,13 @@ SEMIS:
         CALL     COMPI
         CALL     EXIT
         CALL     LBRAC
+.if PICATOUT_MOD
+        call OVERT 
+        CALL FMOVE 
+        RET 
+.else 
         JP     OVERT
+.endif 
 
 ;       ]       ( -- )
 ;       Start compiling words in
@@ -3504,9 +3511,9 @@ LINK = .
         .byte      1
         .ascii     "]"
 RBRAC:
-        CALL     DOLIT
-        .word      SCOMP
-        CALL     TEVAL
+        CALL   DOLIT
+        .word  SCOMP
+        CALL   TEVAL
         JP     STORE
 
 ;       CALL,    ( ca -- )
@@ -3529,8 +3536,8 @@ LINK = .
         .byte      1
         .ascii     ":"
 COLON:
-        CALL     TOKEN
-        CALL     SNAME
+        CALL   TOKEN
+        CALL   SNAME
         JP     RBRAC
 
 ;       IMMEDIATE       ( -- )
