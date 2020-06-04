@@ -52,13 +52,132 @@ fptr_store:
 LINK=.
     .byte 6 
     .ascii "EEPROM"
-eeprom: 
+EEPROM: 
     ldw y,#EEPROM_BASE
     subw x,#2*CELLL 
     ldw (2,x),y 
     clrw y 
     ldw (x),y 
     ret
+
+;---------------------------------
+; return APP_LAST pointer as double
+; EEP-LAST ( -- ud )
+;---------------------------------
+	.word LINK 
+	LINK=.
+	.byte 8 
+	.ascii "EEP-LAST"
+EEPLAST:
+	subw x,#2*CELLL 
+	ldw y,#APP_LAST 
+	ldw (2,x),y 
+	clrw y 
+	ldw (x),y 
+	ret 
+
+;----------------------------------
+; return APP_RUN pointer as double	
+; EEP-RUN ( -- ud )
+;-----------------------------------
+	.word LINK 
+	LINK=.
+	.byte 7
+	.ascii "EEP-RUN"
+EEPRUN:
+	subw x,#2*CELLL 
+	ldw y,#APP_RUN 
+	ldw (2,x),y 
+	clrw y 
+	ldw (x),y 
+	ret 
+
+;------------------------------------
+; return APP_CP pointer as double 
+; EEP-CP ( -- ud )
+;------------------------------------
+	.word LINK
+	LINK=.
+	.byte 6 
+	.ascii "EEP-CP"
+EEPCP:
+	subw x,#2*CELLL 
+	ldw y,#APP_CP  
+	ldw (2,x),y 
+	clrw y 
+	ldw (x),y 
+	ret 
+
+;------------------------------------
+; return APP_VP pointer as double 
+; EEP-VP ( -- ud )
+;-------------------------------------
+	.word LINK
+	LINK=.
+	.byte 6
+	.ascii "EEP-VP"
+EEPVP:
+	subw x,#2*CELLL 
+	ldw y,#APP_VP  
+	ldw (2,x),y 
+	clrw y 
+	ldw (x),y 
+	ret 
+
+;----------------------------------
+; update APP_LAST with LAST 
+; UPDAT-LAST ( -- )
+;----------------------------------
+	.word LINK 
+	LINK=.
+	.byte 10
+	.ascii "UPDAT-LAST"
+UPDATLAST:
+	call LAST
+	call AT  
+	call EEPLAST
+	jp ee_store 
+
+;---------------------------------
+; update APP_RUN 
+; UPDAT-RUN ( a -- )
+;---------------------------------
+	.word LINK
+	LINK=.
+	.byte 9
+	.ascii "UPDAT-RUN"
+UPDATRUN:
+	call EEPRUN
+	jp ee_store 
+	
+;---------------------------------
+; update APP_CP with CP 
+; UPDAT-CP ( -- )
+;---------------------------------
+	.word LINK 
+	LINK=.
+	.byte 8 
+	.ascii "UPDAT-CP"
+UPDATCP:
+	call CPP 
+	call AT 
+	call EEPCP 
+	jp ee_store 
+
+;----------------------------------
+; update APP_VP with VP 
+; UPDAT-VP ( -- )
+;----------------------------------
+	.word LINK
+	LINK=.
+	.byte 8 
+	.ascii "UPDAT-VP" 
+UPDATVP:
+	call VPP 
+	call AT
+	call EEPVP 
+	jp ee_store
+	
 
 ;----------------------------------
 ; fetch integer at address over 65535
@@ -306,7 +425,7 @@ block_erase:
 	ldw y,FPTR+1
 	cpw y,#app_space 
 	jrpl erase_flash 
-; erase eeprom block
+; erase EEPROM block
 	cpw y,#EEPROM_BASE 
 	jruge 1$
 	ret ; bad address 
@@ -460,7 +579,7 @@ set_option:
 	.ascii "PRISTINE"
 pristine:
 ;;; erase EEPROM
-	call eeprom 
+	call EEPROM 
 1$:	call DDUP 
 	call row_erase
 	ldw y,x 
@@ -600,7 +719,7 @@ set_vector:
 	.ascii "EE,"
 ee_comma:
 	subw x,#2*CELLL 
-	ldw y,UFCP
+	ldw y,UCP
 	pushw y 
 	ldw (2,x),y 
 	clrw y 
@@ -608,7 +727,7 @@ ee_comma:
 	call ee_store
 	popw y 
 	addw y,#2
-	ldw UFCP,y
+	ldw UCP,y
 	ret 
 
 ;-------------------------
@@ -621,7 +740,7 @@ ee_comma:
 	.ascii "EEC,"
 ee_ccomma:
 	subw x,#2*CELLL 
-	ldw y,UFCP
+	ldw y,UCP
 	pushw y 
 	ldw (2,x),y 
 	clrw y 
@@ -629,7 +748,7 @@ ee_ccomma:
 	call ee_cstore
 	popw y 
 	incw y 
-	ldw UFCP,y
+	ldw UCP,y
 	ret 
 
 
@@ -695,7 +814,7 @@ RFREE:
 	ret 
 
 ;---------------------------------
-; write u bytes to flash/eeprom 
+; write u bytes to flash/EEPROM 
 ; constraint to row limit 
 ; RAM2EE ( ud a u -- u2 )
 ; ud flash address 
@@ -774,7 +893,7 @@ FADDR:
 	.byte 5 
 	.ascii "FMOVE" 
 FMOVE:
-	call FCP
+	call CPP
 	call AT  
 	call DUPP ; ( udl udl -- )
 	call CNTXT 
@@ -795,55 +914,51 @@ next_row:
 	call TOR  ; ( udl ud a wl -- ) R: a wl
 	call RAM2EE ; ( udl a u -- udl u2 ) u2 is byte written to FLASH 
 	call DUPP 
-	call TOR 
-	call PLUS 
-	call RFROM  ; u2 
-	call RFROM  ; wl 
-	call OVER  
-	call SUBB  ; ( udl+ u2 wl- R: a )
+	call TOR
+	call PLUS  ; ( udl+ ) 
+	call DUPP 
+	call ZERO   ; ( udl+ ud -- )
+	call RFROM  ; ( udl+ ud u2  R: a wl ) 
+	call RFROM  ; ( udl+ ud u2 wl R: a ) 
+	call OVER   ; ( udl+ ud u2 wl u2 -- )
+	call SUBB  ; ( udl+ ud u2 wl- R: a )
 	call DUPP 
 	call QBRAN
 	.word fmove_done 
-	call OVER 
-	call RFROM 
-	call PLUS 
+	call SWAPP  ; ( udl+ ud wl- u2 R: a )
+	call RFROM ; ( udl+ ud wl- u2 a -- ) 
+	call PLUS  ; ( udl+2 ud wl- a+ )
 	call DUPP 
-	call TOR 
+	call TOR   ; ( udl+2 ud wl- a+ ) R: a+
 	call SWAPP 
 	call BRAN
 	.word next_row  
 fmove_done:	
-	call RFROM  ; ( -- udl+ u2 wl- a  )
-	addw x,#3*CELLL ; (  -- udl+ ) new FCP 
-
-if 0
- 
-; now adjust CNTXT,FCP,HERE and APP_HERE 	
-
-	ldw UCP,Y  ; adjust HERE 
-	ldw y,UFCP
-	addw y,#2 
-	ldw UCNTXT,y  
-	addw y,YTEMP 
-	subw y,#2 
-	ldw UFCP,y ;new FCP 
-; update APP_HERE 
-	ldw (4,x),y ; new value of fcp to write to eeprom 
-	ldw y,#APP_HERE 
-	ldw (2,x),y 
-	clrw y 
-	ldw (x),y 
-	call ee_store 
-; update APP_LAST 
-	subw x,#3*CELLL 
-	ldw y,UCNTXT 
-	ldw (4,x),y 
-	ldw y,#APP_LAST 
-	ldw (2,x),y 
-	clrw y 
-	ldw (x),y 
-	call ee_store 
-.endif  	
+	call RFROM  ; ( -- udl+ ud u2 wl- a  )
+	addw x,#5*CELLL ; (  -- udl+ ) new CP 
+; reset VP to previous position  
+	call EEPVP 
+	call DROP 
+	call AT
+	call VPP 
+	call STORE
+;update CONTEXT and LAST 
+	call EEPCP 
+	call DROP
+	call AT
+	call DOLIT 
+	.word 2 
+	call PLUS 
+	call DUPP 
+	call CNTXT 
+	call STORE
+	call LAST
+	call STORE 
+	call UPDATLAST 
+;update CP 
+	call CPP 
+	call STORE
+	call UPDATCP 
 	ret 
 
 

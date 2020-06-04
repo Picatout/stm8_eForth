@@ -119,13 +119,14 @@ UTIB = UCTIB+2    ; tib address
 UINTER = UTIB+2   ; interpreter vector 
 UHLD = UINTER+2   ; hold 
 UCNTXT = UHLD+2   ; context, dictionary first link 
-UCP = UCNTXT+2    ; ram dictionary pointer 
-UFCP = UCP+2      ; flash code pointer 
-ULAST = UFCP+2    ; flash dictionary pointer 
+UVP = UCNTXT+2    ; variable pointer 
+UCP = UVP+2      ; code pointer
+ULAST = UCP+2    ; last dictionary pointer 
+UOFFSET = ULAST+2 ; distance between CP and VP to adjust jump address at compile time.
 .endif ; PICATOUT_MOD
 
 ;******  System Variables  ******
-XTEMP	=	ULAST+2	;address called by CREATE
+XTEMP	=	UOFFSET+2;address called by CREATE
 YTEMP	=	XTEMP+2	;address called by CREATE
 PROD1 = XTEMP	;space for UM*
 PROD2 = PROD1+2
@@ -143,8 +144,8 @@ PTR8 = FPTR+2           ; least byte of farptr
 ; EEPROM persistant data  
 APP_LAST = EEPROM_BASE ; Application last word pointer  
 APP_RUN = APP_LAST+2   ; application autorun address 
-APP_HERE = APP_RUN+2   ; free application space pointer 
-VAR_HERE = APP_HERE+2  ; free data space pointer 
+APP_CP = APP_RUN+2   ; free application space pointer 
+APP_VP = APP_CP+2  ; free data space pointer 
 .endif ;PICATOUT_MOD
 
 
@@ -936,31 +937,27 @@ CNTXT:
         LDW (X),Y
         RET
 
-;       CP      ( -- a )
-.if PICATOUT_MOD 
+;       VP      ( -- a )
 ;       Point to top of variables
-.else 
-;       Point to top of dictionary.
-.endif ; PICATOUT_MOD
         .word      LINK
 LINK = . 
         .byte      2
-        .ascii     "CP"
-CPP:
-	LDW Y,#UCP 
+        .ascii     "VP"
+VPP:
+	LDW Y,#UVP 
 	SUBW X,#2
         LDW (X),Y
         RET
 
 .if PICATOUT_MOD
-;       FCP    ( -- a )
+;       CP    ( -- a )
 ;       Pointer to top of FLASH 
         .word LINK 
         LINK=.
         .byte 3 
-        .ascii "FCP"
-FCP: 
-        ldw y,#UFCP 
+        .ascii "CP"
+CPP: 
+        ldw y,#UCP 
         subw x,#CELLL 
         ldw (x),y 
         ret                
@@ -977,6 +974,26 @@ LAST:
 	SUBW X,#2
         LDW (X),Y
         RET
+
+.if PICATOUT_MOD
+        .word LINK 
+        LINK=.
+        .byte 6
+        .ascii "OFFSET" 
+OFFSET: 
+        subw x,#CELLL
+        ldw y,#UOFFSET 
+        ldw (x),y 
+        ret 
+
+; adjust jump address adding OFFSET
+; ADR-ADJ ( a -- a+offset )
+ADRADJ: 
+        call OFFSET 
+        call AT 
+        jp PLUS 
+
+.endif ; PICATOUT_MOD
 
 ;; Common functions
 
@@ -1788,6 +1805,7 @@ PSTOR:
         CALL	SWAPP
         JP	STORE
 .endif 
+
 ;       2!      ( d a -- )
 ;       Store  double integer to address a.
         .word      LINK
@@ -1870,20 +1888,20 @@ COUNT:
 .endif 
 
 ;       HERE    ( -- a )
-;       Return  top of  code dictionary.
+;       Return  top of  variables
         .word      LINK
 LINK = . 
         .byte      4
         .ascii     "HERE"
 HERE:
 .if CONVERT_TO_CODE
-      	ldw y,#UCP 
+      	ldw y,#UVP 
         ldw y,(y)
         subw x,#CELLL 
         ldw (x),y 
         ret 
 .else
-        CALL     CPP
+        CALL     VPP
         JP     AT
 .endif 
 
@@ -3115,12 +3133,18 @@ LINK = .
         .byte      5
         .ascii     "ALLOT"
 ALLOT:
-        CALL     CPP
+        CALL     VPP
+.if PICATOUT_MOD
+; must update APP_VP each time VP is modidied
+        call PSTOR 
+        call UPDATVP 
+.else
         JP     PSTOR
+.endif ;PICATOUT_MOD
 
 ;       ,       ( w -- )
 ;         Compile an integer into
-;         code dictionary.
+;         variable space.
         .word      LINK
 LINK = . 
         .byte      1
@@ -3129,13 +3153,13 @@ COMMA:
         CALL     HERE
         CALL     DUPP
         CALL     CELLP   ;cell boundary
-        CALL     CPP
+        CALL     VPP
         CALL     STORE
         JP     STORE
 
 ;       C,      ( c -- )
 ;       Compile a byte into
-;       code dictionary.
+;       variables space.
        .word      LINK
 LINK = . 
         .byte      2
@@ -3144,7 +3168,7 @@ CCOMMA:
         CALL     HERE
         CALL     DUPP
         CALL     ONEP
-        CALL     CPP
+        CALL     VPP
         CALL     STORE
         JP     CSTOR
 
@@ -3202,7 +3226,7 @@ STRCQ:
         CALL     PACKS   ;string to code dictionary
         CALL     COUNT
         CALL     PLUS    ;calculate aligned end of string
-        CALL     CPP
+        CALL     VPP
         JP     STORE
 
 ;; Structures
@@ -3228,6 +3252,9 @@ LINK = .
 NEXT:
         CALL     COMPI
         CALL     DONXT
+.if PICATOUT_MOD 
+        call ADRADJ
+.endif ; PICATOUT_MOD
         JP     COMMA
 
 ;       BEGIN   ( -- a )
@@ -3250,6 +3277,9 @@ LINK = .
 UNTIL:
         CALL     COMPI
         CALL     QBRAN
+.if PICATOUT_MOD 
+        call ADRADJ
+.endif ; PICATOUT_MOD
         JP     COMMA
 
 ;       AGAIN   ( a -- )
@@ -3262,6 +3292,9 @@ LINK = .
 AGAIN:
         CALL     COMPI
         CALL     BRAN
+.if PICATOUT_MOD 
+        call ADRADJ 
+.endif ; PICATOUT_MOD
         JP     COMMA
 
 ;       IF      ( -- A )
@@ -3285,6 +3318,9 @@ LINK = .
         .ascii     "THEN"
 THENN:
         CALL     HERE
+.if PICATOUT_MOD 
+        call ADRADJ 
+.endif ; PICATOUT_MOD
         CALL     SWAPP
         JP     STORE
 
@@ -3302,6 +3338,9 @@ ELSEE:
         CALL     COMMA
         CALL     SWAPP
         CALL     HERE
+.if PICATOUT_MOD 
+        call ADRADJ 
+.endif ; PICATOUT_MOD
         CALL     SWAPP
         JP     STORE
 
@@ -3341,8 +3380,14 @@ LINK = .
 REPEA:
         CALL     COMPI
         CALL     BRAN
+.if PICATOUT_MOD 
+        call ADRADJ 
+.endif ; PICATOUT_MOD
         CALL     COMMA
         CALL     HERE
+.if PICATOUT_MOD 
+        call ADRADJ 
+.endif ; PICATOUT_MOD
         CALL     SWAPP
         JP     STORE
 
@@ -3356,6 +3401,9 @@ AFT:
         CALL     DROP
         CALL     AHEAD
         CALL     HERE
+.if PICATOUT_MOD 
+        call ADRADJ 
+.endif ; PICATOUT_MOD
         JP     SWAPP
 
 ;       ABORT"      ( -- ; <string> )
@@ -3417,6 +3465,9 @@ UNIQ1:  JP     DROP
 ;       $,n     ( na -- )
 ;       Build a new dictionary name
 ;       using string at na.
+.if PICATOUT_MOD
+; compile dans l'espace des variables 
+.endif 
         .word      LINK
 LINK = . 
         .byte      3
@@ -3430,7 +3481,7 @@ SNAME:
         CALL     DUPP
         CALL     COUNT
         CALL     PLUS
-        CALL     CPP
+        CALL     VPP
         CALL     STORE
         CALL     DUPP
         CALL     LAST
@@ -3536,6 +3587,15 @@ LINK = .
         .byte      1
         .ascii     ":"
 COLON:
+.if PICATOUT_MOD
+; compute offset to adjust jump address 
+        call CPP 
+        call AT 
+        call HERE
+        call SUBB 
+        call OFFSET 
+        call STORE 
+.endif ; PICATOUT_MOD
         CALL   TOKEN
         CALL   SNAME
         JP     RBRAC
@@ -3587,17 +3647,18 @@ VARIA:
 ; indirect variable so that VARIABLE definition can be compiled in FLASH 
         CALL HERE
         CALL DUPP 
-        CALL CELLP 
-        CALL CPP 
-        CALL STORE 
+        CALL CELLP
+        CALL VPP 
+        CALL STORE
+        call UPDATVP 
 .endif         
-        CALL     CREAT
+        CALL CREAT
         CALL DUPP
         CALL COMMA
-        CALL     ZERO
+        CALL ZERO
 .if PICATOUT_MOD 
         call SWAPP 
-        CALL   STORE 
+        CALL STORE 
         CALL FMOVE ; move definition to FLASH
         RET 
 .endif ;PICATOUT_MOD        
@@ -3610,13 +3671,14 @@ VARIA:
         LINK=. 
         .byte 8 
         .ascii "CONSTANT" 
-constant:          
+CONSTANT:          
         CALL TOKEN
         CALL SNAME 
         CALL OVERT 
         CALL COMPI 
         CALL DOCONST
         CALL COMMA 
+        CALL FMOVE 
         RET          
 
 ; CONSTANT runtime semantic 
@@ -4023,14 +4085,10 @@ COLD1:  CALL     DOLIT
 ; if APP_RUN==0 initialize with ca de 'hi'  
         ldw y,APP_RUN 
         jrne 0$
-        subw x,#3*CELLL 
-        ldw y,#APP_RUN 
-        ldw (2,x),y
-        clrw y 
+        subw x,#CELLL 
+        ldw y,#HI  
         ldw (x),y
-        ldw y,#HI 
-        ldw (4,x),y 
-        call ee_store 
+        call UPDATRUN 
 0$:        
 ; update LAST with APP_LAST 
 ; if APP_LAST > LAST else do the opposite
@@ -4038,45 +4096,29 @@ COLD1:  CALL     DOLIT
         cpw y,ULAST 
         jrugt 1$ 
 ; save LAST at APP_LAST  
-        call LAST 
-        call AT  
-        call eeprom 
-        call ee_store 
+        call UPDATLAST 
         jra 2$
 1$: ; update LAST with APP_LAST 
         ldw ULAST,y
+        ldw UCNTXT,y 
 2$:  
-; update APP_HERE if < app_space 
-        ldw y,APP_HERE 
-        cpw y,#app_space 
+; update APP_CP if < app_space 
+        ldw y,APP_CP  
+        cpw y,UCP   
         jruge 3$ 
-        subw x,#6 
-        ldw y,#app_space 
-        ldw (4,x),y 
-        ldw y,#APP_HERE 
-        ldw (2,x),y
-        clrw y 
-        ldw (x),y
-        call ee_store
-        ldw y,#app_space
+        call UPDATCP
+        ldw y,UCP   
 3$:
-        ldw UFCP,y         
-; update UCP with VAR_APP 
-; if VAR_APP>UCP else do the opposite 
-        ldw y,VAR_HERE 
-        cpw y,UCP 
+        ldw UCP,y                 
+; update UVP with APP_VP  
+; if APP_VP>UVP else do the opposite 
+        ldw y,APP_VP 
+        cpw y,UVP 
         jrugt 4$
-        call CPP 
-        call AT 
-        subw x,#2*CELLL 
-        ldw y,#VAR_HERE 
-        ldw (2,x),y 
-        clrw y 
-        ldw (x),y 
-        call ee_store
+        call UPDATVP 
         jra 6$
-4$: ; update UCP with VAR_HERE 
-        ldw UCP,y 
+4$: ; update UVP with APP_VP 
+        ldw UVP,y 
 6$:      
 .endif ; PICATOUT_MOD
         CALL     PRESE   ;initialize data stack and TIB

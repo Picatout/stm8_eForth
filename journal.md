@@ -1,4 +1,40 @@
-#### 2020-06-01
+#### 2020-06-03
+
+**À faire**
+
+    * réparer   FOR AFT THEN NEXT 
+
+    * tester les autres structures de contrôles et déboguer au besoin. 
+
+* Pour que les mots puissent être copiés de la RAM à la FLASH il faut que les branchements soient ajustés à la valeur de la distation finale dans la mémoire FLASH. Dans ce but j'ai créé une variable système appellée **OFFSET** qui est la différence entre **CP** et **VP** calculé au début de la compilation. À chaque adresse de saut on ajoute la valeur de cet **OFFSET**.
+
+* les motes **,** et **C,** compilent dans l'espace des variables. Pour compiler dans l'espace code il faut utiliser les mots **EE,** et **EEC,**. 
+
+* Le mot **VP** ( -- a) retourne le pointeur des variables libres (mémoire RAM). 
+
+* le mot **CP** ( -- a ) retourne le pointeur du code libre (mémoire flash).
+
+* le mot **HERE** ( -- a ) retourne l'adresse des variables en RAM. et non la valeur de **CP**.
+
+* Modifié le mot **ALLOT** ( n -- ) réserve de la mémoire RAM et met à jour **VP** et **APP_VP**.
+
+* Changer le nom de plusieurs variables 
+
+* Modifier le code des mots **COLD** et **VARIABLE** 
+
+* créer des mots qui retournes les adresses double des variables EEPROM
+    * **EEP-LAST** ( -- ud ) Retourne le pointeur APP_LAST, last word in dictionary
+    * **EEP-RUN**  ( -- ud ) Retourne le pointeur APP_RUN, autorun entry point.
+    * **EEP-CP** ( -- ud ) Retourne le pointeur APP_CP , code pointer free space
+    * **EEP-VP** ( -- ud ) Retourne le pointeur APP_VP , variable free space 
+
+* Ajout de mots pour mettre à jour les variables système en EEPROM 
+    * **UPDAT-LAST** ( -- ) met à jour **APP_LAST** à partir de **LAST** 
+    * **UPDAT-RUN** ( a -- ) met à jour **APP_RUN** avec la valeur **a**
+    * **UPDAT-CP** ( -- ) met à jour **APP_CP** avec la valeur de **CP** 
+    * **UPDAT-VP** ( -- ) met à jour la valeur de **APP_VP** avec la valeurde **VP**
+
+#### 2020-06-02
 
 * Ajout de **RAM2EE** ( ud a u -- ) pour écrire u octets dans la mémoire flash|eeprom.
 
