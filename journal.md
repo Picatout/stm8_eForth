@@ -1,3 +1,14 @@
+#### 2020-06-04
+
+* Modifié code du mot **COMPI** et de tous les mots qui faisait un appel à **COMPI**. Cette modfiication était nécessaire pour régler le bogue FOR-AFT-THEN-NEXT. 
+
+* Ajout du mot **I** ( -- n ) Ce mot empile la valeur du compteur de boucle FOR-NEXT.
+
+* test des boucles de contrôle OK. 
+
+* Séparer mot **FMOVE** en 2 partie. **FMOVE** fait seulement la copie et le nouveau mot **UPDAT-PTR** ajuste les pointers. Modification en prévision du support aux interruption.
+
+
 #### 2020-06-03
 
 **À faire**
@@ -6,7 +17,8 @@
 
     * tester les autres structures de contrôles et déboguer au besoin. 
 
-* Pour que les mots puissent être copiés de la RAM à la FLASH il faut que les branchements soient ajustés à la valeur de la distation finale dans la mémoire FLASH. Dans ce but j'ai créé une variable système appellée **OFFSET** qui est la différence entre **CP** et **VP** calculé au début de la compilation. À chaque adresse de saut on ajoute la valeur de cet **OFFSET**.
+* Pour que les mots puissent être copiés de la RAM à la FLASH il faut que les branchements soient ajustés à la valeur de la destation finale dans la mémoire FLASH. Dans ce but j'ai créé une variable système appellée **OFFSET** qui est la différence entre **CP** et **VP** calculé au début de la compilation. À chaque adresse de saut on ajoute la valeur de cet **OFFSET**.
+Ceci requiert une modfication de toutes les structures de contrôles. 
 
 * les motes **,** et **C,** compilent dans l'espace des variables. Pour compiler dans l'espace code il faut utiliser les mots **EE,** et **EEC,**. 
 

@@ -886,7 +886,8 @@ FADDR:
 ; CNTXT point to nfa of new word and  
 ; CP is after compiled word so CP-CNTXT+2=count to write 
 ; 
-; FMOVE ( -- )
+; FMOVE ( -- cp+ )
+; 
 ;--------------------------
 	.word LINK 
 	LINK=.
@@ -936,7 +937,19 @@ next_row:
 fmove_done:	
 	call RFROM  ; ( -- udl+ ud u2 wl- a  )
 	addw x,#5*CELLL ; (  -- udl+ ) new CP 
-; reset VP to previous position  
+ 	ret  
+
+;------------------------------------------
+; adjust pointers after **FMOVE** operetion.
+; UPDAT-PTR ( cp+ -- )
+; cp+ is new CP position after FMOVE 
+;-------------------------------------------
+	.word LINK 
+	LINK=.
+	.byte 9
+	.ascii "UPDAT-PTR" 
+UPDATPTR:
+;reset VP to previous position  
 	call EEPVP 
 	call DROP 
 	call AT

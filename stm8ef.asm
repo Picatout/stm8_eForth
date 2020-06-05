@@ -3192,12 +3192,23 @@ LINK = .
         .ascii     "COMPILE"
 COMPI:
         CALL     RFROM
+.if PICATOUT_MOD
+; no need to increment
+.else
         CALL     ONEP
+.endif 
         CALL     DUPP
         CALL     AT
         CALL     JSRC    ;compile subroutine
         CALL     CELLP
+.if PICATOUT_MOD
+        ldw y,x 
+        ldw y,(y)
+        addw x,#CELLL 
+        jp (y)
+.else 
         JP     TOR
+.endif 
 
 ;       LITERAL ( w -- )
 ;       Compile tos to dictionary
@@ -3208,7 +3219,11 @@ LINK = .
         .ascii     "LITERAL"
 LITER:
         CALL     COMPI
+.if PICATOUT_MOD
+        .word DOLIT 
+.else         
         CALL     DOLIT
+.endif 
         JP     COMMA
 
 ;       $,"     ( -- )
@@ -3240,7 +3255,11 @@ LINK = .
         .ascii     "FOR"
 FOR:
         CALL     COMPI
+.if PICATOUT_MOD
+        .word TOR 
+.else
         CALL     TOR
+.endif
         JP     HERE
 
 ;       NEXT    ( a -- )
@@ -3251,11 +3270,27 @@ LINK = .
         .ascii     "NEXT"
 NEXT:
         CALL     COMPI
+.if PICATOUT_MOD
+        .word DONXT 
+.else 
         CALL     DONXT
-.if PICATOUT_MOD 
+.endif         
+.if PICATOUT_MOD
         call ADRADJ
 .endif ; PICATOUT_MOD
         JP     COMMA
+
+;       I ( -- n )
+;       stack FOR-NEXT COUNTER 
+        .word LINK 
+        LINK=.
+        .byte 1 
+        .ascii "I"
+IFETCH: 
+        subw x,#CELLL 
+        ldw y,(3,sp)
+        ldw (x),y 
+        ret 
 
 ;       BEGIN   ( -- a )
 ;       Start an infinite or
@@ -3276,7 +3311,11 @@ LINK = .
         .ascii     "UNTIL"
 UNTIL:
         CALL     COMPI
+.if PICATOUT_MOD
+        .word    QBRAN 
+.else 
         CALL     QBRAN
+.endif 
 .if PICATOUT_MOD 
         call ADRADJ
 .endif ; PICATOUT_MOD
@@ -3291,7 +3330,11 @@ LINK = .
         .ascii     "AGAIN"
 AGAIN:
         CALL     COMPI
+.if PICATOUT_MOD
+        .word BRAN
+.else
         CALL     BRAN
+.endif 
 .if PICATOUT_MOD 
         call ADRADJ 
 .endif ; PICATOUT_MOD
@@ -3305,7 +3348,11 @@ LINK = .
         .ascii     "IF"
 IFF:
         CALL     COMPI
+.if PICATOUT_MOD
+        .word QBRAN
+.else
         CALL     QBRAN
+.endif 
         CALL     HERE
         CALL     ZERO
         JP     COMMA
@@ -3332,7 +3379,11 @@ LINK = .
         .ascii     "ELSE"
 ELSEE:
         CALL     COMPI
+.if PICATOUT_MOD
+        .word BRAN
+.else
         CALL     BRAN
+.endif 
         CALL     HERE
         CALL     ZERO
         CALL     COMMA
@@ -3352,7 +3403,11 @@ LINK = .
         .ascii     "AHEAD"
 AHEAD:
         CALL     COMPI
+.if PICATOUT_MOD
+        .word BRAN
+.else
         CALL     BRAN
+.endif 
         CALL     HERE
         CALL     ZERO
         JP     COMMA
@@ -3365,7 +3420,11 @@ LINK = .
         .ascii     "WHILE"
 WHILE:
         CALL     COMPI
+.if PICATOUT_MOD
+        .word QBRAN
+.else
         CALL     QBRAN
+.endif 
         CALL     HERE
         CALL     ZERO
         CALL     COMMA
@@ -3379,7 +3438,11 @@ LINK = .
         .ascii     "REPEAT"
 REPEA:
         CALL     COMPI
+.if PICATOUT_MOD
+        .word BRAN
+.else
         CALL     BRAN
+.endif 
 .if PICATOUT_MOD 
         call ADRADJ 
 .endif ; PICATOUT_MOD
@@ -3401,9 +3464,6 @@ AFT:
         CALL     DROP
         CALL     AHEAD
         CALL     HERE
-.if PICATOUT_MOD 
-        call ADRADJ 
-.endif ; PICATOUT_MOD
         JP     SWAPP
 
 ;       ABORT"      ( -- ; <string> )
@@ -3415,7 +3475,11 @@ LINK = .
         .byte      '"'
 ABRTQ:
         CALL     COMPI
+.if PICATOUT_MOD
+        .word ABORQ
+.else
         CALL     ABORQ
+.endif
         JP     STRCQ
 
 ;       $"     ( -- ; <string> )
@@ -3426,7 +3490,11 @@ LINK = .
         .byte     '$','"'
 STRQ:
         CALL     COMPI
+.if PICATOUT_MOD
+        .word STRQP 
+.else
         CALL     STRQP
+.endif
         JP     STRCQ
 
 ;       ."          ( -- ; <string> )
@@ -3437,7 +3505,11 @@ LINK = .
         .byte     '.','"'
 DOTQ:
         CALL     COMPI
+.if PICATOUT_MOD
+        .word DOTQP 
+.else
         CALL     DOTQP
+.endif 
         JP     STRCQ
 
 ;; Name compiler
@@ -3544,11 +3616,16 @@ LINK = .
         .ascii     ";"
 SEMIS:
         CALL     COMPI
+.if PICATOUT_MOD
+        .word EXIT 
+.else
         CALL     EXIT
+.endif 
         CALL     LBRAC
 .if PICATOUT_MOD
         call OVERT 
-        CALL FMOVE 
+        CALL FMOVE
+        CALL UPDATPTR 
         RET 
 .else 
         JP     OVERT
@@ -3632,7 +3709,11 @@ CREAT:
         CALL     SNAME
         CALL     OVERT        
         CALL     COMPI 
+.if PICATOUT_MOD
+        .word DOVAR 
+.else
         CALL     DOVAR
+.endif 
         RET
 
 ;       VARIABLE        ( -- ; <string> )
@@ -3660,6 +3741,7 @@ VARIA:
         call SWAPP 
         CALL STORE 
         CALL FMOVE ; move definition to FLASH
+        CALL UPDATPTR
         RET 
 .endif ;PICATOUT_MOD        
 
@@ -3676,9 +3758,14 @@ CONSTANT:
         CALL SNAME 
         CALL OVERT 
         CALL COMPI 
+.if PICATOUT_MOD
+        .word DOCONST
+.else
         CALL DOCONST
+.endif 
         CALL COMMA 
-        CALL FMOVE 
+        CALL FMOVE
+        CALL UPDATPTR  
         RET          
 
 ; CONSTANT runtime semantic 
