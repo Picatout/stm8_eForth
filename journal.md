@@ -1,5 +1,32 @@
+#### 2020-06-05
+
+**À FAIRE** 
+
+* Test interruptions 
+
+* Ajouter mot **FORGET** 
+
+* Ajouter mot **AUOTRUN** 
+
+**FAIT** 
+
+* Ajout du mot **I:** pour débuter la compilation d'une routine d'interruption.
+
+* Ajout du mot **I;** pour conclure la défintion d'une routine d'interruption.
+
+* Ajout du mot **IFMOVE** pour tenir compte de la différence entre le transfert d'une interruption et d'un mot dans le dictionnaire. 
+
+
 #### 2020-06-04
 
+**À FAIRE**
+
+* Support pour les interruptions. Puisque les mots *colon* sont des listes d'appel de sous-routine une routine de service d'interruption peut-être écrite en Forth. Cependant 
+ces définitions ne doivent pas appaître dans le dictionnaire et doivent se terminer par une instruction machine **IRET**. Donc il faut créer des mots spéciaux pour la compilation des routines de service d'interruption. le mot **I:** servira à introduire une telle définition et le mot **I;** servira à la conclure. Aucun nom ne devra être donner à la routine. Son adresse d'exécution sera simplement retournée sur la pile. le mot **SET-IVEC** servira à initialiser un vecteur d'interruption avec cette adresse. 
+
+* Créer le mot **AUTORUN** pour définir l'application qui s'exécutera automatiquement à la mise sous tension de la carte **NUCLEO**. Cette adresse est inscrite dans la variable EEPROM **APP_RUN**. Par défaut c'est l'adresse d'exécution du mot **hi** qui est dans cette variable. 
+
+**FAIT**
 * Modifié code du mot **COMPI** et de tous les mots qui faisait un appel à **COMPI**. Cette modfiication était nécessaire pour régler le bogue FOR-AFT-THEN-NEXT. 
 
 * Ajout du mot **I** ( -- n ) Ce mot empile la valeur du compteur de boucle FOR-NEXT.

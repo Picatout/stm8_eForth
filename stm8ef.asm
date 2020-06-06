@@ -171,7 +171,7 @@ CRR     =     13      ;carriage return
 ERR     =     27      ;error escape
 TIC     =     39      ;tick
 CALLL   =     0xCD     ;CALL opcodes
-
+IRET_CODE =   0x80    ; IRET opcode 
 
         .macro _ledon
         bset PC_ODR,#LED2_BIT
@@ -3631,6 +3631,37 @@ SEMIS:
         JP     OVERT
 .endif 
 
+.if PICATOUT_MOD
+;       Terminate an ISR definition 
+;       retourn ca of ISR as double
+;       I; ( -- ud )
+        .word LINK 
+        LINK=.
+        .byte 2+IMEDD+COMPO 
+        .ascii "I;" 
+ISEMI:
+        subw x,#CELLL  
+        ldw y,#IRET_CODE 
+        ldw (x),y 
+        call CCOMMA
+        call LBRAC 
+        call IFMOVE 
+        CALL CPP
+        call AT 
+        call SWAPP 
+        CALL CPP 
+        call STORE 
+        call UPDATCP 
+        call EEPVP 
+        call DROP 
+        call AT 
+        call VPP 
+        call STORE 
+        jp ZERO
+          
+        
+.endif ;PICATOUT_MOD
+
 ;       ]       ( -- )
 ;       Start compiling words in
 ;       input stream.
@@ -3656,6 +3687,24 @@ JSRC:
         CALL     CCOMMA
         JP     COMMA
 
+.if PICATOUT_MOD
+;       INIT-OFS ( -- )
+;       compute offset to adjust jump address 
+;       set variable OFFSET 
+        .word LINK 
+        LINK=.
+        .byte 8 
+        .ascii "INIT-OFS" 
+INITOFS:
+        call CPP 
+        call AT 
+        call HERE
+        call SUBB 
+        call OFFSET 
+        call STORE 
+        ret 
+.endif 
+
 ;       :       ( -- ; <string> )
 ;       Start a new colon definition
 ;       using next word as its name.
@@ -3665,17 +3714,24 @@ LINK = .
         .ascii     ":"
 COLON:
 .if PICATOUT_MOD
-; compute offset to adjust jump address 
-        call CPP 
-        call AT 
-        call HERE
-        call SUBB 
-        call OFFSET 
-        call STORE 
+        call INITOFS 
 .endif ; PICATOUT_MOD
         CALL   TOKEN
         CALL   SNAME
         JP     RBRAC
+
+.if PICATOUT_MOD 
+;       I:  ( -- )
+;       Start interrupt service routine definition
+;       those definition have no name.
+        .word LINK
+        LINK=.
+        .byte 2 
+        .ascii "I:" 
+ICOLON:
+        call INITOFS 
+        jp RBRAC  
+.endif ; PICATOUT_MOD
 
 ;       IMMEDIATE       ( -- )
 ;       Make last compiled word

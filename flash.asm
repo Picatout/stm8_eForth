@@ -705,7 +705,8 @@ set_vector:
 	ldw (2,x),y 
 	clrw y 
 	ldw (x),y 
-	call ee_store 
+	call ee_store
+	addw x,#2*CELLL  
 9$: ret 
 
 
@@ -870,10 +871,7 @@ RAM2EE:
 	.byte 5 
 	.ascii "FADDR"
 FADDR:
-	subw x,#CELLL 
-	clrw y 
-	ldw (x),y 
-	ret
+	jp ZERO 
 
 ;--------------------------
 ; move new colon definition to FLASH 
@@ -907,6 +905,7 @@ FMOVE:
 	call ROT  ; ( udl ud a -- )
 	call DUPP 
 	call TOR    ; R: a 
+FMOVE2: 
 	call HERE 
 	call RAT 
 	call SUBB ; (udl ud a wl -- )
@@ -973,6 +972,26 @@ UPDATPTR:
 	call STORE
 	call UPDATCP 
 	ret 
+
+;-----------------------------
+; move interrupt sub-routine
+; in flash memory
+;----------------------------- 
+	.word LINK 
+	LINK=. 
+	.byte 6
+	.ascii "IFMOVE" 
+IFMOVE:
+	call CPP 
+	call AT 
+	call DUPP ; ( udl udl -- )
+	call EEPVP 
+	call DROP
+	call AT  ; ( udl udl a )
+	call TOR 
+	call FADDR
+	call RAT ; ( udl ud a -- ) R: a 
+	jp FMOVE2 
 
 
 ; application code begin here
