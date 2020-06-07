@@ -1,10 +1,16 @@
 #### 2020-06-07
 
+**À FAIRE** 
+
+* Écrire le manuel de référence 
+
+**FAIT** 
+
 * Mis à jour le numéro de version a **3.0**.
 
 * Ajout de **AUTORUN** &lt;string&gt; ( -- )  pour sélectionner l'application qui s'exécute au démarrage.
 
-* Ajout du mot SET-ISP ( n1 n2 -- ) Ajustement de la priorité d'interruption. n1 est le niveau  {1..3} et n2 est le vecteur {0..29}
+* Ajout du mot **SET-ISP** ( n1 n2 -- ) Ajustement de la priorité d'interruption. n1 est le niveau  {1..3} et n2 est le vecteur {0..29}
 
 * Ajout de **LSHIFT** ( n1 n2 -- n1&lt;&lt;n2 )
 

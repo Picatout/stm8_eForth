@@ -35,7 +35,7 @@ Comme il s'agit de 2 MCU STM8 l'adaptation vers le stm8s208 ne devrait pas néce
 
 * Maintenant les mots sont compilés en mémoire FLASH.
 
-* Support pour les interruptions avec création de routines d'interruptions en utilisant les motes **I:** et **I;**. La priorité des interruptions peut-être modifiée avec le mot **SET-ISP**
+* Support pour les interruptions avec création de routines d'interruptions en utilisant les mots **I:** et **I;**. La priorité des interruptions peut-être modifiée avec le mot **SET-ISP**
 
 
 * Ajout de nombreux mots d'usage général comme **LSHFIT**, **RSHIFT**, **FORGET**, **REBOOT** et **BYE**. 
