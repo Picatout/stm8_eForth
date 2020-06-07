@@ -29,3 +29,14 @@ Comme il s'agit de 2 MCU STM8 l'adaptation vers le stm8s208 ne devrait pas néce
 * mis en commentaire la commande SEE pas très utile. 
 * Adaptation complétée.
 
+## 2020-06-07
+
+* Suite aux nombreuses modification faite au logiciel j'ai fait passé le numéoro de version à **3.0** 
+
+* Maintenant les mots sont compilés en mémoire FLASH.
+
+* Support pour les interruptions avec création de routines d'interruptions en utilisant les motes **I:** et **I;**. La priorité des interruptions peut-être modifiée avec le mot **SET-ISP**
+
+
+* Ajout de nombreux mots d'usage général comme **LSHFIT**, **RSHIFT**, **FORGET**, **REBOOT** et **BYE**. 
+

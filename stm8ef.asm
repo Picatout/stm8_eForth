@@ -15,6 +15,8 @@
 
 ;===============================================================
 ;  Adaption to NUCLEO-8S208RB by Picatout
+;  Date: 2020-06-07 
+;       Suite aux nombreux changement remplacé le numéro de version pour 3.0
 ;  Date: 2019-10-26
 ;  Changes to memory map:
 ;       0x16f0  Data Stack, growing downward
@@ -152,8 +154,8 @@ APP_VP = APP_CP+2  ; free data space pointer
 ;***********************************************
 ;; Version control
 
-VER     =     2         ;major release version
-EXT     =     1         ;minor extension
+VER     =     3         ;major release version
+EXT     =     0         ;minor extension
 
 ;; Constants
 
@@ -361,6 +363,74 @@ EI:
 DI:
         sim 
         ret 
+
+; set interrupt priority level 
+; SET-ISP ( n1 n2 -- )
+; n1 level {1..3}
+; n2 vector {0..29}
+        .word LINK 
+        LINK=.
+        .byte 7 
+        .ascii "SET-ISP"
+SETISP:
+        ldw y,x 
+        ldw y,(y)
+        ld a,#4 ; 4 slot per register 
+;  quotient select register, remainder select slot in register.        
+        div y,a ; register=ITC_SPR1[Y], lshift=2*A 
+        and a,#3 
+        sll a ; 2*SLOT  lshift 
+        addw y,#ITC_SPR1 
+        ldw (x),y  ; ( level reg -- )
+        clrw y 
+        ld yl,a 
+        subw x,#CELLL 
+        ldw (x),y  ; ( level reg lshift -- )
+        ldw y,x 
+        ldw y,(2,y) 
+        ld a,(y)   ; reg_value
+        subw x,#CELLL 
+        ldw (x),y ; ( level reg lshift rval -- )
+        call OVER ; ( level reg lshift rval lshift -- )
+        call DOLIT 
+        .word 3
+        call SWAPP  ; ( level reg lshift rval 3 lshift )
+        call LSHIFT ; creat slot mask 
+        call INVER  ; ( level reg lshift rval mask )
+        call ANDD ; ( level reg lshift slot_masked )
+        call TOR  ; ( level reg lshift -- R: slot_masked )
+        call ROT  ; ( reg lshift level )
+        call SWAPP ; ( reg level lshift )
+        call LSHIFT  ; ( reg slot_level -- )
+        call RFROM ; ( reg slot_level masked_val )
+        call ORR   ; ( reg updated_rval )
+        call SWAPP 
+        call CSTOR
+
+; sélectionne l'application 
+; qui démarre automatique lors 
+; d'un COLD start 
+        .word LINK 
+        LINK=.
+        .byte 7
+        .ascii "AUTORUN"
+AUTORUN:
+        call TOKEN 
+        call DUPP 
+        call QBRAN 
+        .word FORGET2
+        call NAMEQ
+        call QDUP 
+        call QBRAN 
+        .word FORGET2
+        call DROP 
+        subw x,#2*CELLL 
+        clrw y 
+        ldw (x),y 
+        ldw y,#APP_RUN 
+        ldw (2,x),y 
+        jp ee_store 
+
 
 ;; Reset dictionary pointer before 
 ;; forgotten word. RAM SPACE and 
@@ -1783,6 +1853,49 @@ ONEM:
         DECW Y
         LDW (X),Y
         RET
+
+;  shift left n times 
+; LSHIFT ( n1 n2 -- n1<<n2 )
+        .word LINK 
+        LINK=.
+        .byte 6 
+        .ascii "LSHIFT"
+LSHIFT:
+        ld a,(1,x)
+        addw x,#CELLL 
+        ldw y,x 
+        ldw y,(y)
+LSHIFT1:
+        tnz a 
+        jreq LSHIFT4 
+        sllw y 
+        dec a 
+        jra LSHIFT1 
+LSHIFT4:
+        ldw (x),y 
+        ret 
+
+; shift right n times                 
+; RSHIFT (n1 n2 -- n1>>n2 )
+        .word LINK 
+        LINK=.
+        .byte 6
+        .ascii "RSHIFT"
+RSHIFT:
+        ld a,(1,x)
+        addw x,#CELLL 
+        ldw y,x 
+        ldw y,(y)
+RSHIFT1:
+        tnz a 
+        jreq RSHIFT4 
+        srlw y 
+        dec a 
+        jra RSHIFT1 
+RSHIFT4:
+        ldw (x),y 
+        ret 
+
 
 ;       2/      ( n -- n )
 ;       Multiply tos by 2.

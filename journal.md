@@ -1,5 +1,17 @@
-#### 2020-06-06
+#### 2020-06-07
 
+* Mis à jour le numéro de version a **3.0**.
+
+* Ajout de **AUTORUN** &lt;string&gt; ( -- )  pour sélectionner l'application qui s'exécute au démarrage.
+
+* Ajout du mot SET-ISP ( n1 n2 -- ) Ajustement de la priorité d'interruption. n1 est le niveau  {1..3} et n2 est le vecteur {0..29}
+
+* Ajout de **LSHIFT** ( n1 n2 -- n1&lt;&lt;n2 )
+
+* Ajout de **RSHIFT** ( n1 n2 -- n1&gt;&gt;n2 )
+
+
+#### 2020-06-06
 
 * Modifié priotiré d'interruption du TIM4 à niveau 3.
 
@@ -92,7 +104,7 @@ Ceci requiert une modfication de toutes les structures de contrôles.
 
 * Ajout de **FADDR** ( a -- ud ) étant a à 32 bits par 0. 
 
-* Ajout de **RFREE** ( a -- u ) retourne le nombre d'octets libre en sopposant que **a** est une adresse flash i.e. u=a%128 
+* Ajout de **RFREE** ( a -- u ) retourne le nombre d'octets libre en supposant que **a** est une adresse flash i.e. u=a%128 
 
 * Continue travail sur **FMOVE**. 
 
