@@ -996,7 +996,13 @@ UART3_PORT=PD
  ITC_SPR6   = (0x7F75)
  ITC_SPR7   = (0x7F76)
  ITC_SPR8   = (0x7F77)
-
+; interrupt priority
+ IPR0 = 2
+ IPR1 = 1
+ IPR2 = 0
+ IPR3 = 3 
+ IPR_MASK = 3
+ 
 ; SWIM, control and status register
  SWIM_CSR   = (0x7F80)
 ; debug registers

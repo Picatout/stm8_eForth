@@ -322,15 +322,154 @@ uart1_init:
 	mov TIM4_ARR,#125 ; set for 1msec.
 	mov TIM4_CR1,#((1<<TIM4_CR1_CEN)|(1<<TIM4_CR1_URS))
 	bset TIM4_IER,#TIM4_IER_UIE 
+; set TIM4 interrupt priority to highest
+        ld a,#~(IPR_MASK<<6)
+        and a,ITC_SPR6
+        or a,#(IPR3<<6)
+        ld ITC_SPR6,a 
         rim
         jp  COLD   ;default=MN1
 
 
+;; place MCU in sleep mode with
+;; halt opcode 
+;; BYE ( -- )
+        .word 0
+        LINK=.
+        .byte 3 
+        .ascii "BYE"
+BYE: 
+        halt 
+        ret 
+
+; Enable interrupts 
+; EI ( -- )
+        .word LINK 
+        LINK=.
+        .byte 2
+        .ascii "EI"
+EI:
+        rim 
+        ret 
+
+; Disable interrupts
+; DI ( -- )
+        .word LINK 
+        LINK=.
+        .byte 2 
+        .ascii "DI"
+DI:
+        sim 
+        ret 
+
+;; Reset dictionary pointer before 
+;; forgotten word. RAM SPACE and 
+;; interrupt vector defineD after 
+;; must be resetted also.
+        .word LINK 
+        LINK=.
+        .byte 6
+        .ascii "FORGET" 
+FORGET: 
+        call TOKEN
+        call DUPP 
+        call QBRAN 
+        .word FORGET2
+        call NAMEQ ; ( a -- ca na | a F )
+        call QDUP 
+        call QBRAN 
+        .word FORGET2
+; only forget users words 
+        call DUPP ; ( ca na na )
+        call DOLIT 
+        .word app_space 
+        call SWAPP 
+        call SUBB 
+        call  ZLESS 
+        call QBRAN 
+        .word CANT_FORGET 
+; ( ca na -- )        
+;reset ivec with address >= ca
+        call SWAPP ; ( na ca -- ) 
+        call CHKIVEC ; ( na -- ) 
+; start at LAST and link back to na 
+; if variable found reset VP at that point.
+FORGET1:
+        call LAST 
+        call AT 
+        call DUPP  ; ( -- na last last )
+        call FREEVAR ; ( -- na last )
+        call DUPP 
+        call DOLIT 
+        .word 2 
+        call SUBB ; ( na last -- na last lfa ) link address 
+        call AT 
+        call DUPP ; ( -- na last a a )
+        call CNTXT 
+        call STORE
+        call LAST  
+        call STORE ; ( --  na last )
+        call OVER 
+        call EQUAL ; ( na last na -- na T|F ) 
+        call QBRAN 
+        .word FORGET1 
+; ( na -- )
+        call DOLIT 
+        .word 2 
+        call SUBB 
+        call CPP 
+        call STORE  
+        call UPDATCP 
+        jp UPDATLAST 
+CANT_FORGET:
+        call ABORQ
+        .byte 10
+        .ascii " Protected"
+FORGET2:
+        call ABORQ
+        .byte 5
+        .ascii " what"
+FORGET4:
+        jp DROP 
+
+;---------------------------------
+; if na is variable 
+; free variable data  
+; FREEVAR ( na -- )
+;---------------------------------
+        .word LINK 
+        LINK=.
+        .byte 7 
+        .ascii "FREEVAR"
+FREEVAR:
+        call DUPP ; ( na na -- )
+        CALL CAT  ; ( na c -- )
+        call ONEP ;
+        CALL PLUS ; ( na c+1 -- ca ) 
+        call ONEP ; ( ca+ -- ) to get routne address 
+        call DUPP ; ( ca+ ca+ -- )
+        CALL AT   ; ( ca+ fnaddr -- ) ; fnaddr is routine address 
+        call DOLIT 
+        .word DOVAR ; if routine address is DOVAR then variable 
+        call EQUAL  ; ( ca+ fnaddr DOVAR -- ca+ T|F ) 
+        call QBRAN 
+        .word FREEVAR4 
+        call DOLIT 
+        .word 2 
+        call PLUS  ; ( ca+ 2 -- da ) da is data address 
+        call AT 
+        call VPP   
+        call STORE 
+        jp UPDATVP 
+FREEVAR4: ; not variable
+        jp  DROP 
+
+;;
 ;; get millisecond counter 
 ;; msec ( -- u )
 ;; Added by Picatout 2020-04-26
-        .word 0 
-LINK = . 
+        .word LINK  
+        LINK = . 
         .byte 4
         .ascii "MSEC"
 MSEC: 
@@ -4209,7 +4348,7 @@ TBOOT:
 ;       COLD    ( -- )
 ;       The hilevel cold start s=ence.
         .word      LINK
-LINK = . 
+        LINK = . 
         .byte      4
         .ascii     "COLD"
 COLD:

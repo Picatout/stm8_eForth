@@ -635,7 +635,7 @@ reset_vector:
 	ldw y,(y)
 	cpw y,#23 
 	jreq 9$
-	cpw y,#24 ; last vector for stm8s208 
+	cpw y,#29 ; last vector
 	jrugt 9$  
 	sllw y 
 	sllw y 
@@ -661,7 +661,55 @@ reset_vector:
 9$:	ret 
 
 
-	
+;------------------------------
+; all interrupt vector with 
+; an address >= ca are resetted 
+; to default
+; CHKIVEC ( ca -- )
+;------------------------------
+	.word LINK 
+	LINK=.
+	.byte 7
+	.ascii "CHKIVEC"
+;local variables 
+	SSP=1
+	CADR=3
+	OFS=5
+	VSIZE=6  
+CHKIVEC:
+	sub sp,#VSIZE ;alloc local variables 
+	ldw y,x 
+	ldw y,(y)
+	ldw (CADR,sp),y ; ca 
+	ldw (SSP,sp),x 
+	ldw x,#0x800a ; irq0 address 
+	ldw PTR16,X
+	ldw x,#-4 
+1$:	addw x,#4
+	cpw x,#30*4 ; irq0-29 
+	jreq 9$
+	ldw y,x  
+	ld a,([PTR16],y)
+	cp a,(CADR,sp)
+	jrult 1$
+	incw y 
+	ld a,([PTR16],y)
+	cp a,(CADR+1,sp) 
+	jrult 1$ 
+	ldw (OFS,sp),x 
+	srlw x
+	srlw x 
+	ldw y,x 
+	ldw x,(SSP,sp)
+	ldw (x),y
+	call reset_vector
+	ldw x,(OFS,sp) 
+	jra 1$
+9$:	ldw x,(SSP,sp) 
+	addw x,#CELLL 
+	addw sp,#VSIZE ; drop local variables  
+	ret 
+
 ;------------------------------
 ; set interrupt vector 
 ; SET-IVEC ( ud n -- )
@@ -676,7 +724,7 @@ set_vector:
     ldw y,x 
 	addw x,#CELLL 
 	ldw y,(y) ; vector #
-	cpw y,#24 ; last vector for stm8s208  
+	cpw y,#29 ; last vector
 	jrule 2$
 	addw x,#2*CELLL 
 	ret

@@ -1,3 +1,16 @@
+#### 2020-06-06
+
+
+* Modifié priotiré d'interruption du TIM4 à niveau 3.
+
+* Ajout du mot **EI** ( -- ) Pour activer les interruptions.
+
+* Ajout du mot **DI** ( -- ) Pour désactiver les interruptions.
+
+* Ajout de **BYE** ( -- ) Place me MCU en mode HALT. le MCU redémarre par un reset ou une interruption externe. 
+
+* Ajout du mot **FORGET** ( -- &lt;string&gt; ) Réinitialise les pointeurs au mot qui précède le mot passé en argument. Si des routines d'interruptions ont étées définies après ce mot les vecteurs sont réinitialisés à la valeur par défaut. Si des variables ont étées définies après ce mot l'espace RAM doit-être aussi libérée.
+
 #### 2020-06-05
 
 **À FAIRE** 
