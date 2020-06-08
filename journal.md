@@ -1,3 +1,11 @@
+#### 2020-06-08
+
+* Modifié **PICK** dont le comportement n'était pas conforme au standard Forth 201x.
+
+* Modifié **.S** nécessaire suite à la modification de **PICK**. 
+
+* Écriture du manuel de référence de stm8_eForth version 3.0 
+
 #### 2020-06-07
 
 **SESSION 2** 
