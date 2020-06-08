@@ -940,6 +940,10 @@ FADDR:
 	.byte 5 
 	.ascii "FMOVE" 
 FMOVE:
+	call TFLASH 
+	CALL AT 
+	CALL QBRAN 
+	.word no_move  
 	call CPP
 	call AT  
 	call DUPP ; ( udl udl -- )
@@ -985,6 +989,9 @@ fmove_done:
 	call RFROM  ; ( -- udl+ ud u2 wl- a  )
 	addw x,#5*CELLL ; (  -- udl+ ) new CP 
  	ret  
+no_move:
+	call ZERO
+	ret 
 
 ;------------------------------------------
 ; adjust pointers after **FMOVE** operetion.
@@ -1030,6 +1037,10 @@ UPDATPTR:
 	.byte 6
 	.ascii "IFMOVE" 
 IFMOVE:
+	call TFLASH 
+	CALL AT 
+	CALL QBRAN 
+	.word no_move 
 	call CPP 
 	call AT 
 	call DUPP ; ( udl udl -- )

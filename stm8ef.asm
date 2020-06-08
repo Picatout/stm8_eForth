@@ -125,10 +125,10 @@ UVP = UCNTXT+2    ; variable pointer
 UCP = UVP+2      ; code pointer
 ULAST = UCP+2    ; last dictionary pointer 
 UOFFSET = ULAST+2 ; distance between CP and VP to adjust jump address at compile time.
+UTFLASH = UOFFSET+2 ; select where between FLASH and RAM for compilation destination. 
 .endif ; PICATOUT_MOD
-
 ;******  System Variables  ******
-XTEMP	=	UOFFSET+2;address called by CREATE
+XTEMP	=	UTFLASH +2;address called by CREATE
 YTEMP	=	XTEMP+2	;address called by CREATE
 PROD1 = XTEMP	;space for UM*
 PROD2 = PROD1+2
@@ -282,7 +282,9 @@ UZERO:
         .word      CTOP   ;CP in RAM
         .word      app_space ; CP in FLASH 
         .word      LASTN   ;LAST
-UEND:  .word      0
+        .word      0        ; OFFSET 
+        .word      0       ; TFLASH 
+UEND:   .word      0
 
 ORIG:   
 ; initialize SP
@@ -601,6 +603,28 @@ TIMEOUTQ:
         .ascii "REBOOT"
 reboot:
         jp NonHandledInterrupt
+
+; compile to flash memory 
+; TO-FLASH ( -- )
+        .word LINK 
+        LINK=.
+        .byte 8
+        .ascii "TO-FLASH"
+TOFLASH:
+        ldw y,#-1 
+        ldw UTFLASH,y
+        ret 
+
+; compile to RAM 
+; TO-RAM ( -- )
+        .word LINK 
+        LINK=.
+        .byte 6 
+        .ascii "TO-RAM"
+TORAM:
+        clrw y 
+        ldw UTFLASH,y 
+        ret 
         
 
 ;; Device dependent I/O
@@ -1107,6 +1131,18 @@ TBUF:
         ldw (x),y 
         ret 
 
+; systeme variable 
+; compilation destination 
+; TFLASH ( -- A )
+        .word LINK 
+        LINK=.
+        .byte 6 
+        .ascii "TFLASH"         
+TFLASH:
+        subw x,#CELLL 
+        ldw y,#UTFLASH
+        ldw (x),y 
+        ret 
 
 .endif ;PICATOUT_MOD
 
@@ -3877,8 +3913,11 @@ SEMIS:
 .if PICATOUT_MOD
         call OVERT 
         CALL FMOVE
+        call QDUP 
+        call QBRAN 
+        .word 1$ 
         CALL UPDATPTR 
-        RET 
+1$:     RET 
 .else 
         JP     OVERT
 .endif 
@@ -3897,7 +3936,10 @@ ISEMI:
         ldw (x),y 
         call CCOMMA
         call LBRAC 
-        call IFMOVE 
+        call IFMOVE
+        call QDUP 
+        CALL QBRAN 
+        .word 1$ 
         CALL CPP
         call AT 
         call SWAPP 
@@ -3910,7 +3952,7 @@ ISEMI:
         call VPP 
         call STORE 
         jp ZERO
-          
+1$:     ret           
         
 .endif ;PICATOUT_MOD
 
@@ -3948,13 +3990,18 @@ JSRC:
         .byte 8 
         .ascii "INIT-OFS" 
 INITOFS:
+        call TFLASH 
+        CALL AT 
+        CALL DUPP 
+        call QBRAN
+        .word 1$
+        call DROP  
         call CPP 
         call AT 
         call HERE
         call SUBB 
-        call OFFSET 
-        call STORE 
-        ret 
+1$:     call OFFSET 
+        jp STORE  
 .endif 
 
 ;       :       ( -- ; <string> )
@@ -3966,7 +4013,7 @@ LINK = .
         .ascii     ":"
 COLON:
 .if PICATOUT_MOD
-        call INITOFS 
+        call INITOFS       
 .endif ; PICATOUT_MOD
         CALL   TOKEN
         CALL   SNAME
@@ -4049,8 +4096,11 @@ VARIA:
         call SWAPP 
         CALL STORE 
         CALL FMOVE ; move definition to FLASH
+        CALL QDUP 
+        CALL QBRAN 
+        .word 1$
         CALL UPDATPTR
-        RET 
+1$:     RET 
 .endif ;PICATOUT_MOD        
 
 .if PICATOUT_MOD
@@ -4073,8 +4123,11 @@ CONSTANT:
 .endif 
         CALL COMMA 
         CALL FMOVE
+        CALL QDUP 
+        CALL QBRAN 
+        .word 1$ 
         CALL UPDATPTR  
-        RET          
+1$:     RET          
 
 ; CONSTANT runtime semantic 
 ; doCONST  ( -- n )

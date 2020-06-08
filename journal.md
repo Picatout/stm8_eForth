@@ -1,5 +1,19 @@
 #### 2020-06-07
 
+**SESSION 2** 
+
+* Alors que ce matin je pensais en avoir terminé avec cette version 3.0 je me suis mis à réfléchir à la possibilité de pouvoir choisir entre la mémoire FLASH et la mémoire RAM pour la compilation des mots.  Ça peut en effet être intéressant pour faire de simple test de compiler dans la mémoire RAM. En réfléchissant à cette question je me suis rendu compte qu'il s'agissait d'une modification simple qui peut tenir en une variable système supplémentaire et 2 mots. 
+
+* **NOTE:** Les mots qui sont compilés en mode **TO-RAM** ne peuvent pas être transférés en mémoire FLASH ultérieurement. A moins de faire un **REBOOT** suivit de **TO-FLASH** et de copier chaque mot individuellement en utilisant un copier-coller à partir du texte dans le terminal. Puisqu'il n'y a pas d'éditeur il peut être utile d'activer le *log to file* dans le terminal.
+
+* **TFLASH** Variable système qui lorsqu'elle a la valeur -1 dirige la compilation vers la mémoire FLASH. Si elle est à zéro les définitions sont gardées en mémoire RAM.
+
+* **TO-FLASH** ( -- ) Sélectionne la mémoire FLASH comme destination de la compilation .
+
+* **TO-RAM** ( -- ) Sélectionne la mémoire RAM comme destination de la compilation.
+
+**SESSION 1** 
+
 **À FAIRE** 
 
 * Écrire le manuel de référence 
