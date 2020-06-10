@@ -1934,7 +1934,7 @@ RSHIFT4:
 
 
 ;       2/      ( n -- n )
-;       Multiply tos by 2.
+;       divide  tos by 2.
         .word      LINK
 LINK = . 
         .byte      2
