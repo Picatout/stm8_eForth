@@ -40,3 +40,6 @@ Comme il s'agit de 2 MCU STM8 l'adaptation vers le stm8s208 ne devrait pas néce
 
 * Ajout de nombreux mots d'usage général comme **LSHFIT**, **RSHIFT**, **FORGET**, **REBOOT** et **BYE**. 
 
+## 2020-06-008 
+
+* Started working on [reference manual](stm8_eForth_ref.md).

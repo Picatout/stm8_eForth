@@ -3978,7 +3978,7 @@ RBRAC:
 ;       Compile a subroutine call.
         .word      LINK
 LINK = . 
-        .byte      4
+        .byte      5
         .ascii     "CALL,"
 JSRC:
         CALL     DOLIT

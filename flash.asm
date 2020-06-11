@@ -663,9 +663,9 @@ reset_vector:
 
 ;------------------------------
 ; all interrupt vector with 
-; an address >= ca are resetted 
+; an address >= a are resetted 
 ; to default
-; CHKIVEC ( ca -- )
+; CHKIVEC ( a -- )
 ;------------------------------
 	.word LINK 
 	LINK=.
