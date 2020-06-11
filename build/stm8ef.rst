@@ -2443,7 +2443,7 @@ Hexadecimal [24-Bits]
                                    1199 ;       Pointer to top of FLASH 
       0085EF 85 E3                 1200         .word LINK 
                            000571  1201         LINK=.
-      0085F1 03                    1202         .byte 3 
+      0085F1 02                    1202         .byte 2 
       0085F2 43 50                 1203         .ascii "CP"
       0085F4                       1204 CPP: 
       0085F4 90 AE 00 18      [ 2] 1205         ldw y,#UCP 
@@ -4573,7 +4573,7 @@ Hexadecimal [24-Bits]
       00917A CC 83 53         [ 2] 3148         JP     EMIT
       00917D 81               [ 4] 3149 BACK1:  RET
                                    3150 
-                                   3151 ;       TAP     ( bot eot cur c -- bot eot cur )
+                                   3151 ;       TAP    ( bot eot cur c -- bot eot cur )
                                    3152 ;       Accept and echo key stroke
                                    3153 ;       and bump cursor.
       00917E 91 4A                 3154         .word      LINK

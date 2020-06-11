@@ -1199,7 +1199,7 @@ VPP:
 ;       Pointer to top of FLASH 
         .word LINK 
         LINK=.
-        .byte 3 
+        .byte 2 
         .ascii "CP"
 CPP: 
         ldw y,#UCP 

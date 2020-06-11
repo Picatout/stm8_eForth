@@ -415,6 +415,30 @@ La limite est de 80 caractères. **QUERY** est le mot invoqué dans par **QUIT**
 **.(** &nbsp;  ( -- ; &lt;string&gt; ) Affiche une chaîne de caractère terminée par **)**. Il s'agit d'un mot immédiat. 
 
 
+## Variables système 
+
+**BASE**  ( -- a ) Empile l'adresse de la variable qui contient la base numérique active. 
+
+**TMP** ( -- a ) Empile l'adresse d'une variable système pour le stockage d'une valeur temporaire. 
+
+**&gt;TIB** ( -- a ) Empile l'adresse de la variable système qui contient la position courante de l'analyseur lexical dans le TIB. 
+
+**#TIB** ( -- a ) Empile l'adresse de la variable système qui indique le nombre  de caractères lus dans le TIB. 
+
+**HLD** ( -- a ) Empile l'adresse de la variable système qui contient la position dans le PAD où sera déposé le prochain caractère lors de la conversion d'un entier en chaîne.  
+
+**CONTEXT** ( -- a ) Empile l'adresse de la variable système qui pointe l'adresse de début de la chaîne du dictonnaire. La recherche dans le dictionaire s'effectue à partir de ce point. 
+
+**LAST** ( -- na ) Empile le *na* du dernier mot compilé. 
+
+**CP**  ( -- a ) Empile l'adresse de la variable système qui pointe l'adresse libre dans la mémoire FLASH. 
+
+**VP** ( -- a ) Empile l'adresse de la variable système qui pointe l'adresse libre dans la RAM 
+
+**OFFSET** ( -- a ) Empile l'adresse de la variable système qui contient la valeur utilisée par le compilateur pour le déplacement entre la RAM et la mémore FLASH. 
+
+**TFLASH** ( -- a ) Empile l'adresse de la variable booléenne qui détermine si le résultat de la compilation d'une définition doit-être transférée en mémoire FLASH. 
+
 
 
 
