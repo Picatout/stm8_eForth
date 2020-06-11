@@ -22,11 +22,12 @@ Les différents types de données qui peuvent se retrouver sur la pile sont indi
 * **d**   Indique un entier 32 bits signée. 
 * **t**   Booléen vrai n'importe quel entier sauf **0** mais habituellement  **-1** 
 * **f**   Booléen faux exprimé par l'entier **0**.   
+* **b**   adresse d'un tampon d'octets. 
 
-### Vocabulaire 
+## Vocabulaire 
 
 
-### Manipulation des éléments sur les piles 
+## Manipulation des éléments sur les piles 
 
 **DROP**  ( ix i -- ix ) Jette l'élément qui se trouve sommet de la pile des arguments.
 
@@ -62,7 +63,7 @@ Les différents types de données qui peuvent se retrouver sur la pile sont indi
 
 **R@** ( -- i ) R: ( i -- i ) Copie la valeur au sommet de la pile des retours sur la pile des arguments.
 
-### Lecture écriture des variables 
+## Lecture écriture des variables 
 
 **C@** ( a -- c ) Lecture de l'octet à l'adresse **a**.
 
@@ -78,7 +79,7 @@ Les différents types de données qui peuvent se retrouver sur la pile sont indi
 
 **VARIABLE** &lt;string&gt; Création de la variable **&lt;string&gt;** et initialisaton de sa valeur à **0**. 
 
-### Opérations arithmétiques et logiques 
+## Opérations arithmétiques et logiques 
 
 **+**  ( n1 n2 -- n1+n2 ) Addition
 
@@ -146,7 +147,7 @@ __UM*__ ( u1 u2 -- ud ) Multiplication non signée, le résutlat est conservé s
 
 **=** ( i1 i2 -- t|f )  **t** si i1==i2 sinon **f**.
 
-### Branchement et boucles 
+## Branchement et boucles 
 
 **BRANCH** &lt;a&gt;  Branchement inconditionnel à l'adresse **a** 
 
@@ -179,7 +180,7 @@ __UM*__ ( u1 u2 -- ud ) Multiplication non signée, le résutlat est conservé s
 
 **AFT** ( -- )  Utilisé à l'intérieur d'une boucle FOR..AFT..THEN..NEXT pour indiquer l'endroit où doit brancher le NEXT. Dans ce type de boucle Les instructions avant le **AFT** ne sont exécutées qu'une seule fois à la première itération puis il y a un saut après le **THEN**. Aux itérations suivantes le bouclage se fait après le **AFT**. 
 
-### FLASH, EEPROM and OPTION writing
+## Écriture en FLASH, EEPROM et OPTION 
 
 **NOTES:**  
 * Toutes les adresses fournies pour l'écriture dans la mémoire persistante doivent-être de type entier double non signé même lorsque l'adresse est &lt;65535.
@@ -258,7 +259,7 @@ Ce mot est utilisé par **RAM2EE**.
 **UPDAT-PTR** ( cp+ -- ) Appelé par le compilateur après une opération **FMOVE** pour mettre à jour la valeur des variables systèmes. 
  
 
-### Interrupt support 
+## Support pour les Interruptions 
 
 **DI**  ( -- ) Disable interrupts, reflect *sim* machine code instrucition. 
 
@@ -359,6 +360,67 @@ Ce mot est utilisé par **RAM2EE**.
 **COMPILE** ( -- ) Compile le prochain appel de sous-routine dans la liste d'une définition. 
 
 **[COMPILE]** ( -- &lt;string&gt;) Utiliser pour compiler un  mot immédiat qui normalement est excécuté plutôt que compilé. **&lt;string&gt;** est le mot qui suit dans le flux d'entré et qui représente un mot du dictionaire avec l'attribut immédiat. 
+
+**ALLOT** ( n -- ) Réserve **n** octets de mémoire RAM. Peut-être utilisé aussi pour libéré de la mémoire RAM si n&lt;0. 
+
+**'** ( -- ca|f ) &lt;string&gt; Recherche du nom **&lt;string&gt;** dans le dictionaire et empile le **ca** *(code address)* de ce nom s'il est trouvé sinon empile **f**.     
+
+**QUIT** ( -- ) est l'interpréteur de texte de Forth. Extrait les unités lexicale du flux d'entrée est les interprère ou les compile selon l'état du système. 
+
+**PRESET** ( -- ) Réinitialise le pointeur de la pile des arguments ainsi que la variable **TIB**. 
+
+**EVAL** ( --  ) Extrait la prochaine unité lexicale du flux d'entrée et l'interprète ou la compile selon l'état du système. 
+
+**$INTERPRET** ( a -- ) Interprète le jeton dont le nom est pointé par **a**. S'il ne s'agit pas d'un nom du dictionaire, essaie de le convertir entier et de l'empiler. Autrement affiche un message d'erreur. 
+
+**'EVAL** ( -- a ) Empile l'adresse pointée par le vecteur **INTER**. Cette adresse est celle de **$INTERPRET** lorsque le système est en mode interpréteur et **$COMPILE** lorqu'il est en mode compilation. 
+
+**?STACK** ( -- )  Contrôle la pile des arguments pour s'assurer qu'il n'y a pas *d'underflow*. 
+la condition *underflow* produit un arrêt avec un message d'erreur. **EVAL** fait cette vérification après chaque opération. 
+
+## Entrée terminal
+
+**KEY** ( -- c ) Attend la reception d'un caractère. 
+
+**?KEY** ( -- c t | f ) Vérifie s'il y a un caractère de disponible dans le flux d'entrée. 
+Empile le caractère et *t* si c'est le cas sinon empile *f*. 
+
+**ACCEPT** ( b u1 -- b u2 ) Lecture d'une ligne de texte dans le tampon **b** un maximum de **u2** caractères sont acceptés. **u2** est le nombre de caractères reçus.
+
+**QUERY** ( -- ) Rempli le **TIB** avec les caractères reçu du flux d'entrée, i.e UART1. 
+La limite est de 80 caractères. **QUERY** est le mot invoqué dans par **QUIT** pour la saisie d'une ligne de texte par l'utilisateur. 
+
+**TAP** ( cur c -- cur+ ) Écho et dépose dans le tampon le caracatère reçu *c*. 
+*cur* est le pointeur vers le tampon, celui-ci est incrémenté après le dépôt du caractère. 
+
+**KTAP** ( c -- ) Vérifie si le dernier caractère reçu est un caractère de contrôle *CR* ou *BKSP*. Les autres caractères de contrôles sont remplacés par un espace. Les *CR* et *BKSP* sont traité comme il se doit. 
+
+**^H** ( cur -- cur- ) Supprime le dernier caractère de ligne saisie. 
+
+
+## Sortie terminal 
+
+**EMIT** ( c -- ) Émet un caractère vers le terminal. i.e UART1 
+
+**.**  ( i -- ) Imprime l'entier au sommet de la pile. 
+
+**?** ( a -- ) Imprime l'entier à l'adresse *a*. 
+
+**U.** ( u -- ) Imprime l'entier non signée qui est au sommet de la pile. 
+
+**U.R** ( u +n -- ) Affiche  l'entier non signé *u* sur *n* colonnes. 
+
+**.R** ( i +n -- ) Affiche l'entier *i* entier sur *n* colonnes. 
+
+**.(** &nbsp;  ( -- ; &lt;string&gt; ) Affiche une chaîne de caractère terminée par **)**. Il s'agit d'un mot immédiat. 
+
+
+
+
+
+
+
+
 
 
 

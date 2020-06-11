@@ -3148,7 +3148,7 @@ BKSP:
         JP     EMIT
 BACK1:  RET
 
-;       TAP     ( bot eot cur c -- bot eot cur )
+;       TAP    ( bot eot cur c -- bot eot cur )
 ;       Accept and echo key stroke
 ;       and bump cursor.
         .word      LINK
@@ -3430,7 +3430,7 @@ ALLOT:
 .if PICATOUT_MOD
 ; must update APP_VP each time VP is modidied
         call PSTOR 
-        call UPDATVP 
+        jp UPDATVP 
 .else
         JP     PSTOR
 .endif ;PICATOUT_MOD

@@ -1,3 +1,9 @@
+#### 2020-06-11
+
+* Corrigé bogue dans **ALLOT** 
+
+* Travail sur le manule de référence. 
+
 #### 2020-06-08
 
 * Modifié **PICK** dont le comportement n'était pas conforme au standard Forth 201x.

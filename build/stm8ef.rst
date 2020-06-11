@@ -4883,7 +4883,7 @@ Hexadecimal [24-Bits]
                            000001  3430 .if PICATOUT_MOD
                                    3431 ; must update APP_VP each time VP is modidied
       009381 CD 8A 3C         [ 4] 3432         call PSTOR 
-      009384 CD 9A 59         [ 4] 3433         call UPDATVP 
+      009384 CC 9A 59         [ 2] 3433         jp UPDATVP 
                            000000  3434 .else
                                    3435         JP     PSTOR
                                    3436 .endif ;PICATOUT_MOD
