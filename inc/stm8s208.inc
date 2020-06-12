@@ -832,6 +832,31 @@ UART3_PORT=PD
  TIM2_CCR3H  = (0x5313)
  TIM2_CCR3L  = (0x5314)
 
+; TIM2_CR1 bitfields
+ TIM2_CR1_CEN=(0) ; Counter enable
+ TIM2_CR1_UDIS=(1) ; Update disable
+ TIM2_CR1_URS=(2) ; Update request source
+ TIM2_CR1_OPM=(3) ; One-pulse mode
+ TIM2_CR1_ARPE=(7) ; Auto-reload preload enable
+
+; TIMER2_CCMR bitfields 
+ TIM2_CCMR_CCS=(0) ; input/output select
+ TIM2_CCMR_OCPE=(3) ; preload enable
+ TIM2_CCMR_OCM=(4)  ; output compare mode 
+
+; TIMER2_CCER1 bitfields
+ TIM2_CCER1_CC1E=(0)
+ TIM2_CCER1_CC1P=(1)
+ TIM2_CCER1_CC2E=(4)
+ TIM2_CCER1_CC2P=(5)
+
+; TIMER2_EGR bitfields
+ TIM2_EGR_UG=(0) ; update generation
+ TIM2_EGR_CC1G=(1) ; Capture/compare 1 generation
+ TIM2_EGR_CC2G=(2) ; Capture/compare 2 generation
+ TIM2_EGR_CC3G=(3) ; Capture/compare 3 generation
+ TIM2_EGR_TG=(6); Trigger generation
+
 ; Timer 3
  TIM3_CR1  = (0x5320)
  TIM3_IER  = (0x5321)

@@ -96,20 +96,21 @@ PICATOUT_MOD=1  ; code modified by Picatout
 ;*********************************************************
 RAMBASE =	0x0000	   ;ram base
 STACK   =	0x17FF 	;system (return) stack empty 
-DATSTK  =	0x1670	;data stack  empty
-TBUFFBASE =     0x1680  ; flash read/write transaction buffer 
-TIBBASE =       0X1700  ; tib addr.
+DATSTK  =	0x1680	;data stack  empty
+TBUFFBASE =     0x1680  ; flash read/write transaction buffer address  
+TIBBASE =       0X1700  ; transaction input buffer addr.
 
 
 
 ;; Memory allocation
 
-UPP     =     RAMBASE+6
-SPP     =     RAMBASE+DATSTK
-RPP     =     RAMBASE+STACK
-ROWBUFF =     RAMBASE+TBUFFBASE 
-TIBB    =     RAMBASE+TIBBASE
-CTOP    =     RAMBASE+0x80
+UPP     =     RAMBASE+6          ; systeme variables base address 
+SPP     =     RAMBASE+DATSTK     ; data stack bottom 
+RPP     =     RAMBASE+STACK      ;  return stack bottom
+ROWBUFF =     RAMBASE+TBUFFBASE ; flash write buffer 
+TIBB    =     RAMBASE+TIBBASE  ; transaction input buffer
+VAR_BASE =    RAMBASE+0x80  ; user variables start here .
+VAR_TOP =     STACK-32*CELLL  ; reserve 32 cells for data stack. 
 
 .if PICATOUT_MOD 
 ; user variables constants 
@@ -126,9 +127,11 @@ UCP = UVP+2      ; code pointer
 ULAST = UCP+2    ; last dictionary pointer 
 UOFFSET = ULAST+2 ; distance between CP and VP to adjust jump address at compile time.
 UTFLASH = UOFFSET+2 ; select where between FLASH and RAM for compilation destination. 
+URLAST = UTFLASH+2 ; context for dictionary in RAM memory 
+
 .endif ; PICATOUT_MOD
 ;******  System Variables  ******
-XTEMP	=	UTFLASH +2;address called by CREATE
+XTEMP	=	URLAST +2;address called by CREATE
 YTEMP	=	XTEMP+2	;address called by CREATE
 PROD1 = XTEMP	;space for UM*
 PROD2 = PROD1+2
@@ -279,11 +282,12 @@ UZERO:
         .word      INTER   ;'EVAL
         .word      0       ;HLD
         .word      LASTN  ;CNTXT pointer
-        .word      CTOP   ;CP in RAM
-        .word      app_space ; CP in FLASH 
+        .word      VAR_BASE   ;variables free space pointer 
+        .word      app_space ; FLASH free space pointer 
         .word      LASTN   ;LAST
         .word      0        ; OFFSET 
-        .word      0       ; TFLASH 
+        .word      0       ; TFLASH
+;       .word      0       ; URLAST   
 UEND:   .word      0
 
 ORIG:   
@@ -433,10 +437,24 @@ AUTORUN:
         ldw (2,x),y 
         jp ee_store 
 
+;       PI ( --  355 113 )
+; usefull for trignometric 
+; computation using */ 
+        .word LINK 
+        LINK=.
+        .byte 2
+        .ascii "PI" 
+PII:
+        subw x,#2*CELLL 
+        ldw y,#355 
+        ldw (2,x),y 
+        ldw y,#113 
+        ldw (x),y 
+        ret 
 
 ;; Reset dictionary pointer before 
-;; forgotten word. RAM SPACE and 
-;; interrupt vector defineD after 
+;; forgotten word. RAM space and 
+;; interrupt vector defined after 
 ;; must be resetted also.
         .word LINK 
         LINK=.
@@ -456,10 +474,9 @@ FORGET:
         call DOLIT 
         .word app_space 
         call SWAPP 
-        call SUBB 
-        call  ZLESS 
+        call  ULESS 
         call QBRAN 
-        .word CANT_FORGET 
+        .word FORGET6 
 ; ( ca na -- )        
 ;reset ivec with address >= ca
         call SWAPP ; ( na ca -- ) 
@@ -493,16 +510,28 @@ FORGET1:
         call STORE  
         call UPDATCP 
         jp UPDATLAST 
-CANT_FORGET:
+FORGET6: ; tried to forget a RAM or system word 
+; ( ca na -- )
+        subw x,#CELLL 
+        ldw y,SP0 
+        ldw (x),y  
+        call ULESS
+        call QBRAN 
+        .word PROTECTED 
+        call ABORQ 
+        .byte 29
+        .ascii " For RAM definition do REBOOT"
+PROTECTED:
         call ABORQ
         .byte 10
         .ascii " Protected"
-FORGET2:
+FORGET2: ; no name or not found in dictionary 
         call ABORQ
         .byte 5
         .ascii " what"
 FORGET4:
         jp DROP 
+
 
 ;---------------------------------
 ; if na is variable 
@@ -611,7 +640,15 @@ reboot:
         .byte 8
         .ascii "TO-FLASH"
 TOFLASH:
-        ldw y,#-1 
+        call RAMLAST 
+        call AT 
+        call QDUP 
+        call QBRAN
+        .word 1$
+        call ABORQ 
+        .byte 29
+        .ascii " Not while definitions in RAM"   
+1$:     ldw y,#-1 
         ldw UTFLASH,y
         ret 
 
@@ -1220,7 +1257,24 @@ LAST:
         LDW (X),Y
         RET
 
+.if PICATOUT_MOD 
+; address of system variable URLAST 
+;       RAMLAST ( -- a )
+; RAM dictionary context 
+        .word LINK 
+        LINK=. 
+        .byte 7  
+        .ascii "RAMLAST" 
+RAMLAST: 
+        ldw y,#URLAST 
+        subw x,#CELLL 
+        ldw (x),y 
+        ret 
+.endif ;PICATOUT_MOD
+
 .if PICATOUT_MOD
+; OFFSET ( -- a )
+; address of system variable OFFSET 
         .word LINK 
         LINK=.
         .byte 6
@@ -3920,7 +3974,7 @@ SEMIS:
         CALL FMOVE
         call QDUP 
         call QBRAN 
-        .word 1$ 
+        .word SET_RAMLAST 
         CALL UPDATPTR 
 1$:     RET 
 .else 
@@ -3944,7 +3998,7 @@ ISEMI:
         call IFMOVE
         call QDUP 
         CALL QBRAN 
-        .word 1$ 
+        .word SET_RAMLAST
         CALL CPP
         call AT 
         call SWAPP 
@@ -3957,7 +4011,7 @@ ISEMI:
         call VPP 
         call STORE 
         jp ZERO
-1$:     ret           
+        ret           
         
 .endif ;PICATOUT_MOD
 
@@ -4091,7 +4145,6 @@ VARIA:
         CALL CELLP
         CALL VPP 
         CALL STORE
-        call UPDATVP 
 .endif         
         CALL CREAT
         CALL DUPP
@@ -4099,13 +4152,20 @@ VARIA:
         CALL ZERO
 .if PICATOUT_MOD 
         call SWAPP 
-        CALL STORE 
+        CALL STORE
         CALL FMOVE ; move definition to FLASH
         CALL QDUP 
         CALL QBRAN 
-        .word 1$
+        .word SET_RAMLAST   
+        call UPDATVP  ; don't update if variable kept in RAM.
         CALL UPDATPTR
-1$:     RET 
+        RET         
+SET_RAMLAST: 
+        CALL LAST 
+        CALL AT 
+        CALL RAMLAST 
+        jp STORE  
+
 .endif ;PICATOUT_MOD        
 
 .if PICATOUT_MOD
@@ -4130,7 +4190,7 @@ CONSTANT:
         CALL FMOVE
         CALL QDUP 
         CALL QBRAN 
-        .word 1$ 
+        .word SET_RAMLAST  
         CALL UPDATPTR  
 1$:     RET          
 
@@ -4556,7 +4616,7 @@ COLD1:  CALL     DOLIT
         jra 2$
 1$: ; update LAST with APP_LAST 
         ldw ULAST,y
-        ldw UCNTXT,y 
+        ldw UCNTXT,y
 2$:  
 ; update APP_CP if < app_space 
         ldw y,APP_CP  

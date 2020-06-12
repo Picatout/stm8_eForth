@@ -1,4 +1,15 @@
+#### 2020-06-12
+
+* Corrigé bogue dans **VARIABLE** 
+
+* Corrigé bogue dans **FORGET** 
+
+* Ajouté **PI**  ( -- 355 113 ) Empile les 2 constante **355** et **113** qui peuvent être utilisées avec __/*__ pour les calculs trigonométriques sur fractions à décimales fixes. 
+
+
 #### 2020-06-11
+
+* Découvert bogue. Lorsqu'on compile dans la RAM pour ensuite passé dans la compilation en mémoire flash les variables systèmes relié à la compilation ne sont plus valide. 
 
 * Corrigé bogue dans **ALLOT** 
 
