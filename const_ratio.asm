@@ -106,9 +106,9 @@ SQRT10:
 ; used in music to compute well tempered scale
         .word LINK 
         LINK=. 
-        .byte 6 
-        .ascii "SQRT12"
-SQRT12:
+        .byte 5 
+        .ascii "12RT2"
+RT12_2:
     subw x,#2*CELLL 
     ldw y,#26797
     ldw (2,x),y 

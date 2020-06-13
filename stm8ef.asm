@@ -1415,13 +1415,38 @@ DNEGA:
         LDW Y,X
         LDW Y,(2,Y)
         CPLW Y
-        INCW Y
+.if PICATOUT_MOD
+        addw y,#1
+.else 
+        INCW Y ; bug incw as no effect on Carry flag 
+.endif        
         LDW (2,X),Y
         LDW Y,YTEMP
         JRNC DN1 
         INCW Y
 DN1:    LDW (X),Y
         RET
+
+
+;       S>D ( n -- d )
+; convert single integer to double 
+        .word LINK 
+        LINK=. 
+        .byte 3 
+        .ascii "S>D"
+STOD: 
+        subw x,#CELLL 
+        clrw y 
+        ldw (x),y 
+        ldw y,x 
+        ldw y,(2,y)
+        jrpl 1$ 
+        ldw y,#-1
+        ldw (x),y 
+1$:     ret 
+
+
+
 
 ;       -       ( n1 n2 -- n1-n2 )
 ;       Subtraction.

@@ -1,3 +1,11 @@
+#### 2020-06-13
+
+* Débogué **DNEGATE** incw y n'affecte pas le carry flag.
+
+* Ajout de **S>D** ( n -- d ) conversion d'un entier simple en entier double.
+
+* Renommé la double constante **SQRT12** en **12RT2**. Il ne s'agit pas de la racine carré de 12 mais plutôt de la 12ième racine de 2. 
+
 #### 2020-06-12
 
 **Session 2**
