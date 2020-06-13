@@ -437,21 +437,6 @@ AUTORUN:
         ldw (2,x),y 
         jp ee_store 
 
-;       PI ( --  355 113 )
-; usefull for trignometric 
-; computation using */ 
-        .word LINK 
-        LINK=.
-        .byte 2
-        .ascii "PI" 
-PII:
-        subw x,#2*CELLL 
-        ldw y,#355 
-        ldw (2,x),y 
-        ldw y,#113 
-        ldw (x),y 
-        ret 
-
 ;; Reset dictionary pointer before 
 ;; forgotten word. RAM space and 
 ;; interrupt vector defined after 
@@ -1610,7 +1595,7 @@ UMMOD:
 	LDW (2,X),Y
 	RET
 MMSM1:
-.if  PICATOUT_MOD 
+.if PICATOUT_MOD 
 ; take advantage of divw x,y when udh==0
         tnzw x  ; is udh==0?
         jrne MMSM2 
@@ -1637,7 +1622,11 @@ MMSM4:
 	RLCW X	; rotate into remainder
 	DEC A	; repeat
 	JRUGT MMSM3
-	SRAW X
+.if PICATOUT_MOD
+        RRCW X 
+.else 
+	SRAW X  ; bug 
+.endif         
 	LDW YTEMP,X	; done, save remainder
 	LDW X,XTEMP
 	ADDW X,#2	; drop
@@ -1723,7 +1712,7 @@ LINK = .
         .byte      3
         .ascii     "UM*"
 UMSTA:	; stack have 4 bytes u1=a,b u2=c,d
-.if PICATOUT_MOD 
+.if  PICATOUT_MOD 
 ; take advantage of SP addressing modes
 ; these PRODx in RAM are not required
 ; the product is kept on stack as local variable 
@@ -4647,6 +4636,13 @@ COLD1:  CALL     DOLIT
         ; keep this include at end 
         .include "flash.asm"
 .endif ; PICATOUT_MOD
+
+WANT_MATH_CONST = 1 
+.if WANT_MATH_CONST 
+        ; irrational constants 
+        ; approximation by integers ratio.
+        .include "const_ratio.asm"
+.endif 
 
 ;===============================================================
 

@@ -1,10 +1,37 @@
 #### 2020-06-12
 
+**Session 2**
+
+* Corrigé bogue dans **UM/MOD**. 
+
+* Ajout du fichier [const_ratio.asm](const_ratio.asm) qui définie des constantes arithmétiques par un rapport de 2 entiers. Ces constantes sont définies pour êtres utilisées avec les opérateurs  __*/__ et __*/MOD__. 
+
+exemple d'utilisation d'une constante. Génère les notes de la gamme tempéré pour l'octave 4.
+```
+: TEMPERED 11 FOR CR DUP . SQRT12 DUP >R */MOD SWAP R> 2/ / + NEXT DROP ; ok
+523 TEMPERED
+ 523
+ 554
+ 587
+ 622
+ 659
+ 698
+ 740
+ 784
+ 831
+ 880
+ 932
+ 987 ok
+
+```
+
+**Session 1**
+
 * Corrigé bogue dans **VARIABLE** 
 
 * Corrigé bogue dans **FORGET** 
 
-* Ajouté **PI**  ( -- 355 113 ) Empile les 2 constante **355** et **113** qui peuvent être utilisées avec __/*__ pour les calculs trigonométriques sur fractions à décimales fixes. 
+* Ajouté **PI**  ( -- 355 113 ) Empile les 2 constante **355** et **113** qui peuvent être utilisées avec __*/__ pour les calculs trigonométriques sur fractions à décimales fixes. 
 
 
 #### 2020-06-11

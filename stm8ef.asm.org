@@ -934,16 +934,16 @@ LINK CEQU *
         DC.B     "DNEGATE"
 DNEGA
         LDW Y,X
-				LDW Y,(Y)
+	LDW Y,(Y)
         CPLW Y     
-				LDW YTEMP,Y
+	LDW YTEMP,Y
         LDW Y,X
-				LDW Y,(2,Y)
-				CPLW Y
-				INCW Y
-				LDW (2,X),Y
-				LDW Y,YTEMP
-				JRNC DN1 
+	LDW Y,(2,Y)
+	CPLW Y
+	INCW Y
+	LDW (2,X),Y
+	LDW Y,YTEMP
+	JRNC DN1 
         INCW Y
 DN1     LDW (X),Y
         RET
