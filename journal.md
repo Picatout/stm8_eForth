@@ -1,5 +1,12 @@
 #### 2020-06-13
 
+* Corrigé information concernant les mots **LN2** et **LOG2** dans [const_ratio.asm](const_ratio.asm)
+
+* Continuer rédaction de [tutoriel.md](tutoriel.md)
+
+
+#### 2020-06-13
+
 * Débogué **DNEGATE** incw y n'affecte pas le carry flag.
 
 * Ajout de **S>D** ( n -- d ) conversion d'un entier simple en entier double.

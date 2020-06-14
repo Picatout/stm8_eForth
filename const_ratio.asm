@@ -117,6 +117,7 @@ RT12_2:
     ret 
 
 ;   LOG2 ( -- 2040 11103 )
+; log(2)/1.6384
 ; precision: 1.1e-8
         .word LINK 
         LINK=.
@@ -131,6 +132,7 @@ LOG2:
     ret 
 
 ;   LN2 ( -- 485 11464 )
+; ln(2)/16.384 
 ; precision: 1.0e-7 
         .word LINK 
         LINK=.
