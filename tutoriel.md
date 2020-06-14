@@ -97,22 +97,22 @@ ASCII \ invoque le mot que nous venont de définir et le résultat s'affiche.
 
 ## Notre premier mot 
 
-La carte NUCLEO possède une LED indentifiée **LD2** sur la carte. Cette LED est branchée sur le bit **5** du port **C**. Notre premier programme va s'appeller **BLINK** et va faire clignoter cette LED à une vitesse déterminer par le paramètre que nous allons lui passer. Mais avant de définit **BLINK** nous allons définir une constante et un autre mot qui seront utlisés par **BLINK**. 
+La carte NUCLEO possède une LED indentifiée **LD2** sur la carte. Cette LED est branchée sur le bit **5** du port **C**. Notre premier programme va s'appeller **BLINK** et va faire clignoter cette LED à une vitesse déterminer par le paramètre que nous allons lui passer. Mais avant de définir **BLINK** nous allons définir une constante et un autre mot qui seront utilisés par **BLINK**. 
 
 ```
 $500A  CONSTANT LD2 \ adresse du registre que nous devons modifier pour contrôler LD2 
-\ Notez que le entiers qui débutent par le caractère **$** sont des entiers en hexadécimal. 
+\ Notez que le entiers qui débutent par le caractère '$' sont des entiers en hexadécimal. 
 : LD2-TOGGLE ( -- ) \ Inverse l'état de LD2 
 LD2 ( -- a ) \ Empile la constante LD2, i.e. l'adresse $500A
 DUP ( a -- a a ) \ Création d'une copie 
-C@  ( a -- a c ) \ Lecture du registre 'c' est la valeur contenue dans celui-ci.
+C@  ( a -- a c ) \ Lecture du registre. 'c' est la valeur contenue dans celui-ci.
 32 ( a c -- a c 32 ) \ empile l'entier 32 ou 1<<5 
 XOR ( a c 32 -- a c ) \ Le bit 5 de 'c' a été inversé 
 SWAP ( a c -- c a ) \ inverse la position des 2 éléments au sommet de la pile 
 C! ( c a -- ) \ Dépose la valeur 'c' à l'adresse 'a' 
 ; \ fin  de la définition. 
 ```
-Maintenant si on tape au terminal **LD2-TOGGLE** l'état de **LD2** sur la carte s'inverse. Si elle est éteinte elle s'allume et si elle allumée elle est éteinte. J'ai oublié de mentionner que le bit **5** du port **C** est déjà configuré en mode sortie par le système au démarrage. Si ce n'était pas le cas il aurait fallut le configurer. 
+Maintenant si on tape au terminal **LD2-TOGGLE** l'état de **LD2** sur la carte s'inverse. Si elle est éteinte elle s'allume et si elle allumée elle s'éteint. J'ai oublié de mentionner que le bit **5** du port **C** est déjà configuré en mode sortie par le système au démarrage. Si ce n'était pas le cas il aurait fallut le configurer. 
 
 Maintenant on peut définir notre mot **BLINK**. 
 ```
@@ -125,8 +125,8 @@ PAUSE ( n n -- n ) \ l'exécution est suspendu pour 'n' millisecondes
 UNTIL \ s'il n'y en a pas ?KEY retourne seulement 'f' (faux) et le programme boucle 
 \ s'il y a une touche ?KEY empile le caractère 'c' et 't' (vrai) alors UNTIL sort de la boucle.
 2DROP ( n c -- ) On jette les 2 éléments au sommet de la pile. 
-; \ Cette définie est complétée.
-333 BLINK \ clignote LD2 3 fois par seconde.
+; \ Cette définition est complétée.
+167 BLINK \ clignote LD2 3 fois par seconde.
 ```
 Donc pour réaliser ce petit programme on a ajouter 3 mots au dictionnaire du système: 
 * la constante **LD2** 
@@ -134,13 +134,13 @@ Donc pour réaliser ce petit programme on a ajouter 3 mots au dictionnaire du sy
 * **BLINK** le programme lui-même. 
 
 Pour voir tous les mots qui sont dans le dictionnaire ont invoque le mot **WORDS** 
-```
-WORDS
+
+WORDS<br>
  BLINK LD2-TOGGLE LD2 LN2 LOG2 12RT2 SQRT10 E SQRT3 SQRT2 PI IFMOVE UPDAT-PTR FMOVE FADDR RAM2EE RFREE BUF2ROW ROW2BUF EEC, EE, SET-IVEC CHKIVEC RST-IVEC PRISTINE SET-OPT WR-ROW ROW-ERASE EE! EEC! WR-BYTE INC-FPTR LOCK UNLOCK UNLKFL UNLKEE FC@ F@ UPDAT-VP UPDAT-CP UPDAT-RUN UPDAT-LAST EEP-VP EEP-CP EEP-RUN EEP-LAST EEPROM FP! COLD 'BOOT hi WORDS .ID >NAME .S DUMP dm+ _TYPE DOCONST CONSTANT VARIABLE CREATE IMMEDIATE I: : INIT-OFS CALL, ] I; ; OVERT $COMPILE $,n ?UNIQUE ." $" ABORT" AFT REPEAT WHILE AHEAD ELSE THEN IF AGAIN UNTIL BEGIN I NEXT FOR $," LITERAL COMPILE [COMPILE] C, , ALLOT ' QUIT PRESET EVAL ?STACK .OK [ $INTERPRET ABORT" ABORT QUERY ACCEPT KTAP TAP ^H NAME? FIND SAME? NAME> TOKEN WORD \ ( .( PARSE parse ? . U. U.R .R ."| $"| DO$ CR TYPE SPACES SPACE NUF? KEY NUMBER? DIGIT? DECIMAL HEX STR #> SIGN #S # HOLD <# EXTRACT DIGIT PACK0 ERASE FILL CMOVE @EXECUTE TIB PAD HERE COUNT 2@ 2! +! PICK DEPTH >CHAR -1 1 0 BL 2/ RSHIFT LSHIFT 1- 1+ 2* 2- 2+ */ */MOD M* * UM* / MOD /MOD M/MOD UM/MOD WITHIN MIN MAX < U< = ABS - S>D DNEGATE NEGATE NOT + 2DUP 2DROP ROT ?DUP OFFSET RAMLAST LAST CP VP CONTEXT HLD 'EVAL TFLASH TBUF #TIB >IN TMP BASE DOVAR UM+ XOR OR AND 0< OVER SWAP DUP DROP SP! SP@ >R R@ R> RP! RP@ C@ C! @ ! EXIT EXECUTE BRANCH ?BRANCH NEXT DOLIT EMIT ?KEY TO-RAM TO-FLASH REBOOT TIMEOUT? TIMER PAUSE MSEC FREEVAR FORGET AUTORUN SET-ISP DI EI BYE ok
 
-```
+
 Notez que les mots qu'on a ajouter apparaîssent au début de la liste dans l'ordre inverse de celui ou on les a définis.
 
-Puisque **LD2-TOGGLE** n'est invoqué qu'une fois à l'intérieur de la définition de **BLINK** on aurait pu inséré sa définition au début de la boucle juste après le **BEGIN** . Mais c'est beaucoup plus lisible comme ça . En Forth il veut mieux éviter les définitions trop complexe si on veut si retrouver. On tend donc à créer de petits mots. De plus de cette façon **LD2** et **LD2-TOGGLE** peuvent-être réutilisés dans d'autres définitions que **BLINK**. 
+Puisque **LD2-TOGGLE** n'est invoqué qu'une fois à l'intérieur de la définition de **BLINK** on aurait pu insérer sa définition au début de la boucle juste après le **BEGIN** . Mais c'est beaucoup plus lisible comme ça . En Forth il veut mieux éviter les définitions trop complexe si on veut s'y retrouver. On tend donc à créer de petits mots. De plus de cette façon **LD2** et **LD2-TOGGLE** peuvent-être réutilisés dans d'autres définitions que **BLINK**. 
 
 
