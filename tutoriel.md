@@ -19,7 +19,7 @@ Forth se présente comme un langage de bas niveau bien qu'il soit extensible à 
 
 Puisque Forth se présente comme un langage de bas niveau il peut sembler déconcertant au départ car l'utilisateur doit lui-même gérer les piles. Contrairement au **C** qui utilise 1 seule pile pour les retours et les arguments **Forth** sépare ses 2 fonctions entre 2 piles. Il y a la pile des arguments et la pile des retours. Certains système Forth utilise même une 3ième pile appellé pile de contrôle. **Stm8 eForth** conserve le modèle traditionnel à 2 piles. 
 
-Ce qui peut-être déconcertant pour le débutant c'est qu'il doit lui-même gérer le passage des arguments sur la pile avant d'appeller une fonction. En **C** c'est le compilateur qui s'occupe de ça. Exemple:
+Ce qui peut-être déconcertant pour le débutant c'est qu'il doit lui-même gérer la pile des arguments. En **C** c'est le compilateur qui s'occupe de ça. Exemple:
 
     // exemple en C 
     int add(int a, int b ){ 
@@ -38,7 +38,7 @@ Ce qui peut-être déconcertant pour le débutant c'est qu'il doit lui-même gé
 
 Ces 2 programmes font exactement la même chose. Ils addionnent les entiers *a* et *b* et imprime le résultat. En Forth les paramètres sont toujours passé sur la pile et le résultat s'il y en a 1 (ou plusieurs) sont reçus sur la pile. La notation est dite *Polonaise inversée*. Ça signifie simplement qu'on écris les paramètres des opérateurs ou mots en avant de ces derniers. 
 
-En **C** on doit indiquer le types des arguments et du résultat. En **Forth** comme en en **assembleur** le type de données n'est pas spécifié. C'est au programmeur de s'assurer qu'il passe les bonnes données à la fonction.  
+En **C** on doit indiquer le type des arguments et du résultat. En **Forth** comme en **assembleur** le type de données n'est pas spécifié. C'est au programmeur de s'assurer qu'il passe les bonnes données à la fonction.  
 
 ### éléments syntaxiques 
 
@@ -46,8 +46,15 @@ En **C** on doit indiquer le types des arguments et du résultat. En **Forth** c
 
 * En Forth les procédures, constantes et variables s'appellent des **mots** et ces mots sont conservés dans un dictionnaire. Ce dictionnaire donne accès à la définition de chaque mot en terme de code à exécuter. En **C** on appelerait ça le corps de la fonction.
 
-* n'importe quel suite de caractères qui a une représentation graphique peut-être utilisé comme nom pour définir un nouveau mot. **Stm8 eForth** utilise les caractères ASCII. Donc tous caractères dont le code ASCII est dans l'intervalle {33..126} peut-être utilisé dans le nom d'un mot. Ça inclus les chiffres. **Stm8 eForth** est sensible à la casse.
+* Lorsqu'une constante est invoquée sa valeur est déposée sur la pile. Lorsque le mot *pile* est utilisé seul il s'agit de la pile des arguments. 
 
+* Lorqu'une variable est invoquée son adresse est déposée sur la pile et non sa valeur. 
+
+* Lorsqu'un mot représentant une procédure ou fonction est invoqué son programme est exécuté.
+
+* Lorsque l'interpréteur rencontre un entier il le dépose sur la pile.
+
+* n'importe quel suite de caractères qui a une représentation graphique peut-être utilisé comme nom pour définir un nouveau mot. **Stm8 eForth** utilise les caractères ASCII. Donc tous caractères dont le code ASCII est dans l'intervalle {33..126} peut-être utilisé dans le nom d'un mot. Ça inclus les chiffres. **Stm8 eForth** est sensible à la casse.
 ```
 : ASCII ( imprime la liste des caracteres ASCII) 
 CR 32 BEGIN DUP EMIT 1+ DUP 127 = UNTIL DROP ; ok
@@ -63,9 +70,9 @@ N'importe quel de ces caractères à l'exception du premier qui est l'espace (i.
 
   * Les commentaires délimités qui sont indiqués par le mot **(** et se  termine par le premier **)** rencontré. 
 
-  * Les commentaires qui se termine en fin de ligne et qui sont indiqués par le mot **\**
+  * Les commentaires qui se termine en fin de ligne et qui sont indiqués par le mot **\\**
 
-  Notez que j'ai utilisé le qualificatif **mot** pour parler de ces 2 éléments de la syntaxe **Forth**. La syntaxe de **Forth** est très simple le seul séparateur des éléments lexical est l'espace. Et puisque **(** et __\\__ sont des mots ils doivent-être séparés du commentaire qui suit par un espace. **)** n'est pas un mot mais un caractère terminateur qui indique la fin du commentaire. Il n'est donc pas nécessaire de mettre un espace entre le dernier caractère du commenataire et la parenthèse de droite.  Ceci **( commentaire délimité)**  est correct en **Forth**.   
+  Notez que j'ai utilisé le qualificatif **mot** pour parler de ces 2 éléments de la syntaxe **Forth**. La syntaxe de **Forth** est très simple le seul séparateur des éléments lexical est l'espace. Et puisque **(** et __\\__ sont des mots ils doivent-être séparés du commentaire qui suit par un espace. **)** n'est pas un mot mais un caractère terminateur qui indique la fin du commentaire. Il n'est donc pas nécessaire de mettre un espace entre le dernier caractère du commenataire et la parenthèse de droite.<br>  **( commentaire délimité)**  est un commentaire valide.   
 
 ### Gestion de la pile des arguments (paramètres).
 
@@ -79,21 +86,21 @@ N'importe quel de ces caractères à l'exception du premier qui est l'espace (i.
  BEGIN \ débute une boucle 
  DUP    ( -- c c )  \ DUP crée une copie de l'élément au sommet. 
  EMIT   ( c c -- c ) \ la copie du dessuss a étée émise vers le terminal.
- 1+     ( c -- ) \ c a été incrémenté pour passer au caractère suivant.
+ 1+     ( c -- c ) \ c a été incrémenté pour passer au caractère suivant.
  DUP    ( c -- c c ) \ cré une copie de c 
  127    ( c c -- c c 127 ) \ empile 127, Correspond au caractère DELETE en ASCII  
-=       ( c c 127 -- c f ) \ compare c et 127 retourne vrai si égaux 
-UNTIL   ( c f -- c )  \ termine la boucle si f est vrai sinon retourne au début de la boucle.
-DROP    ( c -- ) \ jette l'élément qui reste sur la pile 
+=       ( c c 127 -- c flag ) \ compare c et 127 retourne vrai si égaux 
+UNTIL   ( c flag -- c )  \ termine la boucle si flag est vrai sinon retourne au début de la boucle.
+DROP    ( c -- ) \ jette l'élément qui reste sur la pile. 
 ;     \ indique la fin de la définition. La compilation s'arrête ici.
 ASCII \ invoque le mot que nous venont de définir et le résultat s'affiche.
 !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~ ok
  ```
-* Chaque fois qu'un mot se termine sans erreur le message ** ok** apparaît sinon un message d'erreur est affiché et la pile est réinitialisée (vidée de son contenu).
+* Chaque fois qu'un mot se termine sans erreur le message ** ok** apparaît sinon un message d'erreur est affiché et la pile est vidée de son contenu.
 
 * Le commentaire **( -- )** Après le nom de la définition sert à indiquer la liste des arguments requis par la fonction  à gauche de **--**. La liste de ceux qu'elle retourne est à droite de **--** . Les éléments sont indiqués dans l'ordre 'bas de la pile' à gauche et 'sommet' à droite. Le mot ASCII ne requiert aucun paramètre et ne retourne rien.
 
-* **32 ( -- c )**  Ce commentaire indique qu'il n'y avait rien sur la pile avant d'ajouter le **32**. Le **c** indique qu'il s'agit d'un caractère ou octet. **Stm8 eForth** utilise des piles avec éléments de 16 bits, donc même si cet élément est interprété comme un caractère ASCII il occupe quand même 16 bits sur la pile. Un élément de la pile est appellé une **cellule**. 
+* **32 ( -- c )**  Ce commentaire indique qu'il n'y avait rien sur la pile avant d'ajouter le **32**. Le **c** indique que cet entier doit-être considéré comme un caractère ou octet. **Stm8 eForth** utilise des piles avec éléments de 16 bits, donc même si cet élément est interprété comme un caractère ASCII il occupe quand même 16 bits sur la pile. Un emplacement sur la pile est appellé une **cellule**. 
 
 ## Notre premier mot 
 
@@ -102,7 +109,7 @@ La carte NUCLEO possède une LED indentifiée **LD2** sur la carte. Cette LED es
 ```
 $500A  CONSTANT LD2 \ adresse du registre que nous devons modifier pour contrôler LD2 
 ```
-Notez que le entiers qui débutent par le caractère '$' sont des entiers en hexadécimal. 
+Notez que le entiers qui débutent par le caractère **'$'** sont des entiers en hexadécimal. 
 ```
 : LD2-TOGGLE ( -- ) \ Inverse l'état de LD2 
 LD2 ( -- a ) \ Empile la constante LD2, i.e. l'adresse $500A
@@ -153,15 +160,13 @@ Puisque **LD2-TOGGLE** n'est invoqué qu'une fois à l'intérieur de la définit
 
 * **DUP**  &nbsp; ( i -- i i ) Sert à dupliquer l'élément au sommet de la pile.
 
-* **C@**  &nbsp; ( a -- c ) Empile l'octet qui se trouve à l'adresse donnée en paramètre: *a*. 
+* **C@**  &nbsp; ( a -- c ) Empile l'octet qui se trouve à l'adresse *a*. 
 
-* **@**  &nbsp; ( a -- i ) Empile l'entier qui se trouve à l'adresse donnée en paramètre: *a*.
+* **@**  &nbsp; ( a -- i ) Empile l'entier qui se trouve à l'adresse *a*.
 
 * **C!** &nbsp; ( c a -- ) Dépose l'octet *c* à l'adresse *a*. 
 
 * **!** &nbsp; ( i a -- ) Dépose l'entier *i* à l'adresse *a*. 
-
-* Lorsque l'analyseur lexical rencontre un entier il le dépose au sommet de la pile. 
 
 * **SWAP**  &nbsp; ( n1 n2 - n2 n1 )  Inverse la position des 2 éléments au sommet de la pile. 
 
@@ -173,7 +178,7 @@ Puisque **LD2-TOGGLE** n'est invoqué qu'une fois à l'intérieur de la définit
 
 * **PAUSE**  &nbsp; ( u -- ) Suspend l'exécution pour *u* millisecondes. Sert à créer un délais. 
 
-* **?KEY**  &nbsp; ( -- c t|f ) Vérifie si un caractère venant du terminal est disponible. Si c'est le cas empile ce caractère ainsi que **-1** qui en Forth représente la valeur Booléenne **vrai**. S'il n'y a pas de caractère disponible empile **0** qui en Forth représente la valeur Booléenne **faux**. 
+* **?KEY**  &nbsp; ( -- c t|f ) Vérifie si un caractère venant du terminal est disponible. Si c'est le cas empile ce caractère ainsi que **-1** qui en Forth représente la valeur Booléenne **vrai**. S'il n'y a pas de caractère disponible empile **0** qui en Forth représente la valeur Booléenne **faux**. En fait toute valeur non nul sera traitée comme *vrai* mais les fonctions qui retourne un *flag* retourne *-1* par convention pour dire *vrai*. 
 
 * **KEY**  &nbsp; ( -- c ) Suspend l'exécution jusqu'à réception d'un caractère du terminal. Le caractère reçu est empilé. 
 
@@ -185,11 +190,12 @@ Puisque **LD2-TOGGLE** n'est invoqué qu'une fois à l'intérieur de la définit
 
 * **BEGIN**  &nbsp;  ( -- ) Indique le début d'une boucle. 
 
-* **UNTIL**  &nbsp; ( f -- ) Vérifie la valeur booléenne *f* qui est au sommet de la pile. Si cette valeur est fausse retourne au début de la boucle. Sinon termine la boucle. 
+* **UNTIL**  &nbsp; ( flag -- ) Vérifie la valeur booléenne *flag* qui est au sommet de la pile. Si cette valeur est fausse retourne au début de la boucle. Sinon termine la boucle. 
+Notez que les *flag* sont retirés de la pile lors de leur vérification.
 
 ## Produire un son. 
 
-Le STM8S208RB possède un périphérique appellé **BEEP** qui permet de générer une tonalité de façon très simple. Cependant par défaut ce périphéque n'est relié à aucune sortie. Le MCU possède 7 registres d'options. Le registre **2** appellé **AFR** *Alternate Function Register* permettant de modifier le branchement de certains périphériques aux broches. Ainsi la broche **61** est branchée par défaut à **PD4** et **TIM2_CH1**. Les GPIO ne sont pas *remappable* mais **TIM2_CH1** peut-être remplacé par **BEEP**. 
+Le STM8S208RB possède un périphérique appellé **BEEP** qui permet de générer une tonalité de façon très simple. Cependant par défaut ce périphéque n'est relié à aucune sortie. Le MCU possède 7 registres d'options. Le registre **2** appellé **AFR** *Alternate Function Register* permettant de modifier le branchement de certains périphériques aux broches. Ainsi la broche **61** est branchée par défaut à **PD4** ( bit 4 du port D ) et **TIM2_CH1**. Les GPIO ne sont pas *remappable* mais **TIM2_CH1** peut-être remplacé par **BEEP**. 
 
 ![brochage du stm8s208rb](LQFP64_PINOUT.png)
 
@@ -205,7 +211,7 @@ Maintenant il ne reste qu'à brancher un haut-parleur haute impédance, 130 ohm 
 $50F3 CONSTANT BEEP \ registre de contrôle du beeper. 
 
 : BEEP-ON ( n -- ) \ activation du beeper 'n' { 0..30 }
-$20 OR BEEP C! ; \  '$20 OR' est pour mettre à 1 le bit BEEPEN qui active le beeper. 
+$20 OR BEEP C! ; \  '$20 OR' est pour mettre à **1** le bit **5** de *n* qui active le beeper. 
 
 : BEEP-OFF ( -- ) \ désactivation du beeper. 
 $1F BEEP C! ; \ La valeur 31 désactive le beeper.
@@ -243,11 +249,20 @@ Générons les 31 fréquences
 : TEST FOR I . NEXT ;
 4 TEST 4 3 2 1 0 ok
 ```
-* **I** &nbsp; ( -- i ) Empile le compteur de la boucle FOR. 
+* **I** &nbsp; ( -- i ) Dépose sur la pile le compteur de la boucle FOR. 
 
-* **NEXT** &nbsp; ( R: -- a i ) Vérifie si le compteur *i* est à zéro si c'est le cas enlève *a* et *i* de la pile des retours et sort de la boucle. Si le compteur n'est pas à zéro décremente le compteur et branche au début de la boucle dont l'adresse est indiquée par *a*. 
+* **NEXT** &nbsp; ( R: a I -- a I | ) Vérifie si le compteur *I* est à zéro si c'est le cas enlève *a* et *I* de la pile des retours et sort de la boucle. Si le compteur n'est pas à zéro décremente le compteur et branche au début de la boucle dont l'adresse est indiquée par *a*. 
 Vous n'avez pas à vous préoccuper des 2 paramètres qui sont sur la pile des retours c'est le fonctionnement interne de la boucle FOR..NEXT qui les dépose là et les retire à la sortie de la boucle. 
 
 * **.** &nbsp; ( .. i ) Imprime sur le terminal la valeur qui se trouve au sommet de la pile.
 Cette valeur est retirée de la pile. Ce mot dans le langage Forth est appellé *dot*. 
+
+* **LSFHIFT** &nbsp; ( n1 n2 -- n3 ) Décale vers la gauche *n1* de *n2* bits. *n3* est le résultat. Les bits à droite sont remplacé par **0**.  C'est l'équivalent de **n1&lt;&lt;n2** en langage **C**.
+
+* **RSHIFT** &nbsp; ( n1 n2 -- n3 ) Décale vers la droite *n1* de *n2* bits. Les bits à gauche sont remplacé par **0**. *n3* est le résultat. C'est l'équivalent de **n1&gt;&gt;n2** en langage **C**. 
+
+Supposons que le beeper ne suffise pas à vos besoin. Vous voulez pouvoir générer n'importe quelle fréquence audio. La méthode la plus simple pour faire ça est d'utiliser un périphérique *output compare* configuré en mode PWM. Puisque le haut-parleur est déjà branché sur **CN9-6** on va le laisser là et désactiver l'option BEEPER pour retrouver sur cette broche TIM2_CH1 qu'on va utiliser pour générer nos fréquences audio.
+```
+0 2 SET-OPT REBOOT \ annule l'option BEEP
+```
 

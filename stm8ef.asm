@@ -3990,7 +3990,7 @@ SEMIS:
         call QBRAN 
         .word SET_RAMLAST 
         CALL UPDATPTR 
-1$:     RET 
+        RET 
 .else 
         JP     OVERT
 .endif 

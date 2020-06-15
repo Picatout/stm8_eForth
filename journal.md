@@ -1,5 +1,13 @@
 #### 2020-06-13
 
+* Découvert bogue, la compilation en mémoire FLASH ne fonctionne plus les pointeurs ne semble pas être mis à jour correcte. À voir. 
+
+
+* Travail sur tutoriel. 
+
+
+#### 2020-06-13
+
 * Corrigé information concernant les mots **LN2** et **LOG2** dans [const_ratio.asm](const_ratio.asm)
 
 * Continuer rédaction de [tutoriel.md](tutoriel.md)
