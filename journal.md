@@ -1,4 +1,10 @@
-#### 2020-06-13
+#### 2020-06-15
+
+* Continuer rédaction du tutoriel. 
+
+* Problème avec la compilation en mémoire FLASH réglé. Était du au fait que j'avais inclus le fichier  **const_ratio.asm** après **flash.asm**. Hors l'étiquette **app_space** étant à la fin du fichier **flash.asm** n'était plus à la fin de la section code. J'ai déplacé cette étiquette dans le ficher principal **stm8ef.asm** pour m'assurer qu'elle sera toujours à la fin quel que soit l'ordre des *.include*. 
+
+#### 2020-06-14
 
 * Découvert bogue, la compilation en mémoire FLASH ne fonctionne plus les pointeurs ne semble pas être mis à jour correcte. À voir. 
 

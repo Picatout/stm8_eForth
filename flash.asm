@@ -988,7 +988,7 @@ next_row:
 	.word next_row  
 fmove_done:	
 	call RFROM  ; ( -- udl+ ud u2 wl- a  )
-	addw x,#5*CELLL ; (  -- udl+ ) new CP 
+	addw x,#5*CELLL ; (  -- cp+ ) new CP 
  	ret  
 no_move:
 	call ZERO
@@ -1054,6 +1054,3 @@ IFMOVE:
 	jp FMOVE2 
 
 
-; application code begin here
-	.bndry 128 ; align on flash block  
-app_space: 

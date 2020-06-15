@@ -261,8 +261,42 @@ Cette valeur est retirée de la pile. Ce mot dans le langage Forth est appellé 
 
 * **RSHIFT** &nbsp; ( n1 n2 -- n3 ) Décale vers la droite *n1* de *n2* bits. Les bits à gauche sont remplacé par **0**. *n3* est le résultat. C'est l'équivalent de **n1&gt;&gt;n2** en langage **C**. 
 
-Supposons que le beeper ne suffise pas à vos besoin. Vous voulez pouvoir générer n'importe quelle fréquence audio. La méthode la plus simple pour faire ça est d'utiliser un périphérique *output compare* configuré en mode PWM. Puisque le haut-parleur est déjà branché sur **CN9-6** on va le laisser là et désactiver l'option BEEPER pour retrouver sur cette broche TIM2_CH1 qu'on va utiliser pour générer nos fréquences audio.
+## Autre méthode plus flexible pour produire une tonalité.
+
+Supposons que le beeper ne suffise pas à vos besoins. Vous voulez pouvoir générer n'importe quelle fréquence audio. La méthode la plus simple pour faire ça est d'utiliser un périphérique *output compare* configuré en mode PWM. Puisque le haut-parleur est déjà branché sur **CN9-6** on va le laisser là et désactiver l'option BEEPER pour retrouver sur cette broche TIM2_CH1 qu'on va utiliser pour générer nos fréquences audio.
 ```
 0 2 SET-OPT REBOOT \ annule l'option BEEP
 ```
+On va définir une série de constantes pour les adresses des registres qui contrôle TIM2. 
+```
+$5300 DUP CONSTANT T2-CR1 \ registre de contrôle
+1+ DUP CONSTANT T2-IER  \ registre d'activation des interruptions
+1+ DUP CONSTANT T2-SR1 \ registre de status 1
+1+ DUP CONSTANT T2-SR2 \ registre de status 2
+1+ DUP CONSTANT T2-EGR \ générateur d'événement
+1+ DUP CONSTANT T2-CCMR1 \ mode capture/compare canal 1
+1+ DUP CONSTANT T2-CCMR2 \ mode capture/compare canal 2
+1+ DUP CONSTANT T2-CCMR3 \ mode capture/compare canal 3
+1+ DUP CONSTANT T2-CCER1 \ activation du canal registre 1
+1+ DUP CONSTANT T2-CCER2 \ activation du canal registre 2
+1+ DUP CONSTANT T2-CNTRH \ partie haute du compteur
+1+ DUP CONSTANT T2-CNTRL \ partie basse du compteur
+1+ DUP CONSTANT T2-PSCR \ prédiviseur signal clock
+1+ DUP CONSTANT T2-ARRH \ partie haute registre de période
+1+ DUP CONSTANT T2-ARRL \ partie basse registre de période
+1+ DUP CONSTANT T2-CCR1H \ partie haute registre de comparaison canal 1
+1+ DUP CONSTANT T2-CCR1L \ partie basse registre de comparaison canal 1
+1+ DUP CONSTANT T2-CCR2H \ partie haute registre de comparaison canal 2
+1+ DUP CONSTANT T2-CCR2L \ partie basse registre de comparaison canal 2
+1+ DUP CONSTANT T2-CCR3H \ partie haute registre de comparaison canal 3
+1+ DUP CONSTANT T2-CCR3L \ partie basse registre de comparaison canal 3
+```
+Puisse que tous les registres se suivent on laisse one compie sur la pile et on l'incrémente pour définir la constante suivante. Ça permet de faire un copier/coller dans la fenêtre du terminal ce qui est plus rapide.
+
+```
+: PERIOD ( u1 -- u1 ) \ u1 est la fréquence désiré et u2 la valeur pour ARR.
+ 31250 2 ROT DUP 2/ >R */MOD SWAP R> / + ; \ arrondie à l'entier le plus proche
+```
+La fréquence qui alimente la minuterie est de 62500 hertz mais comme cette valeur ne peut-être utilisée en nombre positif on utilise une astuce qui consiste à la divisée par 2 pour la remultipliée par 2 avec __*/MOD__ avant de diviser par **u1** qui est la fréquence désirée. __*/MOD__ retourne le quotient et le reste. On se sert du reste pour calculer l'arrondie à l'entier le plus près . Pour ce faire on a sauvegardé sur **R:** la moitié du diviseur. En divisant le reste part la moitié de la valeur du diviseur on obtient **0** ou **1** qu'on additionne au quotient. 
+
 

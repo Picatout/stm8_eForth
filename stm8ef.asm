@@ -1866,7 +1866,7 @@ MSTAR:
         CALL	DNEGA
 MSTA1:	RET
 
-;       . /MOD   ( n1 n2 n3 -- r q )
+;       */MOD   ( n1 n2 n3 -- r q )
 ;       Multiply n1 and n2, then divide
 ;       by n3. Return mod and quotient.
         .word      LINK
@@ -3989,11 +3989,12 @@ SEMIS:
         call QDUP 
         call QBRAN 
         .word SET_RAMLAST 
-        CALL UPDATPTR 
+        CALL UPDATPTR
         RET 
 .else 
         JP     OVERT
 .endif 
+
 
 .if PICATOUT_MOD
 ;       Terminate an ISR definition 
@@ -4427,7 +4428,9 @@ WORS1:  CALL     AT
         CALL     CELLM
         CALL     BRAN
         .word      WORS1
-        CALL     DROP
+.if PICATOUT_MOD
+;        CALL     DROP ; never reached
+.endif 
 WORS2:  RET
 
         
@@ -4657,11 +4660,6 @@ COLD1:  CALL     DOLIT
         CALL     OVERT
         JP     QUIT    ;start interpretation
 
-.if PICATOUT_MOD
-        ; keep this include at end 
-        .include "flash.asm"
-.endif ; PICATOUT_MOD
-
 WANT_MATH_CONST = 1 
 .if WANT_MATH_CONST 
         ; irrational constants 
@@ -4669,8 +4667,15 @@ WANT_MATH_CONST = 1
         .include "const_ratio.asm"
 .endif 
 
+.if PICATOUT_MOD
+        .include "flash.asm"
+.endif ; PICATOUT_MOD
+
 ;===============================================================
 
 LASTN =	LINK   ;last name defined
 
+; application code begin here
+	.bndry 128 ; align on flash block  
+app_space: 
 
