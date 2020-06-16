@@ -291,9 +291,10 @@ $5300 DUP CONSTANT T2-CR1 \ registre de contrôle
 1+ DUP CONSTANT T2-CCR3H \ partie haute registre de comparaison canal 3
 1+ DUP CONSTANT T2-CCR3L \ partie basse registre de comparaison canal 3
 ```
-Puisse que tous les registres se suivent on laisse one compie sur la pile et on l'incrémente pour définir la constante suivante. Ça permet de faire un copier/coller dans la fenêtre du terminal ce qui est plus rapide.
+Puisse que tous les registres se suivent on laisse une copie sur la pile et on l'incrémente pour définir la constante suivante. Ça permet de faire un copier/coller dans la fenêtre du terminal ce qui est plus rapide.
 
-Maintenant on va définir 2 mots l'un pour calculer la valeur à mettre dans T2-ARR à partir de la fréquence désirée. Le deuxième pour calculer la valeur à mettre dant T2-CCR1 pour obtenir un rapport cyclique de 50%. Pour la fréquence on va assumé que le registre T2-PSCR est initialisé à la valeur **3**. Ce qui signifie que Ft2=Fhsi/2^3 donc 16Mhz/8=2Mhz. Cette fréquence est celle qui va alimenter le compteur T2-CNTR.
+Maintenant on va définir 2 mots l'un pour calculer la valeur à mettre dans T2-ARR à partir de la fréquence désirée. Le deuxième pour calculer la valeur à mettre dant T2-CCR1 pour obtenir un rapport cyclique de 50%. Pour la fréquence on va assumer que le registre T2-PSCR est initialisé à la valeur **3**. Ce qui signifie que Fcntr=Fhsi/2^3 donc 16Mhz/8=2Mhz. Cette fréquence est celle qui va alimenter le compteur T2-CNTR.
+
 ```
 : PWM-PER ( fr -- u ) \ fr est la fréquence désiré et u la valeur pour ARR.
  31250 64 ( fr -- fr 31250 8 ) \ Astuce expliquée plus bas.
@@ -309,13 +310,13 @@ Maintenant on va définir 2 mots l'un pour calculer la valeur à mettre dans T2-
  ; 
 
 ```
-Comme stm8_eForth est un système à entiers de 16 bits le plus gros entier positif qu'on peut utiliser est 32767  hors la fréquence du *clock* qui alimente le compteur de **TIM2** est à 2Mhz. Pour contourner ce problème On pré-divise 2Mhz/64 ce qui donne 31250 qui est dans le domaine des entiers signés 16 bits {-32768..32767}. L'astuce ici est de le multiplié par 64 en gardant le produit sur 32 bits avant de faire la division par **fr**. Le mot __*/MOD__ est exactement conçu pour régler ce genre de problème. 31250 est d'abord multiplié par 64 et le produit est conservé sur 32 bits ensuite la division de l'entier 32 bits par l'entier 16 bits *fr* est effectuée. Le reste et le quotient sont empilés. 
+Comme stm8_eForth est un système à entiers de 16 bits le plus gros entier positif qu'on peut utiliser est 32767  hors la fréquence du *clock* qui alimente le compteur **T2-CNTR** est à 2Mhz. Pour contourner ce problème On pré-divise 2Mhz/64 ce qui donne 31250 qui est dans le domaine des entiers signés 16 bits {-32768..32767}. L'astuce ici est de le multiplier par 64 en gardant le produit sur 32 bits avant de faire la division par **fr**. Le mot __*/MOD__ est exactement conçu pour régler ce genre de problème. 31250 est d'abord multiplié par 64 et le produit est conservé sur 32 bits ensuite la division de l'entier 32 bits par l'entier 16 bits *fr* est effectuée. Le reste et le quotient sont empilés. 
 
-On a conservé la moitié du diviseur *fr* sur la pile des retours pour pouvoir s'en servir pour calculer l'arrondie à l'entier le plus proche. Division du reste par cette valeur ne peut que donner **0** ou **1** qu'on ajoute au quotient. La valeur *u* qui est maintenant au sommet de la pile est celle qui doit-être déposée dans le registe **T2-ARR**. Il s'agit de 2 registres en fait **T2-ARRH** et **T2-ARRL**. Il est précisé dans le manuel de référence que **ARRH** doit-être écris avant **ARRL.** On ne peut donct utilisé **u T2-ARRH !**.   
+On a conservé la moitié du diviseur *fr* sur la pile des retours pour pouvoir s'en servir pour calculer l'arrondie à l'entier le plus proche. La division du reste par cette valeur ne peut que donner **0** ou **1** qu'on ajoute au quotient. La valeur *u* qui est maintenant au sommet de la pile est celle qui doit-être déposer dans le registe **T2-ARR**. Il s'agit de 2 registres en fait **T2-ARRH** et **T2-ARRL**. Il est précisé dans le manuel de référence que **ARRH** doit-être écris avant **ARRL.** On ne peut donc utiliser **u T2-ARRH !** pour écrire la valeur 16 bits.   
 
-Le rapport cyclique de la tonalité sera calculé à partir de la valeur contenu dans le registre **T2-ARR** et du pourcentage désiré. CCRx=ARR*dc/100+r/50. *dc* est exprimé en %.
+Le rapport cyclique de la tonalité sera calculé à partir de la valeur contenu dans le registre **T2-ARR** et du pourcentage désiré. CCRx=ARR*dc/100+r/50. *dc* est exprimé en %. *r* est le reste de la division. 
 ```
-: PWM-DC ( a dc -- u ) \ calcule valeur pour le registre T2-CCRx à partir de T2-ARR
+: PWM-DC ( a dc -- u ) \ calcul valeur pour le registre T2-CCRx à partir de T2-ARR
 SWAP ( -- a dc a )
 @ ( -- a dc u )
 100 ( -- a dc u 100 )
@@ -343,4 +344,7 @@ PWM-PER DUP 8 RSHIFT T2-ARRH C! T2-ARRL C! \ initialise la période
 T2-ARRH 50 PWM-DC DUP 8 RSHIFT T2-CCR1H C! T2-CCR1L C! \ initialise le rapport cycle à 50% 
 1 T2-EGR C! 1 T2-CR1 C! PAUSE 0 T2-CR1 C! ;
 ```
-
+Pour générer un tonalité on invoque **TONE** de la façon suivante:
+```
+500 1000 TONE \ durée 500 msec, fréquence 1000 hertz
+```
