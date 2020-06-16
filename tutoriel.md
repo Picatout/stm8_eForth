@@ -408,10 +408,18 @@ $D 3 LSHIFT T2-CCMR2 C! \ canal 2 en mode PWM
 ; 
 \ contrôle de la position
 : SERVO-POS ( u -- ) \ 'u' largeur d'impulsion exprimée en µSec 
+DUP ( u -- u u ) \ besoin de 2 copies 
 8 RSHIFT T2-CCR2H C! \ partie haute du registre
 T2-CCR2L C! \ partie basse du registre  
 5 T2-EGR C! \ mise à jour *update event*
 ;
+\ utilisation 
+900 SERVO-POS \ à la butée sens anti-horaire
+2100 SERVO-POS \ à la butée sens horaire
+1500 SERVO-POS \ au centre 
 ```
+* Notez qu'il se peut que le servo-moteur tire trop de courant lorsque le moteur tourne pour que l'alimentation de la carte soit suffisante.
+
+* Le progamme TONE ne peut-être utilisé en même temps quel le programme qui contrôle le servo-moteur puisqu'ils utilisent le même registre de période **T2-ARRH**. Pour les utiliser en même temps il faudrait choisir 2 minuteries différentes.
 
 
