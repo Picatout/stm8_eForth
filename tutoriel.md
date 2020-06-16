@@ -9,9 +9,13 @@
 
 ### Prérequis:
 
-Une carte Carte **NUCLEO-8S208RB** avec stm8 eForth version 3.0 installé.<br/> ![Carte NUCLEO-8S208RB](carte.png)
+Une carte Carte **NUCLEO-8S208RB** avec stm8 eForth version 3.0 installé.<br/> ![Carte NUCLEO-8S208RB](carte.png)<br>
 
-Pour une présentation du langage Forth référez-vous à l'article wikipedia ![langage Forth](https://fr.wikipedia.org/wiki/Forth_(langage))
+Connecteurs sur la carte
+![NUCLEO_8S208RB_CONNECTORS.PNG](NUCLEO_8S208RB_CONNECTORS.PNG)
+
+
+Pour une présentation du langage Forth référez-vous à l'article wikipedia [langage Forth](https://fr.wikipedia.org/wiki/Forth_(langage))
 
 ## Comparaison de Forth avec le langage C 
 
@@ -348,3 +352,66 @@ Pour générer un tonalité on invoque **TONE** de la façon suivante:
 ```
 500 1000 TONE \ durée 500 msec, fréquence 1000 hertz
 ```
+Le programme suivant joue la gamme tempérée de Do4 
+```
+: GAMME ( -- ) 
+250 ( -- ms ) \ durée de la note
+523 ( -- ms fr ) \ première note
+11 FOR \ répète cette boucle 12 fois
+2DUP ( -- ms fr ms fr ) \ on garde une copie pour la prochaine boucle
+TONE ( -- ms fr ) \ on joue la note
+12RT2 */ ( ms fr -- ms fr+ ) \ calcul la fréquence de la note suivante
+NEXT \ on boucle
+2DROP ; \ on jette les 2 arguments restés sur la pile. 
+```
+Nous allons améliorer ce programme pour le rendre plus flexible et rendre le calcul de la note suivante plus précis en arrondissant à l'entier le plus proche. L'arrondie à l'entier le plus proche est utilisé si souvent qu'on va le définir comme une opération séparée.
+```
+: ROUND ( r q d -- qr ) 
+\ r -> reste de la division. q -> quotient. d -> diviseur. qr -> quotient arrondi 
+2/ ( -- r q d2 ) \ moitié du diviseur 
+ ROT ( -- q d2 r ) \ ramène r au dessus 
+ SWAP ( -- q r d2 ) \ inverse r et d2  
+ / \ ( -- q 0|1 ) \ r/d2
+ + ; \ quotient arrondi 
+```
+
+```
+: GAMME ( ms fr -- )
+11 FOR ( -- ms fr ) \ R: a I=11  
+2DUP TONE ( ms fr ms fr -- ms fr )
+12RT2 ( -- ms fr 26797 25293 ) 
+DUP >R ( -- ms fr 26797 25293 ) R: a I 25293 
+*/MOD ( -- ms r q ) \ fr*25797/25293 -> r q 
+R> ( -- ms r q 25293 ) \ R: a I
+ROUND \ q arrondi = q+r/(25293/2)
+NEXT 2DROP ;
+125 440 GAMME \ joue la gamme La3, 125 msec par note.
+```
+
+## Contrôle d'un servo-moteur
+
+Les petits servo-moteurs qu'on retrouve sur le marché actuellement sont de type digital plutôt qu'analogique. C'est à dire que le contrôle de la position ne se fait pas par un voltage analogique comme les servo-moteurs traditionnels mais plutôt par une impulsion de largeur variable. Il n'y a 3 connections à effectuer 2 pour l'alimentation et 1 pour l'impulsion de contrôle.
+
+La méthode la plus simple de contrôler ce type de servo-moteur est d'utiliser un périphérique PWM et puisque nous avons déjà définie toutes les constantes pour le **TIMER 2** nous allons utiliser TIM2_CH2 pour contrôler un servo-moteur. Je vais utiliser un Hitec HS-645MG puisque j'en ai un en inventaire. Le cavalier **JP3** doit-être déplacé sur la position 5 volt puisque c'est le voltage d'opération de ce servo-moteur. Ce servo-moteur est contrôlé par une impulsion qui se répète à toutes les 20msec et dont la durée varie entre 900µS et 2100µS. La butée anti-horaire est à 900µS et celle dans le sens horaire à 2100µS. La position midi est à 1500µS.
+
+Il s'agit donc de configurer TIM2_CH2 pour produire une impulsion à toute les 20msec et de faire varier la rapport cyclique pour que l'impulsion varie entre 900µS à 2100µS. La sortie **TIM2_CH2** est disponible sur **CN8-1** ou **CN9-21**. On doit donc connecter le fil de contrôle du servo-moteur sur l'une ou l'autre de ces broches. On va choisir un diviseur de 16 pour le pré-scaler de sorte que le compteur sera cadencé à 1Mhz ce qui va nous donner une résolution 1µSec sur la largeur d'impulsion, 8 fois le *deadband* de ce moteur donc très suffisant. De cette façon la largeur d'impulsion sera identique au compte dans **CCR2**. 
+
+```
+: SERVO-INIT ( -- ) \ initialisation canal pour contrôle servo-moteur
+4 T2-PSCR C! \ Fcnt=16Mhz/16
+$D 3 LSHIFT T2-CCMR2 C! \ canal 2 en mode PWM 
+1 4 LSHIFT T2-CCER1 C! \ canal 2 actif 
+20000 DUP 8 RSHIFT T2-ARRH C! T2-ARRL C! \ période 20 msec 
+1500 DUP 8 RSHIFT T2-CCR2H C! T2-CCR2L C! \ position neutre 
+5 T2-EGR C! \ met à jour les registres 
+1 T2-CR1 C! \ active le compteur 
+; 
+\ contrôle de la position
+: SERVO-POS ( u -- ) \ 'u' largeur d'impulsion exprimée en µSec 
+8 RSHIFT T2-CCR2H C! \ partie haute du registre
+T2-CCR2L C! \ partie basse du registre  
+5 T2-EGR C! \ mise à jour *update event*
+;
+```
+
+
