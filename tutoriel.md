@@ -293,10 +293,54 @@ $5300 DUP CONSTANT T2-CR1 \ registre de contrôle
 ```
 Puisse que tous les registres se suivent on laisse one compie sur la pile et on l'incrémente pour définir la constante suivante. Ça permet de faire un copier/coller dans la fenêtre du terminal ce qui est plus rapide.
 
+Maintenant on va définir 2 mots l'un pour calculer la valeur à mettre dans T2-ARR à partir de la fréquence désirée. Le deuxième pour calculer la valeur à mettre dant T2-CCR1 pour obtenir un rapport cyclique de 50%. Pour la fréquence on va assumé que le registre T2-PSCR est initialisé à la valeur **3**. Ce qui signifie que Ft2=Fhsi/2^3 donc 16Mhz/8=2Mhz. Cette fréquence est celle qui va alimenter le compteur T2-CNTR.
 ```
-: PERIOD ( u1 -- u1 ) \ u1 est la fréquence désiré et u2 la valeur pour ARR.
- 31250 2 ROT DUP 2/ >R */MOD SWAP R> / + ; \ arrondie à l'entier le plus proche
-```
-La fréquence qui alimente la minuterie est de 62500 hertz mais comme cette valeur ne peut-être utilisée en nombre positif on utilise une astuce qui consiste à la divisée par 2 pour la remultipliée par 2 avec __*/MOD__ avant de diviser par **u1** qui est la fréquence désirée. __*/MOD__ retourne le quotient et le reste. On se sert du reste pour calculer l'arrondie à l'entier le plus près . Pour ce faire on a sauvegardé sur **R:** la moitié du diviseur. En divisant le reste part la moitié de la valeur du diviseur on obtient **0** ou **1** qu'on additionne au quotient. 
+: PWM-PER ( fr -- u ) \ fr est la fréquence désiré et u la valeur pour ARR.
+ 31250 64 ( fr -- fr 31250 8 ) \ Astuce expliquée plus bas.
+ ROT ( -- 31250 8 fr )
+ DUP ( --  31250 8 fr fr ) 
+ 2/ ( --  31250 8 fr fr/2 )
+ >R ( --  31250 8 fr ) R: fr/2 
+ */MOD ( -- r q ) \ 31250*8/fr -> reste et quotient
+ SWAP ( -- q r ) \ ramène le reste au dessus
+ R>   ( -- q r fr/2 ) \ pour calcul de l'arrondie 
+ /    ( -- q 0|1 ) \ 
+ + \ arrondie à l'entier le plus proche
+ ; 
 
+```
+Comme stm8_eForth est un système à entiers de 16 bits le plus gros entier positif qu'on peut utiliser est 32767  hors la fréquence du *clock* qui alimente le compteur de **TIM2** est à 2Mhz. Pour contourner ce problème On pré-divise 2Mhz/64 ce qui donne 31250 qui est dans le domaine des entiers signés 16 bits {-32768..32767}. L'astuce ici est de le multiplié par 64 en gardant le produit sur 32 bits avant de faire la division par **fr**. Le mot __*/MOD__ est exactement conçu pour régler ce genre de problème. 31250 est d'abord multiplié par 64 et le produit est conservé sur 32 bits ensuite la division de l'entier 32 bits par l'entier 16 bits *fr* est effectuée. Le reste et le quotient sont empilés. 
+
+On a conservé la moitié du diviseur *fr* sur la pile des retours pour pouvoir s'en servir pour calculer l'arrondie à l'entier le plus proche. Division du reste par cette valeur ne peut que donner **0** ou **1** qu'on ajoute au quotient. La valeur *u* qui est maintenant au sommet de la pile est celle qui doit-être déposée dans le registe **T2-ARR**. Il s'agit de 2 registres en fait **T2-ARRH** et **T2-ARRL**. Il est précisé dans le manuel de référence que **ARRH** doit-être écris avant **ARRL.** On ne peut donct utilisé **u T2-ARRH !**.   
+
+Le rapport cyclique de la tonalité sera calculé à partir de la valeur contenu dans le registre **T2-ARR** et du pourcentage désiré. CCRx=ARR*dc/100+r/50. *dc* est exprimé en %.
+```
+: PWM-DC ( a dc -- u ) \ calcule valeur pour le registre T2-CCRx à partir de T2-ARR
+SWAP ( -- a dc a )
+@ ( -- a dc u )
+100 ( -- a dc u 100 )
+*/MOD ( -- a r q )  \ dc*ARR/100 -> reste et quotient
+SWAP ( -- a q r )
+50   ( -- a r q 50 )
+/    ( -- a r 0|1 ) \ valeur pour arrondie
++ ; ( -- u ) \ Ajusté à l'entier le plus proche
+```
+Donc maintenant ne reste sur la pile que la valeur à déposer dans le registre **T2-CCR1**. 
+
+On va maintenant créer un mot pour initialiser TIM2_CH1 pour qu'il fonctionne en mode PWM.
+```
+: TONE-INIT ( -- ) \ Initialise TIM2_CH1 en PWM ave PSCR=3 Ft2=2Mhz 
+3 T2-PSCR C! \ dépose la valeur 3 dans T2-PSCR 
+1 T2-CCER1 C! \ active le canal 1
+$D 3 LSHIFT T2-CCMR1  C! \ configure le canal 1 en mode PWM
+; \ terminé
+```
+Il ne nous reste plus qu'à définir le mot qui va générer la tonalité 
+```
+: TONE ( ms fr -- ) \ génère une tonalité de fréquence *fr* pour une durée de *ms*.
+TONE-INIT \ initialise le périphérique 
+PWM-PER DUP 8 RSHIFT T2-ARRH C! T2-ARRL C! \ initialise la période 
+T2-ARRH 50 PWM-DC DUP 8 RSHIFT T2-CCR1H C! T2-CCR1L C! \ initialise le rapport cycle à 50% 
+1 T2-EGR C! 1 T2-CR1 C! PAUSE 0 T2-CR1 C! ;
+```
 
