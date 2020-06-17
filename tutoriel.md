@@ -422,4 +422,8 @@ T2-CCR2L C! \ partie basse du registre
 
 * Le progamme TONE ne peut-être utilisé en même temps quel le programme qui contrôle le servo-moteur puisqu'ils utilisent le même registre de période **T2-ARRH**. Pour les utiliser en même temps il faudrait choisir 2 minuteries différentes.
 
+* Le TIMER 2 possède 3 canaux. Les canaux d'une minuterie partage le même compteur de période donc seul le rapport cyclique peut-être différent entre les canaux. Ça convient bien par exemple pour contrôler une LED RGB ou encore 3 SERVO-MOTEURS. 
+
+
+
 

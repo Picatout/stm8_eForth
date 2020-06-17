@@ -82,14 +82,6 @@
 ;       (650) 571-7639
 ;
 
-;*************************************
-; constant used for conditationnal 
-; assembly for those word I converted 
-; to code.
-; Added by Picatout 2020-05-24 
-;*************************************
-CONVERT_TO_CODE=1 ; words converted in assembly by Picatout
-PICATOUT_MOD=1  ; code modified by Picatout 
 
 ;*********************************************************
 ;	Assembler constants
@@ -112,7 +104,6 @@ TIBB    =     RAMBASE+TIBBASE  ; transaction input buffer
 VAR_BASE =    RAMBASE+0x80  ; user variables start here .
 VAR_TOP =     STACK-32*CELLL  ; reserve 32 cells for data stack. 
 
-.if PICATOUT_MOD 
 ; user variables constants 
 UBASE = UPP       ; numeric base 
 UTMP = UBASE+2    ; temporary storage
@@ -129,7 +120,6 @@ UOFFSET = ULAST+2 ; distance between CP and VP to adjust jump address at compile
 UTFLASH = UOFFSET+2 ; select where between FLASH and RAM for compilation destination. 
 URLAST = UTFLASH+2 ; context for dictionary in RAM memory 
 
-.endif ; PICATOUT_MOD
 ;******  System Variables  ******
 XTEMP	=	URLAST +2;address called by CREATE
 YTEMP	=	XTEMP+2	;address called by CREATE
@@ -144,14 +134,14 @@ CNTDWN =  MS+2          ; count down timer
 FPTR = CNTDWN+2         ; 24 bits farptr 
 PTR16 = FPTR+1          ; middle byte of farptr 
 PTR8 = FPTR+2           ; least byte of farptr 
+SEEDX = PTR8+2          ; PRNG seed X 
+SEEDY = SEEDX+2         ; PRNG seed Y 
 
-.if PICATOUT_MOD
 ; EEPROM persistant data  
 APP_LAST = EEPROM_BASE ; Application last word pointer  
 APP_RUN = APP_LAST+2   ; application autorun address 
 APP_CP = APP_RUN+2   ; free application space pointer 
 APP_VP = APP_CP+2  ; free data space pointer 
-.endif ;PICATOUT_MOD
 
 
 ;***********************************************
@@ -269,7 +259,10 @@ clear_ram0:
 	cpw X,#RAM_END
 	jrule clear_ram0
         ldw x,#RPP
-        ldw sp,x 
+        ldw sp,x
+; set SEEDX and SEEDY to 1 
+        inc SEEDX+1 
+        inc SEEDY+1          
 	jp ORIG
 
 ; COLD initialize these variables.
@@ -550,6 +543,89 @@ FREEVAR:
 FREEVAR4: ; not variable
         jp  DROP 
 
+;    SEED ( n -- )
+; Initialize PRNG seed with n 
+        .word LINK 
+        LINK=. 
+        .byte 4 
+        .ascii "SEED" 
+SEED:
+        ldw y,x 
+        addw x,#CELLL
+        ldw y,(y)
+        ld a,yh 
+        ld SEEDX,a 
+        ld a,yl 
+        ld SEEDY,a 
+        ret 
+
+;    RANDOM ( u1 -- u2 )
+; Pseudo random number betwen 0 and u1-1
+        .word LINK 
+        LINK=.
+        .byte 6
+        .ascii "RANDOM" 
+RANDOM:
+;local variable 
+        SPSAVE=1
+        VSIZE=2 
+        sub sp,#VSIZE
+        ldw (SPSAVE,sp),x  
+; XTEMP=(SEEDX<<5)^SEEDX 
+        ldw y,x 
+        ldw y,(y)
+        ldw YTEMP,y 
+	ldw x,SEEDX 
+	sllw x 
+	sllw x 
+	sllw x 
+	sllw x 
+	sllw x 
+	ld a,xh 
+	xor a,SEEDX 
+	ld XTEMP,a 
+	ld a,xl 
+	xor a,SEEDX+1 
+	ld XTEMP+1,a 
+; SEEDX=SEEDY 
+	ldw x,SEEDY 
+	ldw SEEDX,x  
+; SEEDY=SEEDY^(SEEDY>>1)
+	srlw x 
+	ld a,xh 
+	xor a,SEEDY 
+	ld SEEDY,a  
+	ld a,xl 
+	xor a,SEEDY+1 
+	ld SEEDY+1,a 
+; XTEMP>>3 
+	ldw x,XTEMP 
+	srlw x 
+	srlw x 
+	srlw x 
+; x=XTEMP^x 
+	ld a,xh 
+	xor a,XTEMP 
+	ld xh,a 
+	ld a,xl 
+	xor a,XTEMP+1  
+	ld xl,a 
+; SEEDY=x^SEEDY 
+	xor a,SEEDY+1
+	ld xl,a 
+	ld a,xh 
+	xor a,SEEDY
+	ld xh,a 
+	ldw SEEDY,x 
+; return SEEDY modulo YTEMP  
+	ldw y,YTEMP  
+	divw x,y 
+	ldw x,(SPSAVE,sp)
+        ldw (x),y 
+        addw sp,#VSIZE 
+	ret 
+
+
 ;;
 ;; get millisecond counter 
 ;; msec ( -- u )
@@ -692,20 +768,11 @@ LINK	= 	.
         .ascii     "DOLIT"
 DOLIT:
 	SUBW X,#2
-.if PICATOUT_MOD 
         ldw y,(1,sp)
         ldw y,(y)
         ldw (x),y
         popw y 
         jp (2,y)
-.else 
-        POPW Y
-	LDW YTEMP,Y
-	LDW Y,(Y)
-        LDW (X),Y
-        LDW Y,YTEMP
-	JP (2,Y)
-.endif 
 
 ;       next    ( -- )
 ;       Code for  single index loop.
@@ -718,12 +785,7 @@ DONXT:
 	DECW Y
 	JRPL NEX1 ; jump if N=0
 	POPW Y
-.if PICATOUT_MOD
         addw sp,#2
-.else        
-	POP A
-	POP A
-.endif         
         JP (2,Y)
 NEX1:
         LDW (3,SP),Y
@@ -883,20 +945,10 @@ LINK	= 	.
         .byte      2
         .ascii     "R@"
 RAT:
-.if PICATOUT_MOD
         ldw y,(3,sp)
         subw x,#CELLL 
         ldw (x),y 
         ret 
-.else 
-        POPW Y
-        LDW YTEMP,Y
-        POPW Y
-        PUSHW Y
-        SUBW X,#2
-        LDW (X),Y
-        JP [YTEMP]
-.endif         
 
 ;       >R      ( w -- )
 ;       Push data stack to return stack.
@@ -1085,9 +1137,7 @@ LINK	= .
 DOVAR:
 	SUBW X,#2
         POPW Y    ;get return addr (pfa)
-.if PICATOUT_MOD
         LDW Y,(Y) ; indirect address 
-.endif ;PICATOUT_MOD        
         LDW (X),Y    ;push on stack
         RET     ;go to RET of EXEC
 
@@ -1140,7 +1190,6 @@ NTIB:
         LDW (X),Y
         RET
 
-.if PICATOUT_MOD
 ;       TBUF ( -- a )
 ;       address of 128 bytes transaction buffer 
         .word LINK 
@@ -1165,8 +1214,6 @@ TFLASH:
         ldw y,#UTFLASH
         ldw (x),y 
         ret 
-
-.endif ;PICATOUT_MOD
 
 ;       "EVAL   ( -- a )
 ;       Execution vector of EVAL.
@@ -1216,7 +1263,6 @@ VPP:
         LDW (X),Y
         RET
 
-.if PICATOUT_MOD
 ;       CP    ( -- a )
 ;       Pointer to top of FLASH 
         .word LINK 
@@ -1228,7 +1274,6 @@ CPP:
         subw x,#CELLL 
         ldw (x),y 
         ret                
-.endif ;PICATOUT_MOD
 
 ;       LAST    ( -- a )
 ;       Point to last name in dictionary.
@@ -1242,7 +1287,6 @@ LAST:
         LDW (X),Y
         RET
 
-.if PICATOUT_MOD 
 ; address of system variable URLAST 
 ;       RAMLAST ( -- a )
 ; RAM dictionary context 
@@ -1255,9 +1299,7 @@ RAMLAST:
         subw x,#CELLL 
         ldw (x),y 
         ret 
-.endif ;PICATOUT_MOD
 
-.if PICATOUT_MOD
 ; OFFSET ( -- a )
 ; address of system variable OFFSET 
         .word LINK 
@@ -1277,7 +1319,6 @@ ADRADJ:
         call AT 
         jp PLUS 
 
-.endif ; PICATOUT_MOD
 
 ;; Common functions
 
@@ -1302,7 +1343,6 @@ LINK = .
         .byte      3
         .ascii     "ROT"
 ROT:
-.if PICATOUT_MOD
         ldw y,x 
         ldw y,(y)
         pushw y 
@@ -1315,22 +1355,6 @@ ROT:
         popw y 
         ldw (2,x),y
         ret 
-.else 
-        LDW Y,X
-	LDW Y,(4,Y)
-	LDW YTEMP,Y
-        LDW Y,X
-        LDW Y,(2,Y)
-        LDW XTEMP,Y
-        LDW Y,X
-        LDW Y,(Y)
-        LDW (2,X),Y
-        LDW Y,XTEMP
-        LDW (4,X),Y
-        LDW Y,YTEMP
-        LDW (X),Y
-        RET
-.endif 
 
 ;       2DROP   ( w w -- )
 ;       Discard two items on stack.
@@ -1415,11 +1439,7 @@ DNEGA:
         LDW Y,X
         LDW Y,(2,Y)
         CPLW Y
-.if PICATOUT_MOD
         addw y,#1
-.else 
-        INCW Y ; bug incw as no effect on Carry flag 
-.endif        
         LDW (2,X),Y
         LDW Y,YTEMP
         JRNC DN1 
@@ -1620,7 +1640,6 @@ UMMOD:
 	LDW (2,X),Y
 	RET
 MMSM1:
-.if PICATOUT_MOD 
 ; take advantage of divw x,y when udh==0
         tnzw x  ; is udh==0?
         jrne MMSM2 
@@ -1635,7 +1654,6 @@ MMSM1:
         ldw (x),y ; uq 
         ret 
 MMSM2:        
-.endif 
 	LD A,#17	; loop count
 MMSM3:
 	CPW X,YTEMP	; compare udh to un
@@ -1647,11 +1665,7 @@ MMSM4:
 	RLCW X	; rotate into remainder
 	DEC A	; repeat
 	JRUGT MMSM3
-.if PICATOUT_MOD
         RRCW X 
-.else 
-	SRAW X  ; bug 
-.endif         
 	LDW YTEMP,X	; done, save remainder
 	LDW X,XTEMP
 	ADDW X,#2	; drop
@@ -1737,7 +1751,6 @@ LINK = .
         .byte      3
         .ascii     "UM*"
 UMSTA:	; stack have 4 bytes u1=a,b u2=c,d
-.if  PICATOUT_MOD 
 ; take advantage of SP addressing modes
 ; these PRODx in RAM are not required
 ; the product is kept on stack as local variable 
@@ -1791,48 +1804,6 @@ UMSTA:	; stack have 4 bytes u1=a,b u2=c,d
         ldw (2,x),y  ; udl  
         addw sp,#4 ; drop local variable 
         ret  
-.else
-	LD A,(2,X)	; b
-	LD YL,A
-	LD A,(X)	; d
-	MUL Y,A
-	LDW PROD1,Y
-	LD A,(3,X)	; a
-	LD YL,A
-	LD A,(X)	; d
-	MUL Y,A
-	LDW PROD2,Y
-	LD A,(2,X)	; b
-	LD YL,A
-	LD A,(1,X)	; c
-	MUL Y,A
-	LDW PROD3,Y
-	LD A,(3,X)	; a
-	LD YL,A
-	LD A,(1,X)	; c
-	MUL Y,A	; least signifiant product
-	CLR A
-	RRWA Y
-	LD (3,X),A	; store least significant byte
-	ADDW Y,PROD3
-	CLR A
-	ADC A,#0	; save carry
-	LD CARRY,A
-	ADDW Y,PROD2
-	LD A,CARRY
-	ADC A,#0	; add 2nd carry
-	LD CARRY,A
-	CLR A
-	RRWA Y
-	LD (2,X),A	; 2nd product byte
-	ADDW Y,PROD1
-	RRWA Y
-	LD (1,X),A	; 3rd product byte
-	RRWA Y  	; 4th product byte now in A
-	ADC A,CARRY	; fill in carry bits
-	LD (X),A
-	RET
-.endif 
 
 
 ;       *       ( n n -- n )
@@ -2069,7 +2040,6 @@ LINK = .
         .byte      5
         .ascii     ">CHAR"
 TCHAR:
-.if CONVERT_TO_CODE
         ld a,(1,x)
         cp a,#32  
         jrmi 1$ 
@@ -2079,21 +2049,6 @@ TCHAR:
 1$:     ld a,#'_ 
         ld (1,x),a 
         ret 
-.else
-        CALL     DOLIT
-        .word       0x7F
-        CALL     ANDD
-        CALL     DUPP    ;mask msb
-        CALL     DOLIT
-        .word      127
-        CALL     BLANK
-        CALL     WITHI   ;check for printable
-        CALL     QBRAN
-        .word    TCHA1
-        CALL     DROP
-        CALL     DOLIT
-        .word     0x5F		; "_"     ;replace non-printables
-.endif 
 TCHA1:  RET
 
 ;       DEPTH   ( -- n )
@@ -2107,10 +2062,6 @@ DEPTH:
 	LDW XTEMP,X
         SUBW Y,XTEMP     ;#bytes = SP0 - X
         SRAW Y    ;Y = #stack items
-.if PICATOUT_MOD
-; why ? 
-;      	DECW Y
-.endif 
 	SUBW X,#2
         LDW (X),Y     ; if neg, underflow
         RET
@@ -2124,11 +2075,9 @@ LINK = .
 PICK:
         LDW Y,X   ;D = n1
         LDW Y,(Y)
-.if PICATOUT_MOD
 ; modified for standard compliance          
 ; 0 PICK must be equivalent to DUP 
         INCW Y 
-.endif         
         SLAW Y
         LDW XTEMP,X
         ADDW Y,XTEMP
@@ -2145,7 +2094,6 @@ LINK = .
         .byte      2
         .ascii     "+!"
 PSTOR:
-.if CONVERT_TO_CODE
         ldw y,x 
         ldw y,(y)
         ldw YTEMP,y  ; address
@@ -2158,14 +2106,6 @@ PSTOR:
         popw y    ;drop local var
         addw x,#4 ; DDROP 
         ret 
-.else
-        CALL	SWAPP
-        CALL	OVER
-        CALL	AT
-        CALL	PLUS
-        CALL	SWAPP
-        JP	STORE
-.endif 
 
 ;       2!      ( d a -- )
 ;       Store  double integer to address a.
@@ -2174,7 +2114,6 @@ LINK = .
         .byte      2
         .ascii     "2!"
 DSTOR:
-.if CONVERT_TO_CODE
         ldw y,x 
         ldw y,(y)
         ldw YTEMP,y ; address 
@@ -2190,13 +2129,7 @@ DSTOR:
         popw x 
         addw x,#4 ; DDROP 
         ret 
-.else
-        CALL	SWAPP
-        CALL	OVER
-        CALL	STORE
-        CALL	CELLP
-        JP	STORE
-.endif 
+
 ;       2@      ( a -- d )
 ;       Fetch double integer from address a.
         .word      LINK
@@ -2204,7 +2137,6 @@ LINK = .
         .byte      2
         .ascii     "2@"
 DAT:
-.if CONVERT_TO_CODE
         ldw y,x 
         ldw y,(y) ;address 
         ldw YTEMP,y 
@@ -2215,13 +2147,6 @@ DAT:
         ldw y,([YTEMP],y) ; udl 
         ldw (2,x),y
         ret 
-.else 
-        CALL	DUPP
-        CALL	CELLP
-        CALL	AT
-        CALL	SWAPP
-        JP	AT
-.endif 
 
 ;       COUNT   ( b -- b +n )
 ;       Return count byte of a string
@@ -2231,7 +2156,6 @@ LINK = .
         .byte      5
         .ascii     "COUNT"
 COUNT:
-.if CONVERT_TO_CODE
         ldw y,x 
         ldw y,(y) ; address 
         ld a,(y)  ; count 
@@ -2241,12 +2165,6 @@ COUNT:
         ld (1,x),a 
         clr (x)
         ret 
-.else 
-        CALL     DUPP
-        CALL     ONEP
-        CALL     SWAPP
-        JP     CAT
-.endif 
 
 ;       HERE    ( -- a )
 ;       Return  top of  variables
@@ -2255,16 +2173,11 @@ LINK = .
         .byte      4
         .ascii     "HERE"
 HERE:
-.if CONVERT_TO_CODE
       	ldw y,#UVP 
         ldw y,(y)
         subw x,#CELLL 
         ldw (x),y 
         ret 
-.else
-        CALL     VPP
-        JP     AT
-.endif 
 
 ;       PAD     ( -- a )
 ;       Return address of text buffer
@@ -2334,7 +2247,6 @@ LINK = .
         .byte       4
         .ascii     "FILL"
 FILL:
-.if CONVERT_TO_CODE
         ldw y,x 
         ld a,(1,y) ; c 
         addw x,#CELLL ; drop c 
@@ -2356,19 +2268,6 @@ FILL2:
         decw y ; count 
         jrne FILL1  
         ret 
-.else 
-        CALL	SWAPP
-        CALL	TOR
-        CALL	SWAPP
-        CALL	BRAN
-        .word	FILL2
-FILL1:	CALL	DDUP
-        CALL	CSTOR
-        CALL	ONEP
-FILL2:	CALL	DONXT
-        .word	FILL1
-        JP	DDROP
-.endif
 
 ;       ERASE   ( b u -- )
 ;       Erase u bytes beginning at b.
@@ -2377,15 +2276,12 @@ LINK = .
         .byte      5
         .ascii     "ERASE"
 ERASE:
-.if CONVERT_TO_CODE
         clrw y 
         subw x,#CELLL 
         ldw (x),y 
         jp FILL 
-.else 
-        CALL     ZERO
-        JP     FILL
-.endif 
+
+
 ;       PACK0x   ( b u a -- a )
 ;       Build a counted string with
 ;       u characters from b. Null fill.
@@ -2687,19 +2583,12 @@ LINK = .
         .byte      3
         .ascii     "KEY"
 KEY:
-.if CONVERT_TO_CODE
         btjf UART1_SR,#UART_SR_RXNE,. 
         ld a,UART1_DR 
         subw x,#CELLL 
         ld (1,x),a 
         clr (x)
         ret 
-.else 
-KEY1:   CALL     QKEY
-        CALL     QBRAN
-        .word      KEY1
-        RET
-.endif 
 
 ;       NUF?    ( -- t )
 ;       Return false if no input,
@@ -3033,7 +2922,6 @@ LINK = .
 	.byte      IMEDD+1
         .ascii     "\"
 BKSLA:
-.if CONVERT_TO_CODE
         ldw y,#UCTIB ; #TIB  
         ldw y,(y)
         pushw y ; count in TIB 
@@ -3042,12 +2930,6 @@ BKSLA:
         popw y 
         ldw [YTEMP],y
         ret 
-.else
-        CALL     NTIB
-        CALL     AT
-        CALL     INN
-        JP     STORE
-.endif 
 
 ;       WORD    ( c -- a ; <string> )
 ;       Parse a word from input stream
@@ -3484,24 +3366,16 @@ TICK:
         RET     ;yes, push code address
 
 ;       ALLOT   ( n -- )
-.if PICATOUT_MOD
 ;       Allocate n bytes to RAM 
-.else 
-;       Allocate n bytes to  code dictionary.
-.endif 
         .word      LINK
-LINK = . 
+        LINK = . 
         .byte      5
         .ascii     "ALLOT"
 ALLOT:
         CALL     VPP
-.if PICATOUT_MOD
 ; must update APP_VP each time VP is modidied
         call PSTOR 
         jp UPDATVP 
-.else
-        JP     PSTOR
-.endif ;PICATOUT_MOD
 
 ;       ,       ( w -- )
 ;         Compile an integer into
@@ -3553,23 +3427,14 @@ LINK = .
         .ascii     "COMPILE"
 COMPI:
         CALL     RFROM
-.if PICATOUT_MOD
-; no need to increment
-.else
-        CALL     ONEP
-.endif 
         CALL     DUPP
         CALL     AT
         CALL     JSRC    ;compile subroutine
         CALL     CELLP
-.if PICATOUT_MOD
         ldw y,x 
         ldw y,(y)
         addw x,#CELLL 
         jp (y)
-.else 
-        JP     TOR
-.endif 
 
 ;       LITERAL ( w -- )
 ;       Compile tos to dictionary
@@ -3580,11 +3445,7 @@ LINK = .
         .ascii     "LITERAL"
 LITER:
         CALL     COMPI
-.if PICATOUT_MOD
         .word DOLIT 
-.else         
-        CALL     DOLIT
-.endif 
         JP     COMMA
 
 ;       $,"     ( -- )
@@ -3616,11 +3477,7 @@ LINK = .
         .ascii     "FOR"
 FOR:
         CALL     COMPI
-.if PICATOUT_MOD
         .word TOR 
-.else
-        CALL     TOR
-.endif
         JP     HERE
 
 ;       NEXT    ( a -- )
@@ -3631,14 +3488,8 @@ LINK = .
         .ascii     "NEXT"
 NEXT:
         CALL     COMPI
-.if PICATOUT_MOD
         .word DONXT 
-.else 
-        CALL     DONXT
-.endif         
-.if PICATOUT_MOD
         call ADRADJ
-.endif ; PICATOUT_MOD
         JP     COMMA
 
 ;       I ( -- n )
@@ -3672,14 +3523,8 @@ LINK = .
         .ascii     "UNTIL"
 UNTIL:
         CALL     COMPI
-.if PICATOUT_MOD
         .word    QBRAN 
-.else 
-        CALL     QBRAN
-.endif 
-.if PICATOUT_MOD 
         call ADRADJ
-.endif ; PICATOUT_MOD
         JP     COMMA
 
 ;       AGAIN   ( a -- )
@@ -3691,14 +3536,8 @@ LINK = .
         .ascii     "AGAIN"
 AGAIN:
         CALL     COMPI
-.if PICATOUT_MOD
         .word BRAN
-.else
-        CALL     BRAN
-.endif 
-.if PICATOUT_MOD 
         call ADRADJ 
-.endif ; PICATOUT_MOD
         JP     COMMA
 
 ;       IF      ( -- A )
@@ -3709,11 +3548,7 @@ LINK = .
         .ascii     "IF"
 IFF:
         CALL     COMPI
-.if PICATOUT_MOD
         .word QBRAN
-.else
-        CALL     QBRAN
-.endif 
         CALL     HERE
         CALL     ZERO
         JP     COMMA
@@ -3726,9 +3561,7 @@ LINK = .
         .ascii     "THEN"
 THENN:
         CALL     HERE
-.if PICATOUT_MOD 
         call ADRADJ 
-.endif ; PICATOUT_MOD
         CALL     SWAPP
         JP     STORE
 
@@ -3740,19 +3573,13 @@ LINK = .
         .ascii     "ELSE"
 ELSEE:
         CALL     COMPI
-.if PICATOUT_MOD
         .word BRAN
-.else
-        CALL     BRAN
-.endif 
         CALL     HERE
         CALL     ZERO
         CALL     COMMA
         CALL     SWAPP
         CALL     HERE
-.if PICATOUT_MOD 
         call ADRADJ 
-.endif ; PICATOUT_MOD
         CALL     SWAPP
         JP     STORE
 
@@ -3764,11 +3591,7 @@ LINK = .
         .ascii     "AHEAD"
 AHEAD:
         CALL     COMPI
-.if PICATOUT_MOD
         .word BRAN
-.else
-        CALL     BRAN
-.endif 
         CALL     HERE
         CALL     ZERO
         JP     COMMA
@@ -3781,11 +3604,7 @@ LINK = .
         .ascii     "WHILE"
 WHILE:
         CALL     COMPI
-.if PICATOUT_MOD
         .word QBRAN
-.else
-        CALL     QBRAN
-.endif 
         CALL     HERE
         CALL     ZERO
         CALL     COMMA
@@ -3799,19 +3618,11 @@ LINK = .
         .ascii     "REPEAT"
 REPEA:
         CALL     COMPI
-.if PICATOUT_MOD
         .word BRAN
-.else
-        CALL     BRAN
-.endif 
-.if PICATOUT_MOD 
         call ADRADJ 
-.endif ; PICATOUT_MOD
         CALL     COMMA
         CALL     HERE
-.if PICATOUT_MOD 
         call ADRADJ 
-.endif ; PICATOUT_MOD
         CALL     SWAPP
         JP     STORE
 
@@ -3836,11 +3647,7 @@ LINK = .
         .byte      '"'
 ABRTQ:
         CALL     COMPI
-.if PICATOUT_MOD
         .word ABORQ
-.else
-        CALL     ABORQ
-.endif
         JP     STRCQ
 
 ;       $"     ( -- ; <string> )
@@ -3851,11 +3658,7 @@ LINK = .
         .byte     '$','"'
 STRQ:
         CALL     COMPI
-.if PICATOUT_MOD
         .word STRQP 
-.else
-        CALL     STRQP
-.endif
         JP     STRCQ
 
 ;       ."          ( -- ; <string> )
@@ -3866,11 +3669,7 @@ LINK = .
         .byte     '.','"'
 DOTQ:
         CALL     COMPI
-.if PICATOUT_MOD
         .word DOTQP 
-.else
-        CALL     DOTQP
-.endif 
         JP     STRCQ
 
 ;; Name compiler
@@ -3898,9 +3697,7 @@ UNIQ1:  JP     DROP
 ;       $,n     ( na -- )
 ;       Build a new dictionary name
 ;       using string at na.
-.if PICATOUT_MOD
 ; compile dans l'espace des variables 
-.endif 
         .word      LINK
 LINK = . 
         .byte      3
@@ -3977,13 +3774,8 @@ LINK = .
         .ascii     ";"
 SEMIS:
         CALL     COMPI
-.if PICATOUT_MOD
         .word EXIT 
-.else
-        CALL     EXIT
-.endif 
         CALL     LBRAC
-.if PICATOUT_MOD
         call OVERT 
         CALL FMOVE
         call QDUP 
@@ -3991,12 +3783,8 @@ SEMIS:
         .word SET_RAMLAST 
         CALL UPDATPTR
         RET 
-.else 
-        JP     OVERT
-.endif 
 
 
-.if PICATOUT_MOD
 ;       Terminate an ISR definition 
 ;       retourn ca of ISR as double
 ;       I; ( -- ud )
@@ -4028,7 +3816,6 @@ ISEMI:
         jp ZERO
         ret           
         
-.endif ;PICATOUT_MOD
 
 ;       ]       ( -- )
 ;       Start compiling words in
@@ -4055,7 +3842,6 @@ JSRC:
         CALL     CCOMMA
         JP     COMMA
 
-.if PICATOUT_MOD
 ;       INIT-OFS ( -- )
 ;       compute offset to adjust jump address 
 ;       set variable OFFSET 
@@ -4076,7 +3862,6 @@ INITOFS:
         call SUBB 
 1$:     call OFFSET 
         jp STORE  
-.endif 
 
 ;       :       ( -- ; <string> )
 ;       Start a new colon definition
@@ -4086,14 +3871,11 @@ LINK = .
         .byte      1
         .ascii     ":"
 COLON:
-.if PICATOUT_MOD
         call INITOFS       
-.endif ; PICATOUT_MOD
         CALL   TOKEN
         CALL   SNAME
         JP     RBRAC
 
-.if PICATOUT_MOD 
 ;       I:  ( -- )
 ;       Start interrupt service routine definition
 ;       those definition have no name.
@@ -4104,7 +3886,6 @@ COLON:
 ICOLON:
         call INITOFS 
         jp RBRAC  
-.endif ; PICATOUT_MOD
 
 ;       IMMEDIATE       ( -- )
 ;       Make last compiled word
@@ -4138,11 +3919,7 @@ CREAT:
         CALL     SNAME
         CALL     OVERT        
         CALL     COMPI 
-.if PICATOUT_MOD
         .word DOVAR 
-.else
-        CALL     DOVAR
-.endif 
         RET
 
 ;       VARIABLE        ( -- ; <string> )
@@ -4153,19 +3930,16 @@ LINK = .
         .byte      8
         .ascii     "VARIABLE"
 VARIA:
-.if PICATOUT_MOD
 ; indirect variable so that VARIABLE definition can be compiled in FLASH 
         CALL HERE
         CALL DUPP 
         CALL CELLP
         CALL VPP 
         CALL STORE
-.endif         
         CALL CREAT
         CALL DUPP
         CALL COMMA
         CALL ZERO
-.if PICATOUT_MOD 
         call SWAPP 
         CALL STORE
         CALL FMOVE ; move definition to FLASH
@@ -4181,9 +3955,7 @@ SET_RAMLAST:
         CALL RAMLAST 
         jp STORE  
 
-.endif ;PICATOUT_MOD        
 
-.if PICATOUT_MOD
 ;       CONSTANT  ( n -- ; <string> )
 ;       Compile a new constant 
 ;       n CONSTANT name 
@@ -4196,11 +3968,7 @@ CONSTANT:
         CALL SNAME 
         CALL OVERT 
         CALL COMPI 
-.if PICATOUT_MOD
         .word DOCONST
-.else
-        CALL DOCONST
-.endif 
         CALL COMMA 
         CALL FMOVE
         CALL QDUP 
@@ -4221,7 +3989,6 @@ DOCONST:
         ldw y,(y) 
         ldw (x),y 
         ret 
-.endif ;PICATOUT_MOD
 
 
 ;; Tools
@@ -4315,10 +4082,6 @@ DOTS:
         CALL     TOR     ;start count down loop
         JRA     DOTS2   ;skip first pass
 DOTS1:  CALL     RAT
-.if PICATOUT_MOD
-; Not required following modification I made To PICK 
-;        CALL ONEP
-.endif 
 	CALL     PICK
         CALL     DOT     ;index stack, display contents
 DOTS2:  CALL     DONXT
@@ -4428,9 +4191,6 @@ WORS1:  CALL     AT
         CALL     CELLM
         CALL     BRAN
         .word      WORS1
-.if PICATOUT_MOD
-;        CALL     DROP ; never reached
-.endif 
 WORS2:  RET
 
         
@@ -4605,7 +4365,7 @@ TBOOT:
 COLD:
 .if WANT_DEBUG
         CALL DEBUG
-.endif 
+.endif ; WANT_DEBUG
 COLD1:  CALL     DOLIT
         .word      UZERO
 	CALL     DOLIT
@@ -4614,7 +4374,6 @@ COLD1:  CALL     DOLIT
 	.word      UEND-UZERO
         CALL     CMOVE   ;initialize user area
 
-.if PICATOUT_MOD
 ; if APP_RUN==0 initialize with ca de 'hi'  
         ldw y,APP_RUN 
         jrne 0$
@@ -4653,7 +4412,6 @@ COLD1:  CALL     DOLIT
 4$: ; update UVP with APP_VP 
         ldw UVP,y 
 6$:      
-.endif ; PICATOUT_MOD
         CALL     PRESE   ;initialize data stack and TIB
         CALL     TBOOT
         CALL     ATEXE   ;application boot
@@ -4665,11 +4423,9 @@ WANT_MATH_CONST = 1
         ; irrational constants 
         ; approximation by integers ratio.
         .include "const_ratio.asm"
-.endif 
+.endif ; WANT_MATH_CONST
 
-.if PICATOUT_MOD
         .include "flash.asm"
-.endif ; PICATOUT_MOD
 
 ;===============================================================
 

@@ -1,3 +1,30 @@
+
+#### 2020-06-17
+
+**Session 2**
+
+* Nettoyage du fichier stm8ef.asm pour supprimer les directives **.if PICATOUT_MOD**. 
+
+
+**Session 1**
+
+* Ajout de **SEED** ( u1 -- ) Pour initialiser le générateur pseudo aléatoire. 
+
+* Ajout de **RANDOM** ( u1 -- u2 ) Fourni un entier positif aliéatoire compris dans l'intervalle {0..u1-1}. L'Algorithme utilisé est celui décris sur ce [lien](http://b2d-f9r.blogspot.com/2010/08/16-bit-xorshift-rng-now-with-more.html). 
+
+* Renommé **LN2** **LN2S** puisque cette division ne résulte pas en la valeur du log naturel de 2 mais à sa valeur divisée par 1.6384 (i.e. 2¹⁴/10000). **S** pour *scaling*.
+
+* Renommé **LOG2** **LOG2S** puisque cette division ne résulte pas en la valeur du log base 10 de 2 mais à sa valeur divisée par 16.384 (i.e. 2¹⁴/1000). **S** pour *scaling*. 
+
+* Travail sur le manuel de référence.
+
+* Continuer rédaction du tutoriel. 
+
+
+#### 2020-06-16
+
+* Continuer rédaction du tutoriel. 
+
 #### 2020-06-15
 
 * Continuer rédaction du tutoriel. 

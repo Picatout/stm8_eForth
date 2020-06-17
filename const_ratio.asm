@@ -116,14 +116,14 @@ RT12_2:
     ldw (x),y 
     ret 
 
-;   LOG2 ( -- 2040 11103 )
+;   LOG2s ( -- 2040 11103 )
 ; log(2)/1.6384
 ; precision: 1.1e-8
         .word LINK 
         LINK=.
-        .byte 4 
-        .ascii "LOG2" 
-LOG2:
+        .byte 5 
+        .ascii "LOG2S" 
+LOG2S:
     subw x,#2*CELLL
     ldw y,#2040 
     ldw (2,x),y 
@@ -136,9 +136,9 @@ LOG2:
 ; precision: 1.0e-7 
         .word LINK 
         LINK=.
-        .byte 3 
-        .ascii "LN2" 
-LN2: 
+        .byte 4 
+        .ascii "LN2S" 
+LN2S: 
     subw x,#2*CELLL
     ldw y,#485
     ldw (2,x),y 
