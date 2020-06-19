@@ -1,4 +1,8 @@
 
+#### 2020-06-19 
+
+* Travail sur ![reference.md](reference.md)
+
 #### 2020-06-17
 
 **Session 2**

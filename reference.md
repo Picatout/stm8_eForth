@@ -145,7 +145,7 @@ Si le champ code est invalide retourne **0**.
 
 * __?__&nbsp;&nbsp;( a -- ) Imprime l'entier à l'adresse a.
 
-* __?BRANCH__&nbsp;&nbsp;( f -- ) Branchement conditionnel si f est faux. 
+* __?BRANCH__&nbsp;&nbsp;( f -- ) Compile un branchement conditionnel avec une adresse litérale. En *runtime* le branchement n'est effectué que si f est faux. 
 
 * __?DUP__&nbsp;&nbsp;( n -- n n | 0 ) Duplique n seulement si &lt;&gt; 0. 
 
@@ -165,111 +165,114 @@ Si le champ code est invalide retourne **0**.
 
 * __ABS__&nbsp;&nbsp;( i1 -- u ) Retourne la valeur absolue de i1. 
 
-* __ACCEPT__&nbsp;&nbsp;( -- ) 
+* __ACCEPT__&nbsp;&nbsp;( b u1 -- b u2 ) Effectue la lecture d'une ligne de texte dans le **TIB**. *b* est l'adresse du **TIB** *u1* est la longueur du **TIB** et *u2* est le nombre de caractères reçus dans le **TIB**.  
 
-* __AFT__&nbsp;&nbsp;( -- ) 
+* __AFT__&nbsp;&nbsp;( a1 -- a1 a2 ) Mot compilant Utilisé dans une boucle FOR..AFT..THEN..NEXT. Pendant la compilation compile un saut avant après le **THEN**.   
 
-* __AGAIN__&nbsp;&nbsp;( -- ) 
+* __AGAIN__&nbsp;&nbsp;( -- ) Marque la fin d'une boucle BEGIN..AGAIN. 
 
-* __AHEAD__&nbsp;&nbsp;( -- ) 
+* __AHEAD__&nbsp;&nbsp;( -- a ) Compile un saut avant inconditionnel. *a* est l'adresse de la fente où sera insérée l'adresse du saut ultérieurement lors du processus de compilation.
 
-* __ALLOT__&nbsp;&nbsp;( -- ) 
+* __ALLOT__&nbsp;&nbsp;( u -- ) Alloue *u* octets dans l'espace RAM. Avance le pointeur **VP** de *u* octets. 
 
-* __AND__&nbsp;&nbsp;( -- ) 
+* __AND__&nbsp;&nbsp;( n1 n2 -- n3 ) Opération bit à bit ET.  
 
-* __AUTORUN__&nbsp;&nbsp;( -- ) 
+* __AUTORUN__&nbsp;&nbsp;( -- ; &lt;string&gt; ) Enregistre dans la variable système persistante **APP_RUN**  l'adresse d'exécution du programme qui doit-être exécuté au démarrage. Par défaut il s'agit du *ca* du mot **hi**.  
 
-* __BASE__&nbsp;&nbsp;( -- ) 
+* __BASE__&nbsp;&nbsp;( -- ) Variable système qui contient la base numérique utilisée pour la conversion des entiers en chaîne de caractères. 
 
-* __BEGIN__&nbsp;&nbsp;( -- ) 
+* __BEGIN__&nbsp;&nbsp;( -- a ) Compile le début d'une boucle BEGIN..UNTIL|AGAIN. *a* indique l'adresse où doit se faire le saut arrière pour répéter la boucle. 
 
-* __BL__&nbsp;&nbsp;( -- ) 
+* __BL__&nbsp;&nbsp;( -- c ) Empile le caractère ASCII *space* i.e. 32.  
 
-* __BRANCH__&nbsp;&nbsp;( -- ) 
+* __BRANCH__&nbsp;&nbsp;( -- ) Compile un saut inconditionnel avec une adresse litérale.
+En *runtime* ce saut est toujours effectué.
 
-* __BUF2ROW__&nbsp;&nbsp;( -- ) 
+* __BUF2ROW__&nbsp;&nbsp;( ud -- ) Écris le contenu du tampon **ROWBUFF** dans la mémoire flash en utilisant l'opération d'écriture par bloc du MCU.   
 
-* __BYE__&nbsp;&nbsp;( -- ) 
+* __BYE__&nbsp;&nbsp;( -- ) Exécute l'instruction machine **HALT** pour mettre le MCU en mode suspendu. Dans ce mode l'oscillateur et arrêter et le MCU dépense un minimum d'énergie. Seul un *reset* ou une interruption externe peut réactivé le MCU. Si le MCU est réanimé par une interruption après l'exécution de celle-ci l'exécution se poursuit après l'instruction **HALT**. 
 
-* __C!__&nbsp;&nbsp;( -- ) 
+* __C!__&nbsp;&nbsp;( c a -- ) Dépose le caractère *c* à l'adresse *a*. Sur la pile *c* occupe 2 octets mais en mémoire il n'occupe qu'un octete. 
 
-* __C,__&nbsp;&nbsp;( -- ) 
+* __C,__&nbsp;&nbsp;( c -- ) Compile le caractère qui est au sommet de la pile. 
 
-* __C@__&nbsp;&nbsp;( -- ) 
+* __C@__&nbsp;&nbsp;( a -- c ) Empile l'octet qui se trouve à l'adresse *a*.
 
-* __CALL,__&nbsp;&nbsp;( -- ) 
+* __CALL,__&nbsp;&nbsp;( a -- ) Compile un appel de sous-routine dans la liste d'une définition.  *a* est l'adresse de la sous-routine. 
 
-* __CHKIVEC__&nbsp;&nbsp;( -- ) 
+* __CHKIVEC__&nbsp;&nbsp;( a -- ) Toutes les adresses de destination des vecteurs d'interruptions sont comparés à *a*. Tous les vecteurs qui pointent vers une adresse &lt;=*a* sont réinitialisés à la valeur par défaut. Ce mot est invoqué par **PRISTINE**. 
 
-* __CMOVE__&nbsp;&nbsp;( -- ) 
+* __CMOVE__&nbsp;&nbsp;( a1 a2 u -- ) Copie *u* octets de *a1* vers *a2*.
 
-* __COLD__&nbsp;&nbsp;( -- ) 
+* __COLD__&nbsp;&nbsp;( -- ) Réinitialisation du système. Toute la mémoire RAM est remise à **0** et les pointeurs de piles sont réinitialisés ainsi que les variables système.
 
-* __COMPILE__&nbsp;&nbsp;( -- ) 
+* __COMPILE__&nbsp;&nbsp;( -- ) Compile un appel de sous-routine avec adresse litérale.
 
-* __CONSTANT__&nbsp;&nbsp;( -- ) 
+* __CONSTANT__&nbsp;&nbsp;( n -- ; &lt;string&gt; ) Compile une constante dans le dictionnaire. *n* est la valeur de la constante dont le nom est **&lt;string&gt;**. 
 
-* __CONTEXT__&nbsp;&nbsp;( -- ) 
+* __CONTEXT__&nbsp;&nbsp;( -- a ) Empile l'adresse de la variable système CNTXT. Cette variable contient l'adresse du point d'entré du dictionnaire.  
 
-* __COUNT__&nbsp;&nbsp;( -- ) 
+* __COUNT__&nbsp;&nbsp;( b -- b u ) Empile la longueur de la chaîne comptée *b* et incrémente *b*.   
 
-* __CP__&nbsp;&nbsp;( -- ) 
+* __CP__&nbsp;&nbsp;( -- a ) Empile l'adresse de la variable système **CP** qui contient l'adresse du début de l'espace libre en mémoire flash. 
 
-* __CR__&nbsp;&nbsp;( -- ) 
+* __CR__&nbsp;&nbsp;( -- ) Envoie le caractère ASCII **CR** au terminal.
 
-* __CREATE__&nbsp;&nbsp;( -- ) 
+* __CREATE__&nbsp;&nbsp;( -- ; &lt;string&gt; ) Compile le nom d'une nouvelle variable dans le dictionnaire. **&lt;string&gt;** est le nom de la nouvelle variable. Les variables sont initialisées à **0**.  
 
-* __DECIMAL__&nbsp;&nbsp;( -- ) 
+* __DECIMAL__&nbsp;&nbsp;( -- ) Affecte la valeur **10** à la variable système **BASE**. 
 
-* __DEPTH__&nbsp;&nbsp;( -- ) 
+* __DEPTH__&nbsp;&nbsp;( -- u ) retourne le nombre d'élément qu'il y a sur la pile.
 
-* __DI__&nbsp;&nbsp;( -- ) 
+* __DI__&nbsp;&nbsp;( -- ) Désactive les interruptions en exécutant l'instruction machine **SIM**. 
 
-* __DIGIT__&nbsp;&nbsp;( -- ) 
+* __DIGIT__&nbsp;&nbsp;( u -- c ) Convertie le chiffre *u* en caractère ASCII.
 
-* __DIGIT?__&nbsp;&nbsp;( -- ) 
+* __DIGIT?__&nbsp;&nbsp;( c base -- u f ) Converti le caractère *c* en chiffre correspondant dans la *base*. L'indicateur *f* indique si *c* est bien dans l'intervalle {0..base-1}.   
 
-* __DNEGATE__&nbsp;&nbsp;( -- ) 
+* __DNEGATE__&nbsp;&nbsp;( d1 -- d2 ) Négation arithmétique de l'entier double *d1*.
 
-* __DO$__&nbsp;&nbsp;( -- ) 
+* __DO$__&nbsp;&nbsp;( -- b ) Partie *runtime* de **$"** retourne l'adresse de la chaîne litérale qui a été compilée.  
 
-* __DOCONST__&nbsp;&nbsp;( -- ) 
+* __DOCONST__&nbsp;&nbsp;( -- n ) Partie *runtime* de **CONSTANT** empile la valeur de la constante.  
 
-* __DOLIT__&nbsp;&nbsp;( -- ) 
+* __DOLIT__&nbsp;&nbsp;( -- n ) Partie *runtime* résultant de la compilation d'un entier litéral. *n* et l'entier qui a été compilé. 
 
-* __DOVAR__&nbsp;&nbsp;( -- ) 
+* __DOVAR__&nbsp;&nbsp;( -- a ) Partie *runtime* résultant de la compilation d'une variable.  
+*a* est l'adresse de la variable qui a été compilée. 
 
-* __DROP__&nbsp;&nbsp;( -- ) 
+* __DROP__&nbsp;&nbsp;( n -- ) Jette l'élément qui est au sommet de la pile. 
 
-* __DUMP__&nbsp;&nbsp;( -- ) 
+* __DUMP__&nbsp;&nbsp;( a u -- ) Affiche en hexadécimal le contenu de la mémoire débutant à l'adresse *a*. *u* octets arrondie au multiple de 16 supérieur sont affichés. Chaque ligne affiche 16 octets suivit de leur représentation ASCII.  
 
-* __DUP__&nbsp;&nbsp;( -- ) 
+* __DUP__&nbsp;&nbsp;( n -- n n ) Empile une copie de l'élément au sommet de la pile.
 
-* __E__&nbsp;&nbsp;( -- ) 
+* __E__&nbsp;&nbsp;( -- 28667 10546 ) Le rapport des 2 entiers empilés donne une valeur approximative de la base du logarithme népérien. 
 
-* __EE!__&nbsp;&nbsp;( -- ) 
+* __EE!__&nbsp;&nbsp;( n ud -- ) Écriture en mémoire persistante (FLASH|EEPROM) de la valeur *n*. *ud* et un entier double non signé représentant l'adresse destination. 
 
-* __EE,SET-IVEC__&nbsp;&nbsp;( -- ) 
+* __EE,__ ( n -- ) Compile en mémoire FLASH l'entier *n*. 
 
-* __EEC!__&nbsp;&nbsp;( -- ) 
+* __EEC!__&nbsp;&nbsp;( c ud -- ) Écris en mémoire persistante le caractère *c*. *ud* est l'adresse destination sous-forme d'entier double non signé.
 
-* __EEC,__&nbsp;&nbsp;( -- ) 
+* __EEC,__&nbsp;&nbsp;( c -- )  Compile en mémoire FLASH le caractère *c*.  
 
-* __EEP-CP__&nbsp;&nbsp;( -- ) 
+* __EEP-CP__&nbsp;&nbsp;( -- ud ) Empile l'adresse de la variable système persistante **APP_CP**
+. *ud* est un entier double non signé. 
 
-* __EEP-LAST__&nbsp;&nbsp;( -- ) 
+* __EEP-LAST__&nbsp;&nbsp;( -- ud ) Empile l'adresse de la variable système persistante **APP_LAST**.
 
-* __EEP-RUN__&nbsp;&nbsp;( -- ) 
+* __EEP-RUN__&nbsp;&nbsp;( -- ud ) Empile l'adresse de la variable système persistante **APP_RUN**. 
 
-* __EEP-VP__&nbsp;&nbsp;( -- ) 
+* __EEP-VP__&nbsp;&nbsp;( -- ud ) Empile l'adresse de la variable système persitante **APP_VP** 
 
-* __EEPROM__&nbsp;&nbsp;( -- ) 
+* __EEPROM__&nbsp;&nbsp;( -- ud ) Empile l'adresse de base de l'EEPROM. 
 
-* __EI__&nbsp;&nbsp;( -- ) 
+* __EI__&nbsp;&nbsp;( -- ) Active les interruptions en exécutant l'instruction machine **RIM**.
 
-* __ELSE__&nbsp;&nbsp;( -- ) 
+* __ELSE__&nbsp;&nbsp;( a1 -- a2 ) Compile l'adresse du saut avant dans la fente *a1* laissée sur la pile par le **IF** qui indique où doit se faire le saut avant pour exécuter une condition *fausse*. Laisse *a2* sur la pile qui est l'adresse de la fente qui doit-être comblée par le **THEN** et qui permet un saut avant après le **THEN** lors que la condition *vrai* est exécutée.   
 
-* __EMIT__&nbsp;&nbsp;( -- ) 
+* __EMIT__&nbsp;&nbsp;( c -- ) Envoie vers le terminal le caractère *c*. 
 
 * __ERASE__&nbsp;&nbsp;( -- ) 
 
@@ -434,6 +437,8 @@ Si le champ code est invalide retourne **0**.
 * __SEED__&nbsp;&nbsp;( -- ) 
 
 * __SET-ISP__&nbsp;&nbsp;( -- ) 
+
+* __SET-IVEC__&nbsp;&nbsp;( -- ) 
 
 * __SET-OPT__&nbsp;&nbsp;( -- ) 
 
