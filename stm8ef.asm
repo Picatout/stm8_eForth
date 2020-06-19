@@ -2049,7 +2049,6 @@ TCHAR:
 1$:     ld a,#'_ 
         ld (1,x),a 
         ret 
-TCHA1:  RET
 
 ;       DEPTH   ( -- n )
 ;       Return  depth of  data stack.
