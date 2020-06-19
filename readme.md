@@ -42,7 +42,7 @@ Comme il s'agit de 2 MCU STM8 l'adaptation vers le stm8s208 ne devrait pas néce
 
 ## 2020-06-08 
 
-* Started working on [reference manual](refenrence.md).
+* Started working on [reference manual](reference.md).
 
 ## 2020-06-13
 
