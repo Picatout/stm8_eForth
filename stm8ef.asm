@@ -2596,6 +2596,8 @@ KEY:
         clr (x)
         ret 
 
+WANT_SEE=1
+.if WANT_SEE 
 ;       NUF?    ( -- t )
 ;       Return false if no input,
 ;       else pause and if CR return true.
@@ -2614,6 +2616,7 @@ NUFQ:
         .word      CRR
         JP     EQUAL
 NUFQ1:  RET
+.endif ; WANT_SEE
 
 ;       SPACE   ( -- )
 ;       Send  blank character to
@@ -4148,7 +4151,7 @@ DOTI1:  CALL     DOTQP
         .ascii     " noName"
         RET
 
-WANT_SEE=0 
+
 .if WANT_SEE 
 ;       SEE     ( -- ; <string> )
 ;       A simple decompiler.

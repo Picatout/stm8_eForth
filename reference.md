@@ -18,6 +18,8 @@
 
 **n** Valeur 16 bits sans type défini.
 
+**n+** Entier positif.
+
 **u** Entier 16 bits non signé.
 
 **ud** Entier 32 bits non signé.
@@ -306,67 +308,64 @@ En *runtime* ce saut est toujours effectué.
 
 * __HEX__&nbsp;&nbsp;( -- ) Sélectionne la base numérique hexadécimal. Dépose la valeur **16** dans la variable système **BASE**. 
 
-* __HLD__&nbsp;&nbsp;( -- ) 
+* __HLD__&nbsp;&nbsp;( -- a ) Empile l'adresse de la variable système **UHLD** 
 
-* __HOLD__&nbsp;&nbsp;( -- ) 
+* __HOLD__&nbsp;&nbsp;( c -- ) Insère le caractère *c* dans la chaîne de sortie. HOLD est utilisé dans la conversion des entiere en chaîne.  
 
-* __I__&nbsp;&nbsp;( -- ) 
+* __I__&nbsp;&nbsp;( -- n+ ) Empile le compteur d'une boucle **FOR..NEXT**.
 
-* __I:__&nbsp;&nbsp;( -- ) 
+* __I:__&nbsp;&nbsp;( -- ) Débute la compilation d'une routine d'interruption. Les routines d'interruptions n'ont pas de nom et ne sont pas inscrite dans le dictionnaire. 
 
-* __I;__&nbsp;&nbsp;( -- ) 
+* __I;__&nbsp;&nbsp;( -- ad ) Termine la compilation d'une routine d'interruption. *ad* est l'adresse de la routine d'interruption tel qu'elle doit-être inscrite dans le vecteur d'interruption. 
 
-* __IF__&nbsp;&nbsp;( -- ) 
+* __IF__&nbsp;&nbsp;( f -- ) Vérifie la valeur de l'indicateur booléen *f* et exécute le code qui suis le **IF** si cette indicateur est *vrai* sinon saute après le **ELSE** ou le **THEN**. 
 
-* __IFMOVE__&nbsp;&nbsp;( -- ) 
+* __IFMOVE__&nbsp;&nbsp;( -- a ) Transfert routine d'interruption qui vient d'être compilée vers la mémoire flash. *a* est la valeur mise à jour du pointeur de code *CP*. 
 
-* __IMMEDIATE__&nbsp;&nbsp;( -- ) 
+* __IMMEDIATE__&nbsp;&nbsp;( -- ) Active l'indicateur **IMMED** dans l'entête de dictionnaire du dernier mot qui a été compilé. Habituellement invoqué juste après le **;**. 
 
-* __INC-FPTR__&nbsp;&nbsp;( -- ) 
+* __INC-FPTR__&nbsp;&nbsp;( -- ) Incrémente la variable système **FARPTR**. 
 
-* __INIT-OFS__&nbsp;&nbsp;( -- ) 
+* __INIT-OFS__&nbsp;&nbsp;( -- ) Initialise la variable système **OFFSET** au début d'une nouvelle compilation. L'offset est la distance entre les valeurs des variables **CP** et **VP**
+Lorsque la variable système **TFLASH**  est à zéro **OFFSET** est initialisé à zéro. **OFFSET** est utilisé par le compilateur pour déterminer les adresses absolues à utiliser dans les instructions de saut **BRANCH** et **?BRANCH**. 
 
-* __KEY__&nbsp;&nbsp;( -- ) 
+* __KEY__&nbsp;&nbsp;( -- c ) Attend la réception d'un caractère du  terminal. Empile le caractère *c*.  
 
-* __KTAP__&nbsp;&nbsp;( -- ) 
+* __KTAP__&nbsp;&nbsp;( c -- ) Utilisé par **ACCEPT** pour Traiter les caractères de contrôles reçu du terminal. Les les caractères ASCII **CR** et **BS** sont traités les autres sont remplacés par un **BLANK**.  
 
-* __LAST__&nbsp;&nbsp;( -- ) 
+* __LAST__&nbsp;&nbsp;( -- a ) Empile l'adresse de la variable système **LAST**. 
 
-* __LITERAL__&nbsp;&nbsp;( -- ) 
+* __LITERAL__&nbsp;&nbsp;( n -- ) Compile *n* comme entier litéral. En *runtime* **DOLIT** est invoqué pour remettre sur la pile la valeur *n*.  
 
-* __LN2S__&nbsp;&nbsp;( -- ) 
+* __LN2S__&nbsp;&nbsp;( -- 485 11464 ) Empile 2 entiers dont le rapport approxime la valeur de __10³ * ln(2)/2¹⁴.__
 
-* __LOCK__&nbsp;&nbsp;( -- ) 
+* __LOCK__&nbsp;&nbsp;( -- ) Verrouille l'écrire dans la mémoire persistante (FLASH et EEPROM).
 
-* __LOG2S__&nbsp;&nbsp;( -- ) 
+* __LOG2S__&nbsp;&nbsp;( -- 2040 11103 ) Empile 2 entiers dont le rapport apprime la valeur de __10⁴ * log(2)/2¹⁴.__
 
-* __LSHIFT__&nbsp;&nbsp;( -- ) 
+* __LSHIFT__&nbsp;&nbsp;( i1 n+ -- ) Décalager vers la gauche de *i1* *n+* bits. Les bits à droites sont mis à zéro.
 
-* __M*__&nbsp;&nbsp;( -- ) 
+* __M*__&nbsp;&nbsp;( n1 n2 -- d ) Multiplication _n1*n2_ conservé en entier double *d*.  
 
-* __M/MOD__&nbsp;&nbsp;( -- ) 
+* __M/MOD__&nbsp;&nbsp;( d n -- r q ) Division de l'entier double *d* par l'entier simple *n*. Empile le reste et le quotient. Le quotient est arrondie à l'entier le plus petit. 
 
-* __MAX__&nbsp;&nbsp;( -- ) 
+* __MAX__&nbsp;&nbsp;( n1 n2 -- n ) Empile le plus grand des 2 entiers. 
 
-* __MIN__&nbsp;&nbsp;( -- ) 
+* __MIN__&nbsp;&nbsp;( n1 n2 -- n ) Empile le plus petit des 2 entiers. 
 
-* __MOD__&nbsp;&nbsp;( -- ) 
+* __MOD__&nbsp;&nbsp;( n1 n2 -- n ) Retourne le reste de la division entière arrondie au plus petit entier. *n* est toujours __&ge;0__.
 
-* __MSEC__&nbsp;&nbsp;( -- ) 
+* __MSEC__&nbsp;&nbsp;( -- u ) Retourne la valeur du compteur de millisecondes. Il s'agit d'un compteur qui est incrémenté chaque milliseconde par une interruption du TIMER4. 
 
-* __NAME>__&nbsp;&nbsp;( -- ) 
+* __NAME>__&nbsp;&nbsp;( na -- ca ) Retourne l'adresse du *code* correspondant à l'entrée du dictionnaire avec le *champ nom* *ca*. Donne une valeur erronnée si *na* n'est pas une entrée valide dans le dictionnaire.  
 
-* __NAME?__&nbsp;&nbsp;( -- ) 
+* __NAME?__&nbsp;&nbsp;( b -- ca na | b 0 ) Recherche le nom *b* dans le dictionnaire. Si ce nom existe retourne l'adresse du code *ca* et l'adresse du champ nom *na*. Si le nom n'est pas trouvé retourne *b* et *0*. 
 
-* __NEGATE__&nbsp;&nbsp;( -- ) 
+* __NEGATE__&nbsp;&nbsp;( i1 -- i2 ) Empile la négation arithmétique de *i1*. 
 
-* __NEXT__&nbsp;&nbsp;( -- ) 
+* __NEXT__&nbsp;&nbsp;( -- ; R: a I ) En *runtime* décrémente le compteur de boucle **I** et reboucle à l'adresse *a* tant que le compteur est &ge;0. À la sortie de la boucle *a* et *I* sont jetés.   
 
-* __NEXT__&nbsp;&nbsp;( -- ) 
-
-* __NOT__&nbsp;&nbsp;( -- ) 
-
-* __NUF?__&nbsp;&nbsp;( -- ) 
+* __NOT__&nbsp;&nbsp;( i1 -- i2 ) *i2* est le complément unaire de *i1*. Autrement dit tous les bits de *i1* sont inversés. 
 
 * __NUMBER?__&nbsp;&nbsp;( -- ) 
 

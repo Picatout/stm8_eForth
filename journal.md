@@ -1,3 +1,8 @@
+#### 2020-06-20
+
+* Travail sur ![reference.md](reference.md)
+
+* Suppression du mot **NUF?** qui n'était appellé que par **SEE** les 2 mots sont enclos dans un directive __.if WANT_SEE ... .endif__  et j'ai mis **WANT_SEE** à zéro. Tel qu'il est là **SEE** n'est pas très fonctionnel. 
 
 #### 2020-06-19 
 
