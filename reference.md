@@ -274,39 +274,37 @@ En *runtime* ce saut est toujours effectué.
 
 * __EMIT__&nbsp;&nbsp;( c -- ) Envoie vers le terminal le caractère *c*. 
 
-* __ERASE__&nbsp;&nbsp;( -- ) 
+* __ERASE__&nbsp;&nbsp;( b u -- ) Met à zéro *u* octets à partir de l'adresse *b*.
 
-* __EVAL__&nbsp;&nbsp;( -- ) 
+* __EVAL__&nbsp;&nbsp;( -- ) Interprète le texte d'entrée. 
 
-* __EXECUTE__&nbsp;&nbsp;( -- ) 
+* __EXECUTE__&nbsp;&nbsp;( a -- ) Exécute le code à l'adresse *a*.  
 
-* __EXIT__&nbsp;&nbsp;( -- ) 
+* __EXTRACT__&nbsp;&nbsp;(  n1 base -- n2 c  ) Extrait le chiffre le moins significatif de *n* et le converti en caractère ASCII *c*. *n2=n1/base*.   
 
-* __EXTRACT__&nbsp;&nbsp;( -- ) 
+* __F@__&nbsp;&nbsp;( ad -- n ) Empile l'entier qui se trouve à l'adresse étendue *ad*. Utile pour lire la mémoire flash au delà de 65535. 
 
-* __F@__&nbsp;&nbsp;( -- ) 
+* __FADDR__&nbsp;&nbsp;( a -- ad ) Convertie l'adresse 16 bits *a* en adresse 32 bits *ad*.
 
-* __FADDR__&nbsp;&nbsp;( -- ) 
+* __FC@__&nbsp;&nbsp;( ad -- ) Empile l'octet qui se trouve à l'adresse étendue *ad*. Utile pour lire  à mémoire flash au delà de 65535.
 
-* __FC@__&nbsp;&nbsp;( -- ) 
+* __FILL__&nbsp;&nbsp;( b u c -- ) Remplie *u* octets de la mémoire RAM à partir de l'adresse *b* avec le caractère *c*.  
 
-* __FILL__&nbsp;&nbsp;( -- ) 
+* __FIND__&nbsp;&nbsp;( a va -- ca na | a 0 ) Recherche le nom pointé par *a* dans le dictionnaire à partir de l'entrée indiquée par *va*. Si trouvé retourne *ca* l'adresse d'exécution. *na* l'adresse du champ nom. En cas d'échec retourne *a* et *0*.
 
-* __FIND__&nbsp;&nbsp;( -- ) 
+* __FMOVE__&nbsp;&nbsp;( -- a ) Déplace le dernier mot compilé de la mémoire RAM vers la mémoire FLASH. Retourne le pointeur de code mis à jour *a*.  
 
-* __FMOVE__&nbsp;&nbsp;( -- ) 
+* __FOR__&nbsp;&nbsp;( n+ -- ) Initialise une boucle FOR..NEXT. *n+* est un entier positif. La boucle se répète *n+1* fois. 
 
-* __FOR__&nbsp;&nbsp;( -- ) 
+* __FORGET__&nbsp;&nbsp;( -- ; &lt;string&gt; ) Supprime du dictionnaire la définition **&lt;string&gt;** ainsi que toutes celles qui ont étées créées après celle-ci. Ne supprime que les définitions en mémoire FLASH. Pour les définitions en mémoire RAM il faut faire un **REBOOT**. 
 
-* __FORGET__&nbsp;&nbsp;( -- ) 
+* __FP!__&nbsp;&nbsp;( ad -- ) Initialize la variable système **FPTR** avec la valeur *ad*. Le far pointer est utilisé pour les opérations d'écriture en mémoire persistante.  
 
-* __FP!__&nbsp;&nbsp;( -- ) 
+* __FREEVAR__&nbsp;&nbsp;( na -- ) *na* étant l'adresse du champ nom d'une variable **FEEVAR** réinitialise le pointeur **VP** à cette adresse. Toute allocation de mémoire RAM qui suit cette adresse est perdu.  
 
-* __FREEVAR__&nbsp;&nbsp;( -- ) 
+* __HERE__&nbsp;&nbsp;( -- a ) Retourne la valeur de la variable système **VP**.  
 
-* __HERE__&nbsp;&nbsp;( -- ) 
-
-* __HEX__&nbsp;&nbsp;( -- ) 
+* __HEX__&nbsp;&nbsp;( -- ) Sélectionne la base numérique hexadécimal. Dépose la valeur **16** dans la variable système **BASE**. 
 
 * __HLD__&nbsp;&nbsp;( -- ) 
 

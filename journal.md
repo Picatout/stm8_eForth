@@ -1,6 +1,13 @@
 
 #### 2020-06-19 
 
+**Session 2**
+* Travail sur ![reference.md](reference.md)
+
+* Élimination du mot **EXIT**. **;** compile le code machine **RET** au lieu de compiler un **CALL EXIT**.  Plus compacte et plus rapide. 
+
+**Session 1**
+
 * Travail sur ![reference.md](reference.md)
 
 #### 2020-06-17

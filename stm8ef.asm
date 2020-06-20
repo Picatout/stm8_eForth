@@ -830,6 +830,12 @@ EXECU:
 	LDW  Y,(Y)
         JP   (Y)
 
+OPTIMIZE = 1
+.if OPTIMIZE 
+; remplacement de CALL EXIT par 
+; le opcode de RET.
+; Voir modification au code de ";"
+;
 ;       EXIT    ( -- )
 ;       Terminate a colon definition.
         .word      LINK
@@ -839,6 +845,7 @@ LINK = .
 EXIT:
         POPW Y
         RET
+.endif 
 
 ;       !       ( w a -- )
 ;       Pop  data stack to memory.
@@ -3772,8 +3779,14 @@ LINK = .
 	.byte      IMEDD+COMPO+1
         .ascii     ";"
 SEMIS:
+.if OPTIMIZE ; more compact and faster
+        call DOLIT 
+        .word 0x81   ; opcode for RET 
+        call CCOMMA 
+.else
         CALL     COMPI
         .word EXIT 
+.endif 
         CALL     LBRAC
         call OVERT 
         CALL FMOVE
