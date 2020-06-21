@@ -30,6 +30,10 @@
 
 **( nx1 -- nx2 )**  Commentaire indiquant  la liste des paramètres à gauche et des résultats à droite.
 
+**T**  Indique la valeur booléenne **vrai**. 
+
+**F**  Indique la valeur booléenne **faux**. 
+
 ## Vocabulaire du système
 
 * __!__&nbsp;&nbsp;( n a -- ) Dépose la valeur **n** à l'adresse **a**
@@ -367,31 +371,33 @@ Lorsque la variable système **TFLASH**  est à zéro **OFFSET** est initialisé
 
 * __NOT__&nbsp;&nbsp;( i1 -- i2 ) *i2* est le complément unaire de *i1*. Autrement dit tous les bits de *i1* sont inversés. 
 
-* __NUMBER?__&nbsp;&nbsp;( -- ) 
+* __NUF?__ ( -- f ) Vérifie si un caractère a été reçu du terminal. Si aucun caractère reçu retourne **F**. Si un caractère a été reçu jette ce caractère et appel **KEY** pour attendre le prochain caractère. Si le prochain caractère reçu est **CR** retourne **T** sinon retourn **0**. Est utilisé pour faire une pause dans un défilement d'écran.
 
-* __OFFSET__&nbsp;&nbsp;( -- ) 
+* __NUMBER?__&nbsp;&nbsp;( b -- i T | b F ) Essaie de convertir la chaîne *b* en entier. Si la convertion réussie l'entier **i** et **T** sont retournés. Sinon **b** et **F** sont retournés.
 
-* __OR__&nbsp;&nbsp;( -- ) 
+* __OFFSET__&nbsp;&nbsp;( -- a ) Variable système indiquant la distance enter **CP** et **VP**. Utilisé pour calculer les adresses de saut lors de la compilation. 
 
-* __OVER__&nbsp;&nbsp;( -- ) 
+* __OR__&nbsp;&nbsp;( n1 n2 -- n3 ) *n3* est le résultat d'un OU bit à bit entre *n1* et *n2* 
 
-* __OVERT__&nbsp;&nbsp;( -- ) 
+* __OVER__&nbsp;&nbsp;( n1 n2 -- n1 n2 n1 ) Copie le second élémente de la pile au sommet. 
 
-* __PACK0__&nbsp;&nbsp;( -- ) 
+* __OVERT__&nbsp;&nbsp;( -- ) Ajoute le dernier mot compilé au début de la liste chaîné du dicotnnaire. 
 
-* __PAD__&nbsp;&nbsp;( -- ) 
+* __PACK0__&nbsp;&nbsp;( b u a -- a ) Construit une chaîne comptée à partir de *b* et de *u* qui est le nombre de caractères à copier dans *a*. Garde l'adresse de la nouvelle chaîne. 
 
-* __PARSE__&nbsp;&nbsp;( -- ) 
+* __PAD__&nbsp;&nbsp;( -- a ) Empile l'adresse du tampon de travail **PAD**.  
 
-* __PAUSE__&nbsp;&nbsp;( -- ) 
+* __PARSE__&nbsp;&nbsp;( c -- b u ; <string> ) Analyseur lexical. parcourt le flux d'entrée à la recherche de la prochaîne unité lexicale. *c* est le caractère délimiteur. *b* est l'adresse de la chaîne trouvée et *u* sa longueur.  
 
-* __PI__&nbsp;&nbsp;( -- ) 
+* __PAUSE__&nbsp;&nbsp;( u -- ) Suspend l'exécution pour une durée de *u* millisecondes.  
 
-* __PICK__&nbsp;&nbsp;( -- ) 
+* __PI__&nbsp;&nbsp;( -- 355 113 ) Empile 2 entiers dont le rapport se rapproche de la constante **PI**.  
 
-* __PRESET__&nbsp;&nbsp;( -- ) 
+* __PICK__&nbsp;&nbsp;( nx j -- nx nj ) Copie au sommet de la pile le jième élément de la pile. *j* est d'abord retiré de la pile ensuit les éléments sont compté à partir du sommet vers le fond de la pile. l'Élément au sommet est l'élément *0*.  Donc **0 PICK** est l'équivalent de **DUP** et **1 PICK** est l'équivalent de **OVER**. Le nombre d'éléments sur la pile doit-être &ge;j+1.
 
-* __PRISTINE__&nbsp;&nbsp;( -- ) 
+* __PRESET__&nbsp;&nbsp;( -- ) Vide la pile des arguments et le TIB avant d'invoquer **QUIT**.  
+
+* __PRISTINE__&nbsp;&nbsp;( -- ) Nettoie le système de toutes les modifications effectuées par l'utilisateur. Le système Forth se retrouve alors dans son état initial avant toute intervantion de l'utilisateur. 
 
 * __QUERY__&nbsp;&nbsp;( -- ) 
 

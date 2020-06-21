@@ -2288,13 +2288,13 @@ ERASE:
         jp FILL 
 
 
-;       PACK0x   ( b u a -- a )
+;       PACK0   ( b u a -- a )
 ;       Build a counted string with
 ;       u characters from b. Null fill.
         .word      LINK
 LINK = . 
         .byte      5
-        .ascii     "PACK0X"
+        .ascii     "PACK0"
 PACKS:
         CALL     DUPP
         CALL     TOR     ;strings only on cell boundary
@@ -2596,8 +2596,6 @@ KEY:
         clr (x)
         ret 
 
-WANT_SEE=1
-.if WANT_SEE 
 ;       NUF?    ( -- t )
 ;       Return false if no input,
 ;       else pause and if CR return true.
@@ -2616,7 +2614,6 @@ NUFQ:
         .word      CRR
         JP     EQUAL
 NUFQ1:  RET
-.endif ; WANT_SEE
 
 ;       SPACE   ( -- )
 ;       Send  blank character to
@@ -4151,7 +4148,7 @@ DOTI1:  CALL     DOTQP
         .ascii     " noName"
         RET
 
-
+WANT_SEE=0
 .if WANT_SEE 
 ;       SEE     ( -- ; <string> )
 ;       A simple decompiler.
@@ -4167,7 +4164,7 @@ SEE:
 SEE1:   CALL     ONEP
         CALL     DUPP
         CALL     AT
-        CALL     DUPP    ;?does it contain a zero
+        CALL     DUPP
         CALL     QBRAN
         .word    SEE2
         CALL     TNAME   ;?is it a name
