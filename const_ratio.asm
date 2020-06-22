@@ -101,7 +101,7 @@ SQRT10:
     ldw (x),y 
     ret 
 
-;   SQRT12 ( -- 26797 25293 )
+;   12RT2 ( -- 26797 25293 )
 ; precision: 1.0e-9 
 ; used in music to compute well tempered scale
         .word LINK 

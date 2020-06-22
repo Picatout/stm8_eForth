@@ -2021,7 +2021,7 @@ Hexadecimal [24-Bits]
       008441 84 2E                  779         .word      LINK
                            0003C3   780 LINK	= 	.
       008443 44                     781 	.byte      COMPO+4
-      008444 4E 45 58 54            782         .ascii     "NEXT"
+      008444 6E 65 78 74            782         .ascii     "next"
       008448                        783 DONXT:
       008448 16 03            [ 2]  784 	LDW Y,(3,SP)
       00844A 90 5A            [ 2]  785 	DECW Y

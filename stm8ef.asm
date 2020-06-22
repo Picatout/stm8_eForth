@@ -779,7 +779,7 @@ DOLIT:
         .word      LINK
 LINK	= 	.
 	.byte      COMPO+4
-        .ascii     "NEXT"
+        .ascii     "next"
 DONXT:
 	LDW Y,(3,SP)
 	DECW Y

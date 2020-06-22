@@ -367,7 +367,11 @@ Lorsque la variable système **TFLASH**  est à zéro **OFFSET** est initialisé
 
 * __NEGATE__&nbsp;&nbsp;( i1 -- i2 ) Empile la négation arithmétique de *i1*. 
 
-* __NEXT__&nbsp;&nbsp;( -- ; R: a I ) En *runtime* décrémente le compteur de boucle **I** et reboucle à l'adresse *a* tant que le compteur est &ge;0. À la sortie de la boucle *a* et *I* sont jetés.   
+* __NEXT__&nbsp;&nbsp;( a -- ) Mot immédiat qui compile la fin d'une boucle **FOR-NEXT**.
+**a** est l'adresse du début de la boucle est est compilée comme saut arrière. 
+
+* __next__&nbsp;&nbsp;( -- ; R: I ) Compilé par **NEXT**. En *runtime* décrémente le compteur de boucle **I** et reboucle à l'adresse au début du **FOR**  tant que le compteur est &ge;0. À la sortie de la boucle *I* est jeté.   
+
 
 * __NOT__&nbsp;&nbsp;( i1 -- i2 ) *i2* est le complément unaire de *i1*. Autrement dit tous les bits de *i1* sont inversés. 
 
@@ -399,159 +403,157 @@ Lorsque la variable système **TFLASH**  est à zéro **OFFSET** est initialisé
 
 * __PRISTINE__&nbsp;&nbsp;( -- ) Nettoie le système de toutes les modifications effectuées par l'utilisateur. Le système Forth se retrouve alors dans son état initial avant toute intervantion de l'utilisateur. 
 
-* __QUERY__&nbsp;&nbsp;( -- ) 
+* __QUERY__&nbsp;&nbsp;( -- ) Lecture d'une ligne de texte du terminal dans le TIB. La lecture se termine à la réception d'un caractère **CR**. Le nombre de caractères dans le TIB est dans la variable systèmE **#TIB**. 
 
-* __QUIT__&nbsp;&nbsp;( -- ) 
+* __QUIT__&nbsp;&nbsp;( -- ) Il s'agit de l'interpréteur de texte, c'est à dire l'interface entre l'utilisateur et le système. **QUIT** appel en boucle **QUEYR** et **EVAL**. 
 
-* __R>__&nbsp;&nbsp;( -- ) 
+* __R>__&nbsp;&nbsp;( n -- R: -- n ) La valeur au sommet de la pile des arguments est transférée sur la pile des retours.
 
-* __R@__&nbsp;&nbsp;( -- ) 
+* __R@__&nbsp;&nbsp;( -- n ) La valeur au sommet de la pile des retours est copié sur la pile des arguments.  
 
-* __RAM2EE__&nbsp;&nbsp;( -- ) 
+* __RAM2EE__&nbsp;&nbsp;( ud a u1 -- u2 ) Écris dans la mémoire persistance *u1* octets de la mérmoire RAM à partir de l'adresse *a* vers l'adresse *ud*. Cependant l'écriture est limitée aux limites du bloc 128 octets qui contient l'adresse *ud*. Si *ud+u1*  dépasse la limite l'écriture s'arrête à la fin du bloc. Retourne *u2* le nombre d'octets réellement écris. 
 
-* __RAMLAST__&nbsp;&nbsp;( -- ) 
+* __RAMLAST__&nbsp;&nbsp;( -- a ) Empile l'adresse de la variable système **RAMLAST**. 
 
-* __RANDOM__&nbsp;&nbsp;( -- ) 
+* __RANDOM__&nbsp;&nbsp;( u1 -- u2 ) Retourne un entier pseudo aléatoire dans l'intervalle **0&le;u2&lt;u1**.  
 
-* __REBOOT__&nbsp;&nbsp;( -- ) 
+* __REBOOT__&nbsp;&nbsp;( -- ) Rédamarrage du MCU. A le même effet que d'enfoncer le bouton *RESET* sur la carte.
 
-* __REPEAT__&nbsp;&nbsp;( -- ) 
+* __REPEAT__&nbsp;&nbsp;( -- ) Termine un boucle de la forme **BEGIN-WHILE-REPEAT**. Le branchement s'effectue après le **BEGIN**.
 
-* __RFREE__&nbsp;&nbsp;( -- ) 
+* __RFREE__&nbsp;&nbsp;( a -- u ) *u* est le nombre d'octets libres dans le bloc qui contient l'adresse *a*. En fait u=128-a%128. 128 étant la longueur d'un bloc FLASH pour le MCU STM8S208RB.  
 
-* __ROT__&nbsp;&nbsp;( -- ) 
+* __ROT__&nbsp;&nbsp;( n1 n2 n3 -- n2 n3 n1 ) Rotation des 2 éléments supérieurs de la pile.
 
-* __ROW-ERASE__&nbsp;&nbsp;( -- ) 
+* __ROW-ERASE__&nbsp;&nbsp;( ud -- ) Efface le bloc de mémoire persistante contentant l'adresse **ud**.  
 
-* __ROW2BUF__&nbsp;&nbsp;( -- ) 
+* __ROW2BUF__&nbsp;&nbsp;( ud -- ) Copie le bloc de mémoire persistante contenant l'adresse **ud** vers le tampon système **TBUF**. 
 
-* __RP!__&nbsp;&nbsp;( -- ) 
+* __RP!__&nbsp;&nbsp;( n -- ) Initialise le pointeur de la pile des retours avec la valeur **n**.
 
-* __RP@__&nbsp;&nbsp;( -- ) 
+* __RP@__&nbsp;&nbsp;( -- n ) Empile la valeur du pointeur de la pile des retours. 
 
-* __RSHIFT__&nbsp;&nbsp;( -- ) 
+* __RSHIFT__&nbsp;&nbsp;( n1 u -- n2 ) Décale *n1* de *u* bits vers la droite. Les bits à gauche sont remplacés par **0**. Même effet que l'opérateur **C** **&gt;&gt;**.  
 
-* __RST-IVEC__&nbsp;&nbsp;( -- ) 
+* __RST-IVEC__&nbsp;&nbsp;( u -- ) Réinitialise le vecteur d'interruption #**u** à sa valeur par défaut. 
 
-* __S>D__&nbsp;&nbsp;( -- ) 
+* __S>D__&nbsp;&nbsp;( i -- d ) Convertie un entier simple en entier double. 
 
-* __SAME?__&nbsp;&nbsp;( -- ) 
+* __SAME?__&nbsp;&nbsp;( a1 a2 u -- a1 a2 f ) Compare *a1* et *a2* sur *u* octets et retourne **0** s'ils sont identiques sinon retourne u-1.  
 
-* __SEED__&nbsp;&nbsp;( -- ) 
+* __SEED__&nbsp;&nbsp;( u -- ) Initialise le générateur pseudo-aléatoire.  
 
-* __SET-ISP__&nbsp;&nbsp;( -- ) 
+* __SET-ISP__&nbsp;&nbsp;( u1 u2 -- ) Fixe le niveau de priorité logicielle d'interruption du vecteur *u2* avec la valeur *u1* {1,2,3}. Le niveau maximal est **3** et c'est la valeur par défaut..
 
-* __SET-IVEC__&nbsp;&nbsp;( -- ) 
+* __SET-IVEC__&nbsp;&nbsp;( ud u -- )  Initialise le vecteur d'interruption *u* avec l'adresse **ud** qui et l'adresse d'une routine de service d'interruption. 
 
-* __SET-OPT__&nbsp;&nbsp;( -- ) 
+* __SET-OPT__&nbsp;&nbsp;( c u -- ) Écris le caractère *c* dans le registre d'OPTION *u*.  
 
-* __SIGN__&nbsp;&nbsp;( -- ) 
+* __SIGN__&nbsp;&nbsp;( i -- ) Si i&lt;0 alors préfixe la chaîne numérique du caractère **-**. Est utilisé lors de la conversion d'un entier en chaîne de caractères.  
 
-* __SP!__&nbsp;&nbsp;( -- ) 
+* __SP!__&nbsp;&nbsp;( u --  ) Initialise le pointeur de la pile des arguments.  
 
-* __SP@__&nbsp;&nbsp;( -- ) 
+* __SP@__&nbsp;&nbsp;( -- u ) Empile la valeur du pointeur des arguments. 
 
-* __SPACE__&nbsp;&nbsp;( -- ) 
+* __SPACE__&nbsp;&nbsp;( -- ) Envoie un caractère ASCII *espace* au terminal.
 
-* __SPACES__&nbsp;&nbsp;( -- ) 
+* __SPACES__&nbsp;&nbsp;( n+ -- ) Envoie **n+** caractères ASCII *espace* au terminal. 
 
-* __SQRT10__&nbsp;&nbsp;( -- ) 
+* __SQRT10__&nbsp;&nbsp;( -- 22936 7253 ) Empile deux entiers dont le rapport approxime la racine carrée de 10. 
 
-* __SQRT2__&nbsp;&nbsp;( -- ) 
+* __SQRT2__&nbsp;&nbsp;( -- 19601  13860 ) Empile deux entiers dont le rapport approxime la racine carrée de 2.  
 
-* __SQRT3__&nbsp;&nbsp;( -- ) 
+* __SQRT3__&nbsp;&nbsp;( -- 18817 10864 ) Empile deux entiers dont le rapport approxime la racine carrée de 3. 
 
-* __STR__&nbsp;&nbsp;( -- ) 
+* __STR__&nbsp;&nbsp;( i -- b u ) Converti en chaîne de caractère l'entier **i**. **b** est la chaîne résultatnte et **u** la longueur de cette chaîne. 
 
-* __SWAP__&nbsp;&nbsp;( -- ) 
+* __SWAP__&nbsp;&nbsp;( n1 n2 -- n2 n1 ) Inverse l'ordre des 2 éléments au sommet de la pile. 
 
-* __TAP__&nbsp;&nbsp;( -- ) 
+* __TAP__&nbsp;&nbsp;( a1 c -- a2 ) Envoie le caractère **c** au terminal et le dépose dans le tampon à l'adresse **a1**. Incrémente **a1** pour donner **a2**.  
 
-* __TBUF__&nbsp;&nbsp;( -- ) 
+* __TBUF__&nbsp;&nbsp;( -- a ) Empile l'adresse du tampon de 128 octets qui sert à l'écriture par bloc dans la mémoire persistante. 
 
-* __TFLASH__&nbsp;&nbsp;( -- ) 
+* __TFLASH__&nbsp;&nbsp;( -- a ) Empile l'adresse de la variable système **TFLASH** qui indique la destination de la compilation. Cette variable est modifiée par **TO-FLASH** et **TO-RAM**.
 
-* __THEN__&nbsp;&nbsp;( -- ) 
+* __THEN__&nbsp;&nbsp;( -- ) Termine une boucle **IF-ELSE-THEN. 
 
-* __TIB__&nbsp;&nbsp;( -- ) 
+* __TIB__&nbsp;&nbsp;( -- a ) Empile l'adresse du *Transaction Input Buffer* qui est le tampon qui accumule les caractes lus par **ACCEPT**.  
 
-* __TIMEOUT?__&nbsp;&nbsp;( -- ) 
+* __TIMEOUT?__&nbsp;&nbsp;( -- f ) Vérifie l'état du compteur à rebour **TMER** et retourne *vrai* s'il est à zéro sinon retourne *faux*.
 
-* __TIMER__&nbsp;&nbsp;( -- ) 
+* __TIMER__&nbsp;&nbsp;( u -- ) Initialise le compteur à rebour. Ce compteur est décrémenter à chaque milliseconde jusqu'à ce qu'il atteigne zéro. 
 
-* __TMP__&nbsp;&nbsp;( -- ) 
+* __TMP__&nbsp;&nbsp;( -- a ) Empile l'adresse de la variable système **TMP**.  
 
-* __TO-FLASH__&nbsp;&nbsp;( -- ) 
+* __TO-FLASH__&nbsp;&nbsp;( -- ) Met à **-1** la valeur de la variable système **TFLASH**. Indiquant ainsi que les mots doivent-être compilés dans la mémoire flash. 
 
-* __TO-RAM__&nbsp;&nbsp;( -- ) 
+* __TO-RAM__&nbsp;&nbsp;( -- ) Met à **0** la valeur de la variable sytème **TFLASH**. Indiquant ainsi que les mots doivent-être compilés dans la mémoire RAM. C'est mots sont perdus lors d'une réinitialisaton du système avec **COLD**,**REBOOT**,un *RESET* ou une perte d'alimentation de la carte.  
 
-* __TOKEN__&nbsp;&nbsp;( -- ) 
+* __TOKEN__&nbsp;&nbsp;( -- a ; &lt;string&gt;) Extrait le prochain mot du TIB. 
 
-* __TYPE__&nbsp;&nbsp;( -- ) 
+* __TYPE__&nbsp;&nbsp;( b u -- ) Envoie *u* caractère au terminal à partir de l'adresse *b*. 
 
-* __U.__&nbsp;&nbsp;( -- ) 
+* __U.__&nbsp;&nbsp;( u -- ) Imprime l'entier non signé *u*.
 
-* __U.R__&nbsp;&nbsp;( -- ) 
+* __U.R__&nbsp;&nbsp;( u n+ -- ) Imprime l'entier non signé *u* sur *n+* colonnes aligné à droite avec remplissage par *espace*.  
 
-* __U<__&nbsp;&nbsp;( -- ) 
+* __U<__&nbsp;&nbsp;( u1 u2 -- f ) Comparaison de 2 entiers non signés. Retourne *vrai* si *u1&lt;u2*. Sinon retourne *faux*. 
 
-* __UM*__&nbsp;&nbsp;( -- ) 
+* __UM*__&nbsp;&nbsp;( u1 u2 -- ud ) Multiplication de 2 entiers non signés et retourne le résultat comme entier non signé double.  
 
-* __UM+__&nbsp;&nbsp;( -- ) 
+* __UM+__&nbsp;&nbsp;( u1 u1 -- ud ) Additionne 2 entiers non signés et retourne la somme comme entier non signé double.  
 
-* __UM/MOD__&nbsp;&nbsp;( -- ) 
+* __UM/MOD__&nbsp;&nbsp;( ud u -- ur uq ) Division non signé de l'entier double *ud* par l'entier simple non signé *u*. Retourne le reste *ur* et le quotient *uq*. 
 
-* __UNLKEE__&nbsp;&nbsp;( -- ) 
+* __UNLKEE__&nbsp;&nbsp;( -- ) Déverouille pour l'écriture la mémoire EEPROM.  
 
-* __UNLKFL__&nbsp;&nbsp;( -- ) 
+* __UNLKFL__&nbsp;&nbsp;( -- ) Déverouille pour l'écriture la mémoire FLASH.
 
-* __UNLOCK__&nbsp;&nbsp;( -- ) 
+* __UNLOCK__&nbsp;&nbsp;(  -- ) Selon l'adresse contenue dans la variable système **FPTR** déverrouille la mémoire FLASH ou EEPROM.  
 
-* __UNTIL__&nbsp;&nbsp;( -- ) 
+* __UNTIL__&nbsp;&nbsp;( f -- ) Termine une boucle **BEGIN - UNTIL**. La boucle se termine quand **f** est *vrai*.  
 
-* __UPDAT-CP__&nbsp;&nbsp;( -- ) 
+* __UPDAT-CP__&nbsp;&nbsp;( -- ) Met à jour la variable système persistante **EEP-CP** à partir de la variable **CP**.  
 
-* __UPDAT-LAST__&nbsp;&nbsp;( -- ) 
+* __UPDAT-LAST__&nbsp;&nbsp;( -- ) Met à jour la variable système persistante **EEP-LAST** à partir de la variable **LAST**. 
 
-* __UPDAT-PTR__&nbsp;&nbsp;( -- ) 
+* __UPDAT-PTR__&nbsp;&nbsp;( -- ) Met à jour les différentes variables système persistantes à partir des valeurs de leur correspondantes non persistantes.
 
-* __UPDAT-RUN__&nbsp;&nbsp;( -- ) 
+* __UPDAT-RUN__&nbsp;&nbsp;( a -- ) Met à jour la variable système persistante **EEP-RUN**. **a** est la nouvelle adresse du programme à exécuter au démarrage.
 
-* __UPDAT-VP__&nbsp;&nbsp;( -- ) 
+* __UPDAT-VP__&nbsp;&nbsp;( -- ) Met à jour la variable système persistante **EEP-VP** à partir de la valeur de **VP**. 
 
-* __VARIABLE__&nbsp;&nbsp;( -- ) 
+* __VARIABLE__&nbsp;&nbsp;( -- &lt;string&gt;) Crée une nouvelle variable de nom **&lt;string&gt;**. Cette variable est initialisée à zéro.  
 
-* __VP__&nbsp;&nbsp;( -- ) 
+* __VP__&nbsp;&nbsp;( -- a ) Empile l'adresse de la variable système **VP**.  
 
-* __WHILE__&nbsp;&nbsp;( -- ) 
+* __WHILE__&nbsp;&nbsp;( f -- ) Condition de contrôle d'une boucle **BEGIN - WHILE - REPEAT**. la boucle se poursuit tant que **f** est *vrai*.  
 
-* __WITHIN__&nbsp;&nbsp;( -- ) 
+* __WITHIN__&nbsp;&nbsp;( u ul uh -- f ) Retourne **f** indiquant si **ul &le; u &lt;uh** 
 
-* __WORD__&nbsp;&nbsp;( -- ) 
+* __WORD__&nbsp;&nbsp;( c -- a ) Extrait le prochain mot du **TIB** et le copie à la fin du dictionnaire. **c** est le caractère séparateur de mot et **a** est l'adresse où le mot a été copié. 
 
-* __WORDS__&nbsp;&nbsp;( -- ) 
+* __WORDS__&nbsp;&nbsp;( -- ) Imprime la liste de tous les mots du dictionnaire. 
 
-* __WR-BYTE__&nbsp;&nbsp;( -- ) 
+* __WR-BYTE__&nbsp;&nbsp;( c -- ) Écris un octet dans la mémoire persistante à l'adresse indiquée par la variable système **FPTR**.  
 
-* __WR-ROW__&nbsp;&nbsp;( -- ) 
+* __WR-ROW__&nbsp;&nbsp;( a ud -- ) Écriture d'un bloc de 128 octets dans la mémoire persistante. **a** est l'adresse RAM qui contient les données à écrires et **ud** l'adresse destination. Si *ud* n'est pas alignée sur un bloc de 128 octets il le sera en mettant les 7 bits les moins significatifs à zéro. 
 
-* __XOR__&nbsp;&nbsp;( -- ) 
+* __XOR__&nbsp;&nbsp;( n1 n2 -- n3 ) **n3** est le résultat d'un ou exclusif bit à bit entre **n1** et **n2**.  
 
-* __[__&nbsp;&nbsp;( -- ) 
+* __[__&nbsp;&nbsp;( -- ) Initialise le vecteur EVAL en mode *interprétation*. 
 
-* __[COMPILE]__&nbsp;&nbsp;( -- ) 
+* __[COMPILE]__&nbsp;&nbsp;( -- &lt;string&gt; ) Ce mot est utilisé à l'intérieur d'une définition pour compiler le mot suivant qui est un mot *immédiat* donc serait exécuté plutôt que compilé.
 
-* __\__&nbsp;&nbsp;( -- ) 
+* __\__&nbsp;&nbsp;( -- ) Introduit un commentaire qui se termine à la fin de la ligne.
 
-* __]__&nbsp;&nbsp;( -- ) 
+* __]__&nbsp;&nbsp;( -- ) Initialise le vecteur EVAL en mode *compilation*. 
 
-* __^H__&nbsp;&nbsp;( -- ) 
+* __^H__&nbsp;&nbsp;( -- ) Envoie le caractère ASCII DEL (8) au terminal. 
 
-* ___TYPE__&nbsp;&nbsp;( -- ) 
+* __dm+__&nbsp;&nbsp;( a u -- a+u ) Affiche l'adresse **a** suivit de **u** de mémoire à partir de **a**. Retourne l'adresse incrémenté. Invoqué par **DUMP**.  
 
-* __dm+__&nbsp;&nbsp;( -- ) 
+* __hi__&nbsp;&nbsp;( -- ) Application par défaut appellée par **COLD** et qui imprime le message *stm8eForth v3.0*. 
 
-* __hi__&nbsp;&nbsp;( -- ) 
-
-* __parse__&nbsp;&nbsp;( -- ) 
+* __parse__&nbsp;&nbsp;( b1 u1 c -- b2 u2 delta ; <string> ) **c** étant le séparateur de mots saute par dessus les **c** jusqu'au premier caractère différent de **c** ensuite avance jusqu'au premier caractère **c**. **b2** est le début du mot, **u2** sa longueur et **delta** est la distance **b2-b1**.   
 

@@ -3050,7 +3050,7 @@ FOR
         DC.W      LINK
         
 LINK CEQU *
-			DC.B      {IMEDD+4}
+	DC.B      {IMEDD+4}
         DC.B     "NEXT"
 NEXT
         CALL     COMPI
