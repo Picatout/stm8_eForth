@@ -16,9 +16,6 @@
  BIT6 = (6)
  BIT7 = (7)
 
-; stm8s-discovery HSE clock frequency
- Fmaster = 16000000;UL
-
 ; controller memory regions
 ; C4/C6,S4/S6 and K4/K6 all have 2K RAM and 1K EEPROM
 RAM_SIZE = (2048) 
@@ -41,6 +38,8 @@ X6_FLASH_SIZE = (32768)
  OPTION_END = (0x487F)
  DEVID_BASE = (0x48CD)
  DEVID_END = (0x48D8)
+ BLOCK_SIZE = 128 ; flash|eeprom block size
+
 
 ; options bytes
 ; this one can be programmed only from SWIM  (ICP)
@@ -452,6 +451,10 @@ B921600=9
  UART2_CR6   = (0x4249)
  UART2_GTR   = (0x524A)
  UART2_PSCR  = (0x524B)
+
+ UART2_TX_PIN = 5
+ UART2_RX_PIN = 6
+ UART2_PORT = GPIO_BASE+PD 
 
 ; UART Status Register bits
  UART_SR_TXE = (7)
@@ -876,6 +879,12 @@ B921600=9
  ITC_SPR6   = (0x7F75)
  ITC_SPR7   = (0x7F76)
  ITC_SPR8   = (0x7F77)
+; interrupt priority
+ IPR0 = 2
+ IPR1 = 1
+ IPR2 = 0
+ IPR3 = 3 
+ IPR_MASK = 3
 
 ; SWIM, control and status register
  SWIM_CSR   = (0x7F80)

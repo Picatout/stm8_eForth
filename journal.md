@@ -1,3 +1,9 @@
+#### 2020-06-23
+
+* Création du dossier **discovery**  et copie des fichiers stm8ef.asm flash.asm math_const.asm dans le nouveau dossier.<br/>**Objet:** Débuter adaptation de stm8ef pour la carte discovery. Étant donnée que la version 3.0 est très étendue par rapport à la version discovery 2.1 originale. Une réadaptation en sens inverse de NUCLEO vers DISOVERY est pertinante.
+
+* Renommé le fichier **stm8ef.asm** **stm8ef-disco.asm** pour éviter toute confusion entre les 2 versions.  
+
 #### 2020-06-20
 
 * Travail sur ![reference.md](reference.md)
