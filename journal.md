@@ -1,5 +1,17 @@
 #### 2020-06-25 
 
+* Modification du mot **hi** qui maintenant identifie la carte sur laquelle est installé le système. 
+```
+hi
+stm8eForth v3.0 for NUCLEO-8S208RB
+ ok
+\ après connection du terminal à l'autre carte. 
+hi
+stm8eForth v3.0 for STM8S-DISCOVERY
+ ok
+
+```
+
 * Élimination du mot **EXIT** devenu inutile. Suite à la modification du compilateur qui cmpile directement une instruction machine **RET**. 
 
 * Mise à jour du [manuel de référence](reference.md)

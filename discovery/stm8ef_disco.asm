@@ -4233,6 +4233,9 @@ HI:
 	.byte      VER+'0'
         .byte      '.' 
 	.byte      EXT+'0' ;version
+        CALL    DOTQP 
+        .byte 20
+        .ascii  " for STM8S-DISCOVERY"
         JP     CR
 
 WANT_DEBUG=0

@@ -4222,6 +4222,9 @@ HI:
 	.byte      VER+'0'
         .byte      '.' 
 	.byte      EXT+'0' ;version
+        CALL    DOTQP 
+        .byte 19
+        .ascii  " for NUCLEO-8S208RB"
         JP     CR
 
 WANT_DEBUG=0
