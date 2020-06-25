@@ -739,20 +739,16 @@ EE_CCOMMA:
 	.byte 7 
 	.ascii "ROW>BUF"
 ROW2BUF: 
-	call PSTO 
-	ld a,#BLOCK_SIZE
-	push a 
- ; block align flash address	
-	and a,PTR8
-	ld PTR8,a
+; align row address to block boundary
+	ld a,(1,x)
+	and a,#BLOCK_SIZE 
+	ld (1,x),a 
+	subw x,#2*CELLL 
 	ldw y,#ROWBUFF 
-1$: ld a,[PTR16]
-	ld (y),a
-	call INC_PTR16
-	incw y 
-	dec (1,sp)
-	jrne 1$ 
-	pop a 
+	ldw (2,x),y 
+	ldw y,#BLOCK_SIZE
+	ldw (x),y 
+	call CMOVE 
 	ret 
 
 

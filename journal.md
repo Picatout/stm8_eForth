@@ -1,5 +1,9 @@
 #### 2020-06-25 
 
+* Mise à jour du [manuel de référence](reference.md)
+
+* Réécriture de **ROW>BUF** dans **flash_disco.asm**.
+
 * Renommé les mots suivants dans les 2 versions pour être plus conforme au style de nomenclature Forth.  
 
     * **RAM2EE** renommé **RAM>EE**

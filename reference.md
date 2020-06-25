@@ -1,5 +1,9 @@
 # STM8eForth V3.0  référence du vocabulaire.
 
+**NOTES:**
+
+Il existe 2 versions du système l'une pour la carte **NUCLEO** et l'autre pour la carte **DISCOVERY**. Comme il n'y a pas de mémoire étendue sur le MCU **stm8s105c6** de la carte **DISCOVEY** il n'y avait pas besoin d'adresses utilisant des **entiers double non signés**. donc le vocabulaire du module **flash_disco.asm** est différent de celui du module **flash.asm**. Dans la version **DISCOVERY** les adresses double ont étées abandonnées. Certains mots devenus inutiles dans cette version ont été supprimés. 
+
 ## Conventions typographique
 
 **a**  Adressse 16 bits 
@@ -288,11 +292,11 @@ En *runtime* ce saut est toujours effectué.
 
 * __EXTRACT__&nbsp;&nbsp;(  n1 base -- n2 c  ) Extrait le chiffre le moins significatif de *n* et le converti en caractère ASCII *c*. *n2=n1/base*.   
 
-* __F@__&nbsp;&nbsp;( ad -- n ) Empile l'entier qui se trouve à l'adresse étendue *ad*. Utile pour lire la mémoire flash au delà de 65535. 
+* __F@__&nbsp;&nbsp;( ad -- n ) Empile l'entier qui se trouve à l'adresse étendue *ad*. Utile pour lire la mémoire flash au delà de 65535. Sur la version **NUCLEO** seulement.
 
-* __FADDR__&nbsp;&nbsp;( a -- ad ) Convertie l'adresse 16 bits *a* en adresse 32 bits *ad*.
+* __FADDR__&nbsp;&nbsp;( a -- ad ) Convertie l'adresse 16 bits *a* en adresse 32 bits *ad*. Sur la version **NUCLEO** seulement.
 
-* __FC@__&nbsp;&nbsp;( ad -- ) Empile l'octet qui se trouve à l'adresse étendue *ad*. Utile pour lire  à mémoire flash au delà de 65535.
+* __FC@__&nbsp;&nbsp;( ad -- ) Empile l'octet qui se trouve à l'adresse étendue *ad*. Utile pour lire  à mémoire flash au delà de 65535. Sur la version **NUCLEO** seulement.
 
 * __FILL__&nbsp;&nbsp;( b u c -- ) Remplie *u* octets de la mémoire RAM à partir de l'adresse *b* avec le caractère *c*.  
 
@@ -537,7 +541,7 @@ Lorsque la variable système **TFLASH**  est à zéro **OFFSET** est initialisé
 
 * __WR-BYTE__&nbsp;&nbsp;( c -- ) Écris un octet dans la mémoire persistante à l'adresse indiquée par la variable système **FPTR**.  
 
-* __WR-ROW__&nbsp;&nbsp;( a ud -- ) Écriture d'un bloc de 128 octets dans la mémoire persistante. **a** est l'adresse RAM qui contient les données à écrires et **ud** l'adresse destination. Si *ud* n'est pas alignée sur un bloc de 128 octets il le sera en mettant les 7 bits les moins significatifs à zéro. 
+* __WR-ROW__&nbsp;&nbsp;( a ud -- ) Écriture d'un bloc de 128 octets dans la mémoire persistante. **a** est l'adresse RAM qui contient les données à écrires et **ud** l'adresse destination. Si *ud* n'est pas alignée sur un bloc de 128 octets il le sera en mettant les 7 bits les moins significatifs à zéro. Dans la version **DISCOVERY** *ud* est remplacé par une adresse de type *entier simple non signé*.
 
 * __XOR__&nbsp;&nbsp;( n1 n2 -- n3 ) **n3** est le résultat d'un ou exclusif bit à bit entre **n1** et **n2**.  
 

@@ -19,7 +19,7 @@
 
 * Tous les mots qui utilisaient des adresses *entier double non signés* dans le module **flash_disco.asm** ont été modifiés pour utilliser des adresses *entier simple non signé*.
 
-* un **Makefile** a été créé dans le dossier **discovery** pour et compiler flasher la carte **Discovery** la procédure est la mème.
+* un **Makefile** a été créé dans le dossier **discovery** pour et compiler flasher la carte **Discovery** la procédure est la même.
 ```
 discovery$make && make flash
 
