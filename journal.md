@@ -1,8 +1,18 @@
+#### 2020-06-25 
+
+* Renommé les mots suivants dans les 2 versions pour être plus conforme au style de nomenclature Forth.  
+
+    * **RAM2EE** renommé **RAM>EE**
+
+    * **ROW2BUF** renommé **ROW>BUF**
+
+    * **BUF2ROW** renommé **BUF>ROW** 
+
 #### 2020-06-24 
 
-* Suprimer les mots **FADR**, **F@** et **FC@** qui ne sont plus nécessaire car le stm8s105c6 n'a pas de mémoire étendue 
+* Version *Discovery* Suprimer les mots **FADR**, **F@** et **FC@** qui ne sont plus nécessaire car le stm8s105c6 n'a pas de mémoire étendue 
 
-* Modifier tous les mots qui utilisait des adresses double pour utilisation d'adresses simple. 
+* Version *Discovery* Modifier tous les mots qui utilisait des adresses double pour utilisation d'adresses simple. 
 
 #### 2020-06-23
 

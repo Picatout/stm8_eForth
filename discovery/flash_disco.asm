@@ -892,8 +892,8 @@ next_row:
 	call BRAN
 	.word next_row  
 fmove_done:	
-	call RFROM  ; ( -- udl+ ud u2 wl- a  )
-	addw x,#5*CELLL ; (  -- cp+ ) new CP 
+	call RFROM  ; ( -- cp+ cp+ u2 wl- a  )
+	addw x,#4*CELLL ; (  -- cp+ ) new CP 
  	ret  
 no_move:
 	call ZERO

@@ -194,7 +194,7 @@ Si le champ code est invalide retourne **0**.
 * __BRANCH__&nbsp;&nbsp;( -- ) Compile un saut inconditionnel avec une adresse litérale.
 En *runtime* ce saut est toujours effectué.
 
-* __BUF2ROW__&nbsp;&nbsp;( ud -- ) Écris le contenu du tampon **ROWBUFF** dans la mémoire flash en utilisant l'opération d'écriture par bloc du MCU.   
+* __BUF&gt;ROW__&nbsp;&nbsp;( ud -- ) Écris le contenu du tampon **ROWBUFF** dans la mémoire flash en utilisant l'opération d'écriture par bloc du MCU.   
 
 * __BYE__&nbsp;&nbsp;( -- ) Exécute l'instruction machine **HALT** pour mettre le MCU en mode suspendu. Dans ce mode l'oscillateur et arrêter et le MCU dépense un minimum d'énergie. Seul un *reset* ou une interruption externe peut réactivé le MCU. Si le MCU est réanimé par une interruption après l'exécution de celle-ci l'exécution se poursuit après l'instruction **HALT**. 
 
@@ -411,7 +411,7 @@ Lorsque la variable système **TFLASH**  est à zéro **OFFSET** est initialisé
 
 * __R@__&nbsp;&nbsp;( -- n ) La valeur au sommet de la pile des retours est copié sur la pile des arguments.  
 
-* __RAM2EE__&nbsp;&nbsp;( ud a u1 -- u2 ) Écris dans la mémoire persistance *u1* octets de la mérmoire RAM à partir de l'adresse *a* vers l'adresse *ud*. Cependant l'écriture est limitée aux limites du bloc 128 octets qui contient l'adresse *ud*. Si *ud+u1*  dépasse la limite l'écriture s'arrête à la fin du bloc. Retourne *u2* le nombre d'octets réellement écris. 
+* __RAM&gt;EE__&nbsp;&nbsp;( ud a u1 -- u2 ) Écris dans la mémoire persistance *u1* octets de la mérmoire RAM à partir de l'adresse *a* vers l'adresse *ud*. Cependant l'écriture est limitée aux limites du bloc 128 octets qui contient l'adresse *ud*. Si *ud+u1*  dépasse la limite l'écriture s'arrête à la fin du bloc. Retourne *u2* le nombre d'octets réellement écris. 
 
 * __RAMLAST__&nbsp;&nbsp;( -- a ) Empile l'adresse de la variable système **RAMLAST**. 
 
@@ -427,7 +427,7 @@ Lorsque la variable système **TFLASH**  est à zéro **OFFSET** est initialisé
 
 * __ROW-ERASE__&nbsp;&nbsp;( ud -- ) Efface le bloc de mémoire persistante contentant l'adresse **ud**.  
 
-* __ROW2BUF__&nbsp;&nbsp;( ud -- ) Copie le bloc de mémoire persistante contenant l'adresse **ud** vers le tampon système **TBUF**. 
+* __ROW&gt;BUF__&nbsp;&nbsp;( ud -- ) Copie le bloc de mémoire persistante contenant l'adresse **ud** vers le tampon système **TBUF**. 
 
 * __RP!__&nbsp;&nbsp;( n -- ) Initialise le pointeur de la pile des retours avec la valeur **n**.
 

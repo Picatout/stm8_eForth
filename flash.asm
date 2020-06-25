@@ -804,12 +804,12 @@ ee_ccomma:
 
 ;--------------------------
 ; copy FLASH block to ROWBUF
-; ROW2BUF ( ud -- )
+; ROW>BUF ( ud -- )
 ;--------------------------
 	.word LINK 
 	LINK=.
 	.byte 7 
-	.ascii "ROW2BUF"
+	.ascii "ROW>BUF"
 ROW2BUF: 
 	call fptr_store 
 	ld a,#BLOCK_SIZE
@@ -829,13 +829,13 @@ ROW2BUF:
 
 ;---------------------------
 ; copy ROWBUFF to flash 
-; BUF2ROW ( ud -- )
+; BUF>ROW ( ud -- )
 ; ud is row address as double 
 ;---------------------------
 	.word LINK 
 	LINK=.
 	.byte 7 
-	.ascii "BUF2ROW" 
+	.ascii "BUF>ROW" 
 BUF2ROW:
 	call TBUF ; ( ud rb -- )
 	call ROT 
@@ -866,7 +866,7 @@ RFREE:
 ;---------------------------------
 ; write u bytes to flash/EEPROM 
 ; constraint to row limit 
-; RAM2EE ( ud a u -- u2 )
+; RAM>EE ( ud a u -- u2 )
 ; ud flash address 
 ; a ram address 
 ; u bytes count
@@ -875,7 +875,7 @@ RFREE:
 	.word LINK 
 	LINK=. 
 	.byte 6
-	.ascii "RAM2EE"
+	.ascii "RAM>EE"
 	
 RAM2EE:
 ; copy ud on top 

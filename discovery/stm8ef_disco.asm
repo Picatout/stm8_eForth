@@ -175,6 +175,7 @@ IRET_CODE =   0x80    ; IRET opcode
         bset PD_ODR,#LD1_BIT
         .endm
 
+
 ;**********************************************************
         .area DATA (ABS)
         .org RAMBASE 
@@ -191,41 +192,53 @@ IRET_CODE =   0x80    ; IRET opcode
         .area HOME ; vectors table
 ;**********************************************************
 	int main	        ; reset
+DEBUG=1
+.if DEBUG
+        int TrapHandler ;
+.else
 	int NonHandledInterrupt	; trap
-	int NonHandledInterrupt	; irq0
-	int NonHandledInterrupt	; irq1
-	int NonHandledInterrupt	; irq2
-	int NonHandledInterrupt	; irq3
-	int NonHandledInterrupt	; irq4
-	int NonHandledInterrupt	; irq5
-	int NonHandledInterrupt	; irq6
-	int NonHandledInterrupt	; irq7
-	int NonHandledInterrupt	; irq8
-	int NonHandledInterrupt	; irq9
-	int NonHandledInterrupt	; irq10
-	int NonHandledInterrupt	; irq11
-	int NonHandledInterrupt	; irq12
-	int NonHandledInterrupt	; irq13
-	int NonHandledInterrupt	; irq14
-	int NonHandledInterrupt	; irq15
-	int NonHandledInterrupt	; irq16
-	int NonHandledInterrupt	; irq17
-	int NonHandledInterrupt	; irq18
-	int NonHandledInterrupt	; irq19
-	int NonHandledInterrupt	; irq20
-	int NonHandledInterrupt	; irq21
-	int NonHandledInterrupt	; irq22
-	int Timer4Handler	; irq23
-	int NonHandledInterrupt	; irq24
-	int NonHandledInterrupt	; irq25
-	int NonHandledInterrupt	; irq26
-	int NonHandledInterrupt	; irq27
-	int NonHandledInterrupt	; irq28
-	int NonHandledInterrupt	; irq29
+.endif 
+	int NonHandledInterrupt	; irq0 TLI
+	int NonHandledInterrupt	; irq1 AWU 
+	int NonHandledInterrupt	; irq2 CLK 
+	int NonHandledInterrupt	; irq3 EXTI0
+	int NonHandledInterrupt	; irq4 EXTI1 
+	int NonHandledInterrupt	; irq5 EXTI2 
+	int NonHandledInterrupt	; irq6 EXTI3
+	int NonHandledInterrupt	; irq7 EXTI4 
+	int NonHandledInterrupt	; irq8 reserved
+	int NonHandledInterrupt	; irq9 reserved 
+	int NonHandledInterrupt	; irq10 SPI
+	int NonHandledInterrupt	; irq11 TIM1 update/overflow/underflow/trigger/break
+	int NonHandledInterrupt	; irq12 TIM1 capture/compare
+	int NonHandledInterrupt	; irq13 TIM2 update/overflow
+	int NonHandledInterrupt	; irq14 TIM2 capture/compare 
+	int NonHandledInterrupt	; irq15 TIM3 update/overflow
+	int NonHandledInterrupt	; irq16 TIM3 capture/compare 
+	int NonHandledInterrupt	; irq17 reserved
+	int NonHandledInterrupt	; irq18 reserved 
+	int NonHandledInterrupt	; irq19 I2C interrupt
+	int NonHandledInterrupt	; irq20 UART2 tx complete  
+	int NonHandledInterrupt	; irq21 UART2 rx buffer full
+	int NonHandledInterrupt	; irq22 ADC1 end of conversion/analog watchdog interrupt
+	int Timer4Handler	; irq23 TIM4 update/overflow
+	int NonHandledInterrupt	; irq24 FLASH EOP/WR_PG_DIS 
+	int NonHandledInterrupt	; irq25 resserved
+	int NonHandledInterrupt	; irq26 reserved 
+	int NonHandledInterrupt	; irq27 reserved
+	int NonHandledInterrupt	; irq28 reserved 
+	int NonHandledInterrupt	; irq29 reserved 
 
 ;**********************************************************
         .area CODE
 ;**********************************************************
+
+.if DEBUG 
+TrapHandler:
+        call DOTS 
+        iret 
+.endif 
+
 
 ; non handled interrupt reset MCU
 NonHandledInterrupt:
