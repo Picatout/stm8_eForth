@@ -2,7 +2,7 @@
 
 **NOTES:**
 
-Il existe 2 versions du système l'une pour la carte **NUCLEO** et l'autre pour la carte **DISCOVERY**. Comme il n'y a pas de mémoire étendue sur le MCU **stm8s105c6** de la carte **DISCOVEY** il n'y avait pas besoin d'adresses utilisant des **entiers double non signés**. donc le vocabulaire du module **flash_disco.asm** est différent de celui du module **flash.asm**. Dans la version **DISCOVERY** les adresses double ont étées abandonnées. Certains mots devenus inutiles dans cette version ont été supprimés. 
+Il existe 2 versions du système l'une pour la carte **NUCLEO** et l'autre pour la carte **DISCOVERY**. Comme il n'y a pas de mémoire étendue sur le MCU **stm8s105c6** de la carte **DISCOVERY** il n'y avait pas besoin d'adresses utilisant des **entiers double non signés**. donc le vocabulaire du module **flash_disco.asm** est différent de celui du module **flash.asm**. Dans la version **DISCOVERY** les adresses double ont étées abandonnées. Certains mots devenus inutiles dans cette version ont été supprimés. 
 
 ## Conventions typographique
 
