@@ -19,10 +19,6 @@
 
 * Tous les mots qui utilisaient des adresses *entier double non signés* dans le module **flash_disco.asm** ont été modifiés pour utilliser des adresses *entier simple non signé*.
 
-* **ROW2BUF** supprimé, inutile  **CMOVE** peut-être utilisé à la place. 
-
-* **BUF2ROW** supprimé, inutile **WR-ROW** peut-être utilisé directement. 
-
 * un **Makefile** a été créé dans le dossier **discovery** pour et compiler flasher la carte **Discovery** la procédure est la mème.
 ```
 discovery$make && make flash
