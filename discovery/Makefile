@@ -13,7 +13,7 @@ SYMBOLS=$(OBJECTS:.rel=.sym)
 LISTS=$(OBJECTS:.rel=.lst)
 FLASH=stm8flash
 BOARD=stm8s105c6
-PROGRAMMER=stlinkv21
+PROGRAMMER=stlinkv2
 
 .PHONY: all
 

@@ -8,7 +8,7 @@
 	.module EFORTH
          .optsdcc -mstm8
 	.nlist
-        .include "../inc/stm8s105.inc"
+	.include "../inc/stm8s105.inc"
 	.include "../inc/stm8s_disco.inc"
 	.list
 	.page
@@ -37,14 +37,20 @@
 ;
 ; Memory Map:
 ; 0x0 RAM memory, system variables
-; 0x40 variables space, linked to ROM dictionary
+; 0x80 Start of user defined words, linked to ROM dictionary
 ; 0x780 Data stack, growing downward
-; 0x780 Terminal input buffer TIB
+; 0x790 Terminal input buffer TIB
 ; 0x7FF Return stack, growing downward
 ; 0x8000 Interrupt vector table
 ; 0x8080 FORTH startup code
+; 0x80E7 Start of FORTH dictionary in ROM
+; 0x9584 End of FORTH dictionary
 ;
-;       EF30  verion 3.0, 2020-06-23 Picatout
+;       2020-04-26 Addapted for NUCLEO-8S208RB by Picatout 
+;                  use UART1 instead of UART3 for communication with user.
+;                  UART1 is available as ttyACM* device via USB connection.
+;                  Use TIMER4 for millisecond interrupt to support MS counter 
+;                  and MSEC word that return MS value.
 ;
 ;       EF12, Version 2.1, 18apr00cht
 ;               move to 8000H replacing WHYP.
@@ -81,9 +87,10 @@
 ;	Assembler constants
 ;*********************************************************
 RAMBASE =	0x0000	   ;ram base
-STACK   =	RAM_END-1  ;system (return) stack empty 48 bytes 24 CELLS 
-DATSTK  =	RAM_END-128	;data stack  empty, grow down 
-TIBBASE =       RAM_END-128  ; transaction input buffer addr. 80 bytes 
+STACK   =	0x7FF 	;system (return) stack empty 
+DATSTK  =	0x680	;data stack  empty
+TBUFFBASE =     0x680  ; flash read/write transaction buffer address  
+TIBBASE =       0X700  ; transaction input buffer addr.
 
 
 
@@ -92,9 +99,10 @@ TIBBASE =       RAM_END-128  ; transaction input buffer addr. 80 bytes
 UPP     =     RAMBASE+6          ; systeme variables base address 
 SPP     =     RAMBASE+DATSTK     ; data stack bottom 
 RPP     =     RAMBASE+STACK      ;  return stack bottom
-TIBB    =     RAMBASE+TIBBASE    ; transaction input buffer
-VAR_BASE =    RAMBASE+0x80       ; user variables start here .
-VAR_TOP =     STACK-32*CELLL     ; reserve 32 cells for data stack. 
+ROWBUFF =     RAMBASE+TBUFFBASE ; flash write buffer 
+TIBB    =     RAMBASE+TIBBASE  ; transaction input buffer
+VAR_BASE =    RAMBASE+0x80  ; user variables start here .
+VAR_TOP =     STACK-32*CELLL  ; reserve 32 cells for data stack. 
 
 ; user variables constants 
 UBASE = UPP       ; numeric base 
@@ -108,9 +116,12 @@ UCNTXT = UHLD+2   ; context, dictionary first link
 UVP = UCNTXT+2    ; variable pointer 
 UCP = UVP+2      ; code pointer
 ULAST = UCP+2    ; last dictionary pointer 
+UOFFSET = ULAST+2 ; distance between CP and VP to adjust jump address at compile time.
+UTFLASH = UOFFSET+2 ; select where between FLASH and RAM for compilation destination. 
+URLAST = UTFLASH+2 ; context for dictionary in RAM memory 
 
 ;******  System Variables  ******
-XTEMP	=	ULAST+2;address called by CREATE
+XTEMP	=	URLAST +2;address called by CREATE
 YTEMP	=	XTEMP+2	;address called by CREATE
 PROD1 = XTEMP	;space for UM*
 PROD2 = PROD1+2
@@ -120,12 +131,12 @@ SP0	= CARRY+2	;initial data stack pointer
 RP0	= SP0+2		;initial return stack pointer
 MS    =   RP0+2         ; millisecond counter 
 CNTDWN =  MS+2          ; count down timer 
-PTR16 = CNTDWN+2        ; middle byte of farptr 
-PTR8 = PTR16+2           ; least byte of farptr 
+PTR16 = CNTDWN+2         ; 24 bits farptr 
+PTR8 = PTR16+1           ; least byte of farptr 
 SEEDX = PTR8+2          ; PRNG seed X 
 SEEDY = SEEDX+2         ; PRNG seed Y 
 
-; EEPROM persistant data  
+; EEPROM persistant system variables in EEPROM   
 APP_LAST = EEPROM_BASE ; Application last word pointer  
 APP_RUN = APP_LAST+2   ; application autorun address 
 APP_CP = APP_RUN+2   ; free application space pointer 
@@ -157,11 +168,11 @@ CALLL   =     0xCD     ;CALL opcodes
 IRET_CODE =   0x80    ; IRET opcode 
 
         .macro _ledon
-        bset PD_ODR,#LD1_BIT
+        bres PD_ODR,#LD1_BIT
         .endm
 
         .macro _ledoff
-        bres PD_ODR,#LD1_BIT
+        bset PD_ODR,#LD1_BIT
         .endm
 
 ;**********************************************************
@@ -266,6 +277,9 @@ UZERO:
         .word      VAR_BASE   ;variables free space pointer 
         .word      app_space ; FLASH free space pointer 
         .word      LASTN   ;LAST
+        .word      0        ; OFFSET 
+        .word      0       ; TFLASH
+;       .word      0       ; URLAST   
 UEND:   .word      0
 
 ORIG:   
@@ -275,7 +289,7 @@ ORIG:
         LDW     RP0,X
         LDW     X,#DATSTK ;initialize data stack
         LDW     SP0,X
-; initialize PD_0 as output to control LD1 LED 
+; initialize PD_0 as output to control LED2
 ; added by Picatout 
         bset PD_CR1,#LD1_BIT
         bset PD_CR2,#LD1_BIT
@@ -292,14 +306,14 @@ clock_init:
 1$:	cp a,CLK_CMSR
 	jrne 1$
         
-; initialize UART2, 115200 8N1
+; initialize UART1, 115200 8N1
 uart2_init:
-	bset CLK_PCKENR1,#CLK_PCKENR1_UART2 ; enable signal
+	bset CLK_PCKENR1,#CLK_PCKENR1_UART2
 	; configure tx pin
 	bset PD_DDR,#UART2_TX_PIN ; tx pin
 	bset PD_CR1,#UART2_TX_PIN ; push-pull output
 	bset PD_CR2,#UART2_TX_PIN ; fast output
-	; baud rate 115200 Fmaster=16Mhz  16000000/115200=139=0x8B
+	; baud rate 115200 Fmaster=8Mhz  
 	mov UART2_BRR2,#0x0b ; must be loaded first
 	mov UART2_BRR1,#0x8
 	mov UART2_CR2,#((1<<UART_CR2_TEN)|(1<<UART_CR2_REN));|(1<<UART_CR2_RIEN))
@@ -391,7 +405,9 @@ SETISP:
         call SWAPP 
         call CSTOR
 
-; set application startup vector 
+; sélectionne l'application 
+; qui démarre automatique lors 
+; d'un COLD start 
         .word LINK 
         LINK=.
         .byte 7
@@ -406,12 +422,10 @@ AUTORUN:
         call QBRAN 
         .word FORGET2
         call DROP 
-        subw x,#2*CELLL 
-        clrw y 
-        ldw (x),y 
+        subw x,#CELLL 
         ldw y,#APP_RUN 
-        ldw (2,x),y 
-        jp EESTO 
+        ldw (x),y 
+        jp EE_STORE 
 
 ;; Reset dictionary pointer before 
 ;; forgotten word. RAM space and 
@@ -677,6 +691,36 @@ TIMEOUTQ:
 reboot:
         jp NonHandledInterrupt
 
+; compile to flash memory 
+; TO-FLASH ( -- )
+        .word LINK 
+        LINK=.
+        .byte 8
+        .ascii "TO-FLASH"
+TOFLASH:
+        call RAMLAST 
+        call AT 
+        call QDUP 
+        call QBRAN
+        .word 1$
+        call ABORQ 
+        .byte 29
+        .ascii " Not while definitions in RAM"   
+1$:     ldw y,#-1 
+        ldw UTFLASH,y
+        ret 
+
+; compile to RAM 
+; TO-RAM ( -- )
+        .word LINK 
+        LINK=.
+        .byte 6 
+        .ascii "TO-RAM"
+TORAM:
+        clrw y 
+        ldw UTFLASH,y 
+        ret 
+        
 
 ;; Device dependent I/O
 ;       ?RX     ( -- c T | F )
@@ -785,15 +829,14 @@ EXECU:
 
 OPTIMIZE = 1
 .if OPTIMIZE 
-; replace CALL EXIT by 
-; RET opcode
-; See modificaiton to  ";" word
-; then EXIT not required 
-.else 
+; remplacement de CALL EXIT par 
+; le opcode de RET.
+; Voir modification au code de ";"
+;
 ;       EXIT    ( -- )
 ;       Terminate a colon definition.
         .word      LINK
-        LINK = .
+LINK = .
         .byte      4
         .ascii     "EXIT"
 EXIT:
@@ -1151,6 +1194,31 @@ NTIB:
         LDW (X),Y
         RET
 
+;       TBUF ( -- a )
+;       address of 128 bytes transaction buffer 
+        .word LINK 
+        LINK=.
+        .byte 4 
+        .ascii "TBUF"
+TBUF:
+        ldw y,#ROWBUFF
+        subw x,#CELLL
+        ldw (x),y 
+        ret 
+
+; systeme variable 
+; compilation destination 
+; TFLASH ( -- A )
+        .word LINK 
+        LINK=.
+        .byte 6 
+        .ascii "TFLASH"         
+TFLASH:
+        subw x,#CELLL 
+        ldw y,#UTFLASH
+        ldw (x),y 
+        ret 
+
 ;       "EVAL   ( -- a )
 ;       Execution vector of EVAL.
         .word      LINK
@@ -1222,6 +1290,39 @@ LAST:
 	SUBW X,#2
         LDW (X),Y
         RET
+
+; address of system variable URLAST 
+;       RAMLAST ( -- a )
+; RAM dictionary context 
+        .word LINK 
+        LINK=. 
+        .byte 7  
+        .ascii "RAMLAST" 
+RAMLAST: 
+        ldw y,#URLAST 
+        subw x,#CELLL 
+        ldw (x),y 
+        ret 
+
+; OFFSET ( -- a )
+; address of system variable OFFSET 
+        .word LINK 
+        LINK=.
+        .byte 6
+        .ascii "OFFSET" 
+OFFSET: 
+        subw x,#CELLL
+        ldw y,#UOFFSET 
+        ldw (x),y 
+        ret 
+
+; adjust jump address adding OFFSET
+; ADR-ADJ ( a -- a+offset )
+ADRADJ: 
+        call OFFSET 
+        call AT 
+        jp PLUS 
+
 
 ;; Common functions
 
@@ -3391,6 +3492,7 @@ LINK = .
 NEXT:
         CALL     COMPI
         .word DONXT 
+        call ADRADJ
         JP     COMMA
 
 ;       I ( -- n )
@@ -3425,6 +3527,7 @@ LINK = .
 UNTIL:
         CALL     COMPI
         .word    QBRAN 
+        call ADRADJ
         JP     COMMA
 
 ;       AGAIN   ( a -- )
@@ -3437,6 +3540,7 @@ LINK = .
 AGAIN:
         CALL     COMPI
         .word BRAN
+        call ADRADJ 
         JP     COMMA
 
 ;       IF      ( -- A )
@@ -3460,6 +3564,7 @@ LINK = .
         .ascii     "THEN"
 THENN:
         CALL     HERE
+        call ADRADJ 
         CALL     SWAPP
         JP     STORE
 
@@ -3477,6 +3582,7 @@ ELSEE:
         CALL     COMMA
         CALL     SWAPP
         CALL     HERE
+        call ADRADJ 
         CALL     SWAPP
         JP     STORE
 
@@ -3516,8 +3622,10 @@ LINK = .
 REPEA:
         CALL     COMPI
         .word BRAN
+        call ADRADJ 
         CALL     COMMA
         CALL     HERE
+        call ADRADJ 
         CALL     SWAPP
         JP     STORE
 
@@ -3592,7 +3700,7 @@ UNIQ1:  JP     DROP
 ;       $,n     ( na -- )
 ;       Build a new dictionary name
 ;       using string at na.
-; compile dans l'espace flash
+; compile dans l'espace des variables 
         .word      LINK
 LINK = . 
         .byte      3
@@ -3603,17 +3711,19 @@ SNAME:
         CALL     QBRAN
         .word      PNAM1
         CALL     UNIQU   ;?redefinition
-        CALL    NAME_TO_FLASH 
-        CALL    CPP 
-        CALL    AT 
-        CALL    CELLP 
         CALL     DUPP
-        CALL     LAST 
+        CALL     COUNT
+        CALL     PLUS
+        CALL     VPP
         CALL     STORE
+        CALL     DUPP
+        CALL     LAST
+        CALL     STORE   ;save na for vocabulary link
+        CALL     CELLM   ;link address
         CALL     CNTXT
+        CALL     AT
+        CALL     SWAPP
         CALL     STORE
-        CALL    CPP 
-        CALL    STORE 
         RET     ;save code pointer
 PNAM1:  CALL     STRQP
         .byte      5
@@ -3676,6 +3786,10 @@ SEMIS:
 .endif 
         CALL     LBRAC
         call OVERT 
+        CALL FMOVE
+        call QDUP 
+        call QBRAN 
+        .word SET_RAMLAST 
         CALL UPDATPTR
         RET 
 
@@ -3693,6 +3807,10 @@ ISEMI:
         ldw (x),y 
         call CCOMMA
         call LBRAC 
+        call IFMOVE
+        call QDUP 
+        CALL QBRAN 
+        .word SET_RAMLAST
         CALL CPP
         call AT 
         call SWAPP 
@@ -3733,6 +3851,27 @@ JSRC:
         CALL     CCOMMA
         JP     COMMA
 
+;       INIT-OFS ( -- )
+;       compute offset to adjust jump address 
+;       set variable OFFSET 
+        .word LINK 
+        LINK=.
+        .byte 8 
+        .ascii "INIT-OFS" 
+INITOFS:
+        call TFLASH 
+        CALL AT 
+        CALL DUPP 
+        call QBRAN
+        .word 1$
+        call DROP  
+        call CPP 
+        call AT 
+        call HERE
+        call SUBB 
+1$:     call OFFSET 
+        jp STORE  
+
 ;       :       ( -- ; <string> )
 ;       Start a new colon definition
 ;       using next word as its name.
@@ -3741,6 +3880,7 @@ LINK = .
         .byte      1
         .ascii     ":"
 COLON:
+        call INITOFS       
         CALL   TOKEN
         CALL   SNAME
         JP     RBRAC
@@ -3753,6 +3893,7 @@ COLON:
         .byte 2 
         .ascii "I:" 
 ICOLON:
+        call INITOFS 
         jp RBRAC  
 
 ;       IMMEDIATE       ( -- )
@@ -3810,9 +3951,18 @@ VARIA:
         CALL ZERO
         call SWAPP 
         CALL STORE
+        CALL FMOVE ; move definition to FLASH
+        CALL QDUP 
+        CALL QBRAN 
+        .word SET_RAMLAST   
         call UPDATVP  ; don't update if variable kept in RAM.
         CALL UPDATPTR
         RET         
+SET_RAMLAST: 
+        CALL LAST 
+        CALL AT 
+        CALL RAMLAST 
+        jp STORE  
 
 
 ;       CONSTANT  ( n -- ; <string> )
@@ -3829,6 +3979,10 @@ CONSTANT:
         CALL COMPI 
         .word DOCONST
         CALL COMMA 
+        CALL FMOVE
+        CALL QDUP 
+        CALL QBRAN 
+        .word SET_RAMLAST  
         CALL UPDATPTR  
 1$:     RET          
 

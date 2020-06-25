@@ -29,18 +29,17 @@
 ;---------------------------------
     .word LINK 
     LINK=.
-    .byte 3 
+    .byte 4 
     .ascii "PTR!"
 PSTO:
     ldw y,x
     ldw y,(y)
-    ldw PTR16,y 
+    ldw PTR16,y  
     addw x,#CELLL 
     ret 
 
 ;-----------------------------------
 ; return EEPROM base address 
-; as a double 
 ;  EEPROM  ( -- a )
 ;-----------------------------------
     .word LINK 
@@ -54,7 +53,7 @@ EEPROM:
     ret
 
 ;---------------------------------
-; return APP_LAST address
+; return APP_LAST address 
 ; EEP-LAST ( -- a )
 ;---------------------------------
 	.word LINK 
@@ -64,11 +63,11 @@ EEPROM:
 EEPLAST:
 	subw x,#CELLL 
 	ldw y,#APP_LAST 
-	ldw (2,x),y 
+	ldw (x),y 
 	ret 
 
 ;----------------------------------
-; return APP_RUN address
+; return APP_RUN address 	
 ; EEP-RUN ( -- a )
 ;-----------------------------------
 	.word LINK 
@@ -78,11 +77,11 @@ EEPLAST:
 EEPRUN:
 	subw x,#CELLL 
 	ldw y,#APP_RUN 
-	ldw (2,x),y 
+	ldw (x),y 
 	ret 
 
 ;------------------------------------
-; return APP_CP address
+; return APP_CP address  
 ; EEP-CP ( -- a )
 ;------------------------------------
 	.word LINK
@@ -92,11 +91,11 @@ EEPRUN:
 EEPCP:
 	subw x,#CELLL 
 	ldw y,#APP_CP  
-	ldw (2,x),y 
+	ldw (x),y 
 	ret 
 
 ;------------------------------------
-; return APP_VP address  
+; return APP_VP address 
 ; EEP-VP ( -- a )
 ;-------------------------------------
 	.word LINK
@@ -106,7 +105,7 @@ EEPCP:
 EEPVP:
 	subw x,#CELLL 
 	ldw y,#APP_VP  
-	ldw (2,x),y 
+	ldw (x),y 
 	ret 
 
 ;----------------------------------
@@ -121,7 +120,7 @@ UPDATLAST:
 	call LAST
 	call AT  
 	call EEPLAST
-	jp EESTO 
+	jp EE_STORE 
 
 ;---------------------------------
 ; update APP_RUN 
@@ -133,7 +132,7 @@ UPDATLAST:
 	.ascii "UPDAT-RUN"
 UPDATRUN:
 	call EEPRUN
-	jp EESTO 
+	jp EE_STORE 
 	
 ;---------------------------------
 ; update APP_CP with CP 
@@ -147,7 +146,7 @@ UPDATCP:
 	call CPP 
 	call AT 
 	call EEPCP 
-	jp EESTO 
+	jp EE_STORE 
 
 ;----------------------------------
 ; update APP_VP with VP 
@@ -161,7 +160,7 @@ UPDATVP:
 	call VPP 
 	call AT
 	call EEPVP 
-	jp EESTO
+	jp EE_STORE
 	
 
 ;----------------------------------
@@ -237,17 +236,20 @@ lock:
 
 ;-------------------------
 ; increment PTR16 
-; INC-PTR ( -- )
+; INC-PTR16 ( -- )
 ;-------------------------
 	.word LINK 
 	LINK=. 
 	.byte 8 
-	.ascii "INC-PTR" 
-inc_ptr:
+	.ascii "INC-PTR16" 
+INC_PTR16:
+	pushw y 
 	ldw y,PTR16 
 	incw y 
 	ldw PTR16,y
-	 ret 
+	popw y 
+	ret 
+
 
 ;----------------------------
 ; write a byte at address pointed 
@@ -256,7 +258,6 @@ inc_ptr:
 ; and memory unlocked 
 ; WR-BYTE ( c -- )
 ;----------------------------
-
 	.word LINK 
 	LINK=. 
 	.byte 7 
@@ -269,8 +270,30 @@ WR_BYTE:
 	ld a,yl
 	ld [PTR16],a
 	btjf FLASH_IAPSR,#FLASH_IAPSR_EOP,.
-	jra inc_ptr 
+	jra INC_PTR16 
 
+;---------------------------------------
+; write a word at address pointed 
+; by PTR16 and incrment PTR16 
+; Expect pointer already initialized 
+; WR-WORD ( w -- )
+;---------------------------------------
+	.word LINK 
+	LINK=.
+	.byte 7
+	.ascii "WR-WORD"
+WR_WORD:
+	ldw y,x 
+	ldw y,(y)
+	pushw y 
+	swapw y 
+	ldw (x),y 
+	call WR_BYTE 
+	popw y 
+	subw x,#CELLL
+	ldw (x),y 
+	call WR_BYTE
+	jp lock 
 
 
 ;---------------------------------------
@@ -285,7 +308,7 @@ WR_BYTE:
 	BTW = 1   ; byte to write offset on stack
     OPT = 2 
 	VSIZE = 2
-EECSTO:
+EE_CSTORE:
 	sub sp,#VSIZE
     call PSTO
 	ld a,(1,x)
@@ -326,25 +349,15 @@ EECSTO:
 	LINK=.
 	.byte 3 
 	.ascii "EE!"
-EESTO:
+EE_STORE:
 	call PSTO 
 	call unlock 
-	ldw y,x 
-	ldw y,(y)
-	pushw y 
-	swapw y 
-	ldw (x),y 
-	call WR_BYTE 
-	popw y 
-	subw x,#CELLL
-	ldw (x),y 
-	call WR_BYTE
-	jp lock 
+	jp WR_WORD 
 
 
 ;----------------------------
 ; Erase flash memory row 
-; stm8s105 as 128 bytes rows
+; stm8s105c6 as 128 bytes rows
 ; ROW-ERASE ( a -- )
 ;----------------------------
 	.word LINK 
@@ -463,7 +476,7 @@ copy_prog_to_ram:
 	LINK=.
 	.byte 6 
 	.ascii "WR-ROW"
-write_row:
+WR_ROW:
 	call PSTO
 ; align to FLASH block 
 	ld a,#0x80 
@@ -503,10 +516,7 @@ set_option:
 2$:		sllw y 
 		addw y,#OPTION_BASE-1
 		ldw (x),y 
-		subw x,#CELLL 
-		clrw y 
-		ldw (x),y 
-		call EECSTO
+		call EE_CSTORE
 		ret 
 
 
@@ -526,9 +536,9 @@ pristine:
 1$:	call DUPP 
 	call row_erase
 	ldw y,x 
-	ldw y,(2,y)
+	ldw y,(y)
 	addw y,#BLOCK_SIZE
-	ldw (2,x),y
+	ldw (x),y
 	cpw y,#OPTION_BASE 
 	jrult 1$
 ;;; reset OPTION to default values
@@ -544,8 +554,9 @@ pristine:
 	cpw y,#8 
 	jrult 2$
 ;;; erase first row of app_space 	
+	call DROP 
 	ldw y,#app_space
-	ldw (x),y  
+	ldw (x),y   
 	call row_erase 
 ; reset interrupt vectors 
 	subw x,#CELLL 
@@ -556,7 +567,7 @@ pristine:
 	ldw y,x 
 	ldw y,(y)
 	incw y   ; next vector 
-	cpw y,#25 
+	cpw y,#29 
 	jrult 4$
 	jp NonHandledInterrupt ; reset MCU
 
@@ -581,21 +592,19 @@ reset_vector:
 	sllw y 
 	sllw y 
 	addw y,#0x8008 ; irq0 address 
-	ldw YTEMP,y
-	subw x,#2*CELLL 
+	subw x,#CELLL 
 	ldw (x),y 
-	clrw y 
+	call PSTO 
+	subw x,#CELLL 
+	clrw y
 	ld a,#0x82 
 	ld yh,a
-	ldw (2,x),y
-	call EESTO
-	subw x,#2*CELLL
+	ldw (x),y
+	call WR_WORD 
+	subw x,#CELLL
 	ldw y,#NonHandledInterrupt
-	ldw (2,x),y 
-	ldw y,YTEMP  
-	addw y,#2
 	ldw (x),y 
-	call EESTO
+	call WR_WORD 
 9$:	ret 
 
 
@@ -660,31 +669,23 @@ CHKIVEC:
 	.ascii "SET-IVEC" 
 set_vector:
     ldw y,x 
-	addw x,#CELLL 
 	ldw y,(y) ; vector #
 	cpw y,#29 ; last vector
 	jrule 2$
-	addw x,#CELLL 
+	addw x,#2*CELLL 
 	ret
 2$:	sllw y 
 	sllw y 
 	addw y,#0X8008 ; IRQ0 vector address 
-	ldw YTEMP,y ; vector address 
+	ldw (x),y  ; vector address 
+	call PSTO 
 	clrw y 
 	ld a,#0x82 
 	ld yh,a 
-;  write 0x8200
-	subw x,#2*CELLL 
-	ldw (2,x),y 
-	ldw y,YTEMP
-	ldw (x),y ; vector address 
-	call EESTO 
-; write bits 15..0 int vector 
 	subw x,#CELLL 
-	ldw y,YTEMP 
-	addw y,#2 
 	ldw (x),y 
-	call EESTO
+	call WR_WORD 
+	call WR_WORD 
 9$: ret 
 
 
@@ -701,7 +702,7 @@ EE_COMMA:
 	ldw y,UCP
 	pushw y 
 	ldw (x),y 
-	call EESTO
+	call EE_STORE
 	popw y 
 	addw y,#2
 	ldw UCP,y
@@ -716,20 +717,187 @@ EE_COMMA:
 	LINK=.
 	.byte 4 
 	.ascii "EEC,"
-EEC_COMMA:
-	subw x,#2*CELLL 
+EE_CCOMMA:
+	subw x,#CELLL 
 	ldw y,UCP
 	pushw y 
-	ldw (2,x),y 
-	clrw y 
-	ldw (x),y
-	call EECSTO
+	ldw (x),y 
+	call EE_CSTORE
 	popw y 
 	incw y 
 	ldw UCP,y
 	ret 
 
 
+;--------------------------
+; copy FLASH block to ROWBUF
+; ROW>BUF ( ar -- )
+; ar row address 
+;--------------------------
+	.word LINK 
+	LINK=.
+	.byte 7 
+	.ascii "ROW>BUF"
+ROW2BUF: 
+	call PSTO 
+	ld a,#BLOCK_SIZE
+	push a 
+ ; block align flash address	
+	and a,PTR8
+	ld PTR8,a
+	ldw y,#ROWBUFF 
+1$: ld a,[PTR16]
+	ld (y),a
+	call INC_PTR16
+	incw y 
+	dec (1,sp)
+	jrne 1$ 
+	pop a 
+	ret 
+
+
+;---------------------------
+; copy ROWBUFF to flash 
+; BUF>ROW ( ar -- )
+; ar row address
+;---------------------------
+	.word LINK 
+	LINK=.
+	.byte 7 
+	.ascii "BUF>ROW" 
+BUF2ROW:
+	call TBUF ; ( ar Ab -- )
+	call SWAPP ; ( ab ar -- )
+	call WR_ROW 
+	ret 
+
+;---------------------------------
+; how many byte free in that row 
+; RFREE ( a -- n )
+; a is least byte of target address
+;----------------------------------
+	.word LINK 
+	LINK=.
+	.byte 5 
+	.ascii "RFREE"
+RFREE:
+	ld a,(1,x)
+	and a,#BLOCK_SIZE-1 
+	ld YTEMP,a 
+	ld a,#BLOCK_SIZE 
+	sub a,YTEMP 
+	clrw y 
+	ld yl,a
+	ldw (x),y 
+	ret 
+
+;---------------------------------
+; write u bytes to flash/EEPROM 
+; constraint to row limit 
+; RAM>EE ( af a u1 -- u2 )
+; af flash address 
+; a ram address 
+; u bytes count
+; return u2 bytes written  
+;-------------------------------
+	.word LINK 
+	LINK=. 
+	.byte 6
+	.ascii "RAM>EE"
+	
+RAM2EE:
+; PICK af
+	call DOLIT 
+	.word 2 
+	call PICK  ; { -- af a u1 af }
+	call DUPP 
+	call ROW2BUF ; copy in ROWBUFF  
+	call DUPP 
+	call TOR 
+	call DOLIT 
+	.word BLOCK_SIZE-1
+	call ANDD 
+	call DOLIT 
+	.word ROWBUFF 
+	call PLUS  ; ( -- af a u1 ab )
+	call SWAPP ;  ( -- af a ab u1 )
+	call RFROM  ; ( -- af a ab u1 af )
+	call RFREE  ; ( -- af a ab u1 n )
+	call MIN    
+	call DUPP 
+	call TOR  
+	call CMOVE  ; copy RAM to RAM from a to ab 
+	call BUF2ROW ; ( af --  ) write ROWBUFF to flash 
+	call RFROM  ; how many written 
+	ret 
+
+
+;--------------------------
+; move new colon definition to FLASH 
+; using WR-ROW for efficiency 
+; preserving bytes already used 
+; in the current block. 
+; At this point the compiler as completed
+; in RAM and pointers CP and CNTXT are updated.
+; CNTXT point to nfa of new word and  
+; CP is after compiled word so CP-CNTXT+2=count to write 
+; 
+; FMOVE ( -- cp+ )
+; 
+;--------------------------
+	.word LINK 
+	LINK=.
+	.byte 5 
+	.ascii "FMOVE" 
+FMOVE:
+	call TFLASH 
+	CALL AT 
+	CALL QBRAN 
+	.word no_move  
+	call CPP  
+	call AT  
+	call DUPP ; ( cp cp -- )
+	call CNTXT 
+	call AT 
+	call DOLIT 
+	.word 2 
+	call SUBB ; ( cp cp la -- ) \ new word link address in RAM  
+	call DUPP 
+	call TOR    ; ( cp cp la R: la ) 
+FMOVE2:
+	call HERE  ; ( cp cp la vp  R: la )
+	call RAT   ; ( cp cp la vp la R: la )
+	call SUBB ; ( cp cp la wl R: la  ) \ wl is bytes to copy 
+next_row:
+	call DUPP 
+	call TOR  ; ( cp cp la wl -- ) R: a wl
+	call RAM2EE ; ( cp cp la wl -- cp u2 ) u2 is byte written to FLASH 
+	call DUPP 
+	call TOR
+	call PLUS  ; ( cp+ ) 
+	call DUPP 
+	call RFROM  ; ( cp+ cp+ u2  R: a wl ) 
+	call RFROM  ; ( cp+ cp+ u2 wl R: a ) 
+	call OVER   ; ( cp+ cp+ u2 wl u2 -- )
+	call SUBB  ; ( cp+ cp+ u2 wl- R: a )
+	call DUPP 
+	call QBRAN
+	.word fmove_done 
+	call SWAPP  ; ( cp+ cp+ wl- u2 R: a )
+	call RFROM ; ( cp+ cp+ wl- u2 a -- ) 
+	call PLUS  ; ( cp+ cp+ wl- a+ )
+	call DUPP 
+	call TOR   ; ( cp+ cp+ wl- a+ ) R: a+
+	call SWAPP ; ( cp+ cp+ a+ wl- )
+	call BRAN
+	.word next_row  
+fmove_done:	
+	call RFROM  ; ( -- udl+ ud u2 wl- a  )
+	addw x,#5*CELLL ; (  -- cp+ ) new CP 
+ 	ret  
+no_move:
+	call ZERO
+	ret 
 
 ;------------------------------------------
 ; adjust pointers after **FMOVE** operetion.
@@ -741,6 +909,11 @@ EEC_COMMA:
 	.byte 9
 	.ascii "UPDAT-PTR" 
 UPDATPTR:
+;reset VP to previous position  
+	call EEPVP 
+	call AT
+	call VPP 
+	call STORE
 ;update CONTEXT and LAST 
 	call EEPCP 
 	call AT
@@ -753,46 +926,32 @@ UPDATPTR:
 	call LAST
 	call STORE 
 	call UPDATLAST 
+;update CP 
+	call CPP 
+	call STORE
+	call UPDATCP 
 	ret 
 
-;--------------------------------------
-; write new definition name to flash 
-; NAME>FLASH ( a - a+ )
-;--------------------------------------
+;-----------------------------
+; move interrupt sub-routine
+; in flash memory
+;----------------------------- 
 	.word LINK 
-	LINK=.
-	.byte 10
-	.ascii "NAME>FLASH" 
-NAME_TO_FLASH:
+	LINK=. 
+	.byte 6
+	.ascii "IFMOVE" 
+IFMOVE:
+	call TFLASH 
+	CALL AT 
+	CALL QBRAN 
+	.word no_move 
 	call CPP 
 	call AT 
-	call PSTO 
-	call CNTXT 
-	call AT 
-	call EESTO 
-	call COUNT ; ( -- b u ) 
-	call ONEP 
-	call TEMP
-	call STORE 
-	call ONEM 
-1$: call DUPP 
-	call CAT 
-	call WR_BYTE 
-	call TEMP
-	call AT 
-	call ONEM  
-	call QDUP 
-	call QBRAN 
-	.word 2$ 
-	call TEMP 
-	call STORE 
-	call ONEP 
-	call BRAN 
-	.word 1$
-2$: ldw y,PTR16 
-	ldw (x),y 
-	ret  
-
-
+	call DUPP ; ( cp cp -- )
+	call EEPVP 
+	call AT  ; ( cp cp a )
+	call TOR 
+	call RAT ; ( cp cp a -- ) R: a 
+	jp FMOVE2 
 
 

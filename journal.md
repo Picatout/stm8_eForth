@@ -1,3 +1,9 @@
+#### 2020-06-24 
+
+* Suprimer les mots **FADR**, **F@** et **FC@** qui ne sont plus nécessaire car le stm8s105c6 n'a pas de mémoire étendue 
+
+* Modifier tous les mots qui utilisait des adresses double pour utilisation d'adresses simple. 
+
 #### 2020-06-23
 
 * Création du dossier **discovery**  et copie des fichiers stm8ef.asm flash.asm math_const.asm dans le nouveau dossier.<br/>**Objet:** Débuter adaptation de stm8ef pour la carte discovery. Étant donnée que la version 3.0 est très étendue par rapport à la version discovery 2.1 originale. Une réadaptation en sens inverse de NUCLEO vers DISOVERY est pertinante.

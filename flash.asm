@@ -927,8 +927,7 @@ FADDR:
 ; using WR-ROW for efficiency 
 ; preserving bytes already used 
 ; in the current block. 
-; ud+c must not exceed block boundary 
-; at this point the compiler as completed
+; At this point the compiler as completed
 ; in RAM and pointers CP and CNTXT updated.
 ; CNTXT point to nfa of new word and  
 ; CP is after compiled word so CP-CNTXT+2=count to write 
