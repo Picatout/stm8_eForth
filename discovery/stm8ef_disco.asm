@@ -846,6 +846,7 @@ OPTIMIZE = 1
 ; le opcode de RET.
 ; Voir modification au code de ";"
 ;
+.else 
 ;       EXIT    ( -- )
 ;       Terminate a colon definition.
         .word      LINK

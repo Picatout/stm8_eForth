@@ -835,7 +835,7 @@ OPTIMIZE = 1
 ; remplacement de CALL EXIT par 
 ; le opcode de RET.
 ; Voir modification au code de ";"
-;
+.else 
 ;       EXIT    ( -- )
 ;       Terminate a colon definition.
         .word      LINK

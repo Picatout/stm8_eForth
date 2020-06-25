@@ -1,5 +1,7 @@
 #### 2020-06-25 
 
+* Élimination du mot **EXIT** devenu inutile. Suite à la modification du compilateur qui cmpile directement une instruction machine **RET**. 
+
 * Mise à jour du [manuel de référence](reference.md)
 
 * Réécriture de **ROW>BUF** dans **flash_disco.asm**.
