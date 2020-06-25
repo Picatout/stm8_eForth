@@ -11,7 +11,7 @@
     * Il n'y a pas de UART1 connecté au programmeur STLINK donc pas d'émulation USB-ACM.
       Le terminal utilise donc le UART2 qui doit-être connecté sur un port sériel du PC.
 
-* Il y a suffisamment de différence entre les deux version pour que je cré un dossier séparé et renomme les 2 fichiers principaux. **stm8ef_disco.asm** et **flash_disco.asm**. 
+* Il y a suffisamment de différence entre les deux versions pour que je cré un dossier séparé et renomme les 2 fichiers principaux. **stm8ef_disco.asm** et **flash_disco.asm**. 
 
 * Puisqu'il n'y a pas de mémoire étendue **FPTR** a été remplacé par **PTR16**
 
