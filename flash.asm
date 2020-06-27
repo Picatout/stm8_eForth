@@ -31,7 +31,7 @@
     LINK=.
     .byte 3 
     .ascii "FP!"
-fptr_store:
+PSTO:
     ldw y,x
     ldw y,(y)
     ld a,yl 
@@ -188,14 +188,9 @@ LINK=.
     .byte 2
     .ascii "F@"
 farat:
-    call fptr_store
-    ldf a,[FPTR]
-    subw x,#CELLL 
-    ld (x),a 
-    ldw y,#1
-    ldf a,([FPTR],y)
-    ld (1,x),a
-    ret 
+    call PSTO
+	jp EE_READ 
+
 
 ;-------------------------------------
 ; fetch C at address over 65535 
@@ -206,15 +201,11 @@ farat:
     .byte 3 
     .ascii "FC@" 
 farcat:
-    call fptr_store 
-    ldf a,[FPTR]
-    subw x,#CELLL 
-    ld (1,x),a 
-    clr (x)
-    ret 
+    call PSTO
+	jp EE_CREAD  
     
 ;----------------------------------
-; unlock EEPROM/OPT for writing/erasing
+; UNLOCK EEPROM/OPT for writing/erasing
 ; wait endlessly for FLASH_IAPSR_DUL bit.
 ;  UNLKEE   ( -- )
 ;----------------------------------
@@ -231,7 +222,7 @@ unlock_eeprom:
 	ret
 
 ;----------------------------------
-; unlock FLASH for writing/erasing
+; UNLOCK FLASH for writing/erasing
 ; wait endlessly for FLASH_IAPSR_PUL bit.
 ; UNLKFL  ( -- )
 ;----------------------------------
@@ -248,7 +239,7 @@ unlock_flash:
 	ret
 
 ;-----------------------------
-; unlock FLASH or EEPROM 
+; UNLOCK FLASH or EEPROM 
 ; according to FPTR address 
 ;  UNLOCK ( -- )
 ;-----------------------------
@@ -256,7 +247,7 @@ unlock_flash:
 	LINK=.
 	.byte 6
 	.ascii "UNLOCK"
-unlock:
+UNLOCK:
 ; put addr[15:0] in Y, for bounds check.
 	ldw y,PTR16   ; Y=addr15:0
 ; check addr[23:16], if <> 0 then it is extened flash memory
@@ -274,7 +265,7 @@ unlock:
 9$: ret 
 
 ;-------------------------
-; lock write access to 
+; LOCK write access to 
 ; FLASH and EEPROM 
 ; LOCK ( -- )
 ;-------------------------
@@ -282,7 +273,7 @@ unlock:
 	LINK=.
 	.byte 4 
 	.ascii "LOCK" 
-lock: 
+LOCK: 
 	bres FLASH_IAPSR,#FLASH_IAPSR_PUL
 	bres FLASH_IAPSR,#FLASH_IAPSR_DUL
 	ret 
@@ -295,14 +286,69 @@ lock:
 	LINK=. 
 	.byte 8 
 	.ascii "INC-FPTR" 
-inc_fptr:
+INC_FPTR:
 	inc PTR8 
 	jrne 1$
+	pushw y 
 	ldw y,FPTR 
 	incw y 
-	ldw FPTR,y 
+	ldw FPTR,y
+	popw y  
 1$: ret 
 
+;------------------------------
+; add u to FPTR 
+; PTR+ ( u -- )
+;------------------------------
+	.word LINK 
+	LINK=.
+	.byte 4 
+	.ascii "PTR+"
+PTRPLUS:
+	ldw y,x 
+	addw x,#CELLL 
+	addw y,PTR16 
+	ldw PTR16,y  
+	jrnc 1$
+	inc FPTR 
+1$: ret 
+
+;---------------------------------
+; read word at address pointed FPTR
+; increment FPTR 
+; EE-READ ( -- w )
+;------------------------------------
+	.word LINK 
+	LINK=.
+	.byte 7 
+	.ascii "EE-READ"
+EE_READ:
+	subw x,#CELLL 
+	ldf a,[FPTR]
+	ld yh,a 
+	call INC_FPTR 
+	ldf a,[FPTR]
+	call INC_FPTR 
+	ld yl,a 
+	ldw (x),y 
+	ret 
+
+;---------------------------------------
+; Read byte at address pointed by FPTR 
+; EE-CREAD ( -- c )
+;---------------------------------------
+	.word LINK 
+	LINK=.
+	.byte 8
+	.ascii "EE-CREAD" 
+EE_CREAD:
+	subw x,#CELLL 
+	ldf a,[FPTR]	
+	call INC_FPTR
+	clrw y 
+	ld yl,a 
+	ldw (x),y 
+	ret 
 
 ;----------------------------
 ; write a byte at address pointed 
@@ -311,21 +357,43 @@ inc_fptr:
 ; and memory unlocked 
 ; WR-BYTE ( c -- )
 ;----------------------------
-
 	.word LINK 
 	LINK=. 
 	.byte 7 
 	.ascii "WR-BYTE" 
 
-write_byte:
+WR_BYTE:
 	ldw y,x 
 	ldw y,(y)
 	addw x,#CELLL 
 	ld a,yl
 	ldf [FPTR],a
 	btjf FLASH_IAPSR,#FLASH_IAPSR_EOP,.
-	jra inc_fptr 
+	jp INC_FPTR 
 
+;---------------------------------------
+; write a word at address pointed 
+; by FPTR and increment FPTR 
+; Expect pointer already initialzed 
+; and memory unlocked 
+; WR-WORD ( w -- )
+;---------------------------------------
+	.word LINK 
+	LINK=.
+	.byte 7 
+	.ascii "WR-WORD" 
+WR_WORD:
+	ldw y,x
+	ldw y,(y)
+	addw x,#CELLL 
+	ld a,yh 
+	ldf [FPTR],a
+	btjf FLASH_IAPSR,#FLASH_IAPSR_EOP,.
+	call INC_FPTR 
+	ld a,yl 
+	ldf [FPTR],a
+	btjf FLASH_IAPSR,#FLASH_IAPSR_EOP,.
+	jp INC_FPTR 
 
 
 ;---------------------------------------
@@ -342,12 +410,12 @@ write_byte:
 	VSIZE = 2
 ee_cstore:
 	sub sp,#VSIZE
-    call fptr_store
+    call PSTO
 	ld a,(1,x)
 	cpl a 
 	ld (BTW,sp),a ; byte to write 
 	clr (OPT,sp)  ; OPTION flag
-	call unlock 
+	call UNLOCK 
 	; check if option
 	tnz FPTR 
 	jrne 2$
@@ -357,11 +425,11 @@ ee_cstore:
 	cpw y,#OPTION_END+1
 	jrpl 2$
 	cpl (OPT,sp)
-	; OPTION WRITE require this unlock 
+	; OPTION WRITE require this UNLOCK 
     bset FLASH_CR2,#FLASH_CR2_OPT
     bres FLASH_NCR2,#FLASH_CR2_OPT 
 2$: 
-	call write_byte 	
+	call WR_BYTE 	
 	tnz (OPT,sp)
 	jreq 3$ 
     ld a,(BTW,sp)
@@ -369,9 +437,9 @@ ee_cstore:
 	ld yl,a 
 	subw x,#CELLL 
 	ldw (x),y 
-	call write_byte
+	call WR_BYTE
 3$: 
-	call lock 
+	call LOCK 
 	addw sp,#VSIZE 
     ret
 
@@ -384,19 +452,19 @@ ee_cstore:
 	.byte 3 
 	.ascii "EE!"
 ee_store:
-	call fptr_store 
-	call unlock 
+	call PSTO 
+	call UNLOCK 
 	ldw y,x 
 	ldw y,(y)
 	pushw y 
 	swapw y 
 	ldw (x),y 
-	call write_byte 
+	call WR_BYTE 
 	popw y 
 	subw x,#CELLL
 	ldw (x),y 
-	call write_byte
-	jp lock 
+	call WR_BYTE
+	jp LOCK 
 
 
 ;----------------------------
@@ -409,7 +477,7 @@ ee_store:
 	.byte 9 
 	.ascii "ROW-ERASE" 
 row_erase:
-	call fptr_store
+	call PSTO
 ;code must be execute from RAM 
 ;copy routine to PAD 
 	subw x,#CELLL 
@@ -521,20 +589,20 @@ copy_prog_to_ram:
 	.byte 6 
 	.ascii "WR-ROW"
 write_row:
-	call fptr_store
+	call PSTO
 ; align to FLASH block 
 	ld a,#0x80 
 	and a,PTR8 
 	ld PTR8,a  
 	call copy_prog_to_ram
-	call unlock
+	call UNLOCK
 	ldw y,x 
 	ldw y,(y)
 	addw x,#CELLL 
 	pushw x 
 	ldw x,y ; buffer address in x 
 	call TIBBASE
-	call lock
+	call LOCK
 	popw x 
 	ret 
 
@@ -766,7 +834,7 @@ set_vector:
 	LINK=.
 	.byte 3
 	.ascii "EE,"
-ee_comma:
+EE_COMMA:
 	subw x,#2*CELLL 
 	ldw y,UCP
 	pushw y 
@@ -788,7 +856,7 @@ ee_comma:
 	LINK=.
 	.byte 4 
 	.ascii "EEC,"
-ee_ccomma:
+EE_CCOMMA:
 	subw x,#2*CELLL 
 	ldw y,UCP
 	pushw y 
@@ -811,7 +879,7 @@ ee_ccomma:
 	.byte 7 
 	.ascii "ROW>BUF"
 ROW2BUF: 
-	call fptr_store 
+	call PSTO 
 	ld a,#BLOCK_SIZE
 	push a 
 	and a,PTR8 ; block align 
@@ -819,7 +887,7 @@ ROW2BUF:
 	ldw y,#ROWBUFF 
 1$: ldf a,[FPTR]
 	ld (y),a
-	call inc_fptr
+	call INC_FPTR
 	incw y 
 	dec (1,sp)
 	jrne 1$ 

@@ -6307,11 +6307,11 @@ Hexadecimal [24-Bits]
                                     236 
                                     237 ;-------------------------
                                     238 ; increment PTR16 
-                                    239 ; INC-PTR16 ( -- )
+                                    239 ; INC-PTR ( -- )
                                     240 ;-------------------------
       001BFD 1B EF                  241 	.word LINK 
                            001BFF   242 	LINK=. 
-      001BFF 08                     243 	.byte 8 
+      001BFF 07                     243 	.byte 7 
       001C00 49 4E 43 2D 50 54 52   244 	.ascii "INC-PTR16" 
              31 36
       001C09                        245 INC_PTR16:

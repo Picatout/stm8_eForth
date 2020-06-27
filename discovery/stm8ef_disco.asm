@@ -319,7 +319,7 @@ clock_init:
 1$:	cp a,CLK_CMSR
 	jrne 1$
         
-; initialize UART1, 115200 8N1
+; initialize UART2, 115200 8N1
 uart2_init:
 	bset CLK_PCKENR1,#CLK_PCKENR1_UART2
 	; configure tx pin

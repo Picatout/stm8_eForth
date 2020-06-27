@@ -236,11 +236,11 @@ lock:
 
 ;-------------------------
 ; increment PTR16 
-; INC-PTR16 ( -- )
+; INC-PTR ( -- )
 ;-------------------------
 	.word LINK 
 	LINK=. 
-	.byte 8 
+	.byte 7 
 	.ascii "INC-PTR16" 
 INC_PTR16:
 	pushw y 

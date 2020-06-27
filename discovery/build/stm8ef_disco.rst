@@ -6307,11 +6307,11 @@ Hexadecimal [24-Bits]
                                     236 
                                     237 ;-------------------------
                                     238 ; increment PTR16 
-                                    239 ; INC-PTR16 ( -- )
+                                    239 ; INC-PTR ( -- )
                                     240 ;-------------------------
       0099E0 68 69                  241 	.word LINK 
                            001BFF   242 	LINK=. 
-      0099E2 08                     243 	.byte 8 
+      0099E2 07                     243 	.byte 7 
       0099E2 CD 8F 20 CD 8F 5F 0F   244 	.ascii "INC-PTR16" 
              73 74
       001C09                        245 INC_PTR16:
@@ -6834,7 +6834,7 @@ Hexadecimal [24-Bits]
                                     713 ; Compile byte to flash 
                                     714 ; EEC, ( c -- )	
                                     715 ;-------------------------
-      009C7E 6F 08                  716 	.word LINK 
+      009C7E 6F 07                  716 	.word LINK 
                            001EFD   717 	LINK=.
       009C80 49                     718 	.byte 4 
       009C81 4E 43 2D 50            719 	.ascii "EEC,"

@@ -1,4 +1,24 @@
+#### 2020-06-26
+
+* j'ai changé d'idée, maintenir 2 versions séparée de stm8_eForth l'une pour la carte NUCLEO et l'autre pour la discovery complique les choses. à l'exception de UART choisi pour la communication avec le terminal et la quantité de mémoire disponible on peut utiliser le même système. L'idée de séparer les 2 versions étaient de réduire la taille de la version DISCOVERY. Mais le gain n'est pas considérable. Le fichier **config.inc** var permettre de sélectionner les options et la cible désirée.   
+
+* Ajout de **WR-WORD** dans **flash.asm** 
+
+* Ajout de **CTFILL**, **WTFILL** dans **ctable.asm**.
+
 #### 2020-06-25 
+
+**Session 2**
+
+* Ajout de **DCONST** et sa partie runtime **DO_DCONST** pour créer des constantes en *entier double*.
+
+* Ajout de **PTR+** ( u -- )  dans **flash.asm** pour incrémenter **FPTR** d'une valeur arbitraire *u*. 
+
+* Ajout de **EE-READ** et **EE-CREAD**. Pour la lecture du mot et d'un octet pointé par FPTR avec incrémentation du pointer.
+
+* Débuter travail sur module **ctable.asm** pour faciliter la création de tables de constantes dans la mémoire FLASH ou EEPROM. 
+
+**Session 1**
 
 * Modification du mot **hi** qui maintenant identifie la carte sur laquelle est installé le système. 
 ```

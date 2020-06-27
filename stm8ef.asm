@@ -8,8 +8,14 @@
 	.module EFORTH
          .optsdcc -mstm8
 	.nlist
+        .include "inc/config.inc" 
+.if NUCLEO
 	.include "inc/nucleo_8s208.inc"
 	.include "inc/stm8s208.inc"
+.else ; DISCOVERY
+	.include "inc/stm8s105.inc"
+	.include "inc/stm8s_disco.inc"
+.endif 
 	.list
 	.page
 
@@ -87,15 +93,19 @@
 ;	Assembler constants
 ;*********************************************************
 RAMBASE =	0x0000	   ;ram base
+.if NUCLEO 
 STACK   =	0x17FF 	;system (return) stack empty 
 DATSTK  =	0x1680	;data stack  empty
 TBUFFBASE =     0x1680  ; flash read/write transaction buffer address  
 TIBBASE =       0X1700  ; transaction input buffer addr.
-
-
+.else ; DISCOVERY
+STACK   =	0x7FF 	;system (return) stack empty 
+DATSTK  =	0x680	;data stack  empty
+TBUFFBASE =     0x680  ; flash read/write transaction buffer address  
+TIBBASE =       0X700  ; transaction input buffer addr.
+.endif
 
 ;; Memory allocation
-
 UPP     =     RAMBASE+6          ; systeme variables base address 
 SPP     =     RAMBASE+DATSTK     ; data stack bottom 
 RPP     =     RAMBASE+STACK      ;  return stack bottom
@@ -302,13 +312,18 @@ ORIG:
 clock_init:
         clr CLK_CKDIVR
 	bset CLK_SWCR,#CLK_SWCR_SWEN
+.if NUCLEO
 	ld a,#CLK_SWR_HSI
+.else ; DISCOVERY as 16Mhz crystal
+	ld a,#CLK_SWR_HSE
+.endif 
 	ld CLK_SWR,a
 1$:	cp a,CLK_CMSR
 	jrne 1$
         
-; initialize UART1, 115200 8N1
-uart1_init:
+; initialize UART, 115200 8N1
+uart_init:
+.if NUCLEO 
 	bset CLK_PCKENR1,#CLK_PCKENR1_UART1
 	; configure tx pin
 	bset PA_DDR,#UART1_TX_PIN ; tx pin
@@ -318,6 +333,17 @@ uart1_init:
 	mov UART1_BRR2,#0x0b ; must be loaded first
 	mov UART1_BRR1,#0x8
 	mov UART1_CR2,#((1<<UART_CR2_TEN)|(1<<UART_CR2_REN));|(1<<UART_CR2_RIEN))
+.else ; DISCOVERY use UART2 
+	bset CLK_PCKENR1,#CLK_PCKENR1_UART2
+	; configure tx pin
+	bset PD_DDR,#UART2_TX_PIN ; tx pin
+	bset PD_CR1,#UART2_TX_PIN ; push-pull output
+	bset PD_CR2,#UART2_TX_PIN ; fast output
+	; baud rate 115200 Fmaster=8Mhz  
+	mov UART2_BRR2,#0x0b ; must be loaded first
+	mov UART2_BRR1,#0x8
+	mov UART2_CR2,#((1<<UART_CR2_TEN)|(1<<UART_CR2_REN));|(1<<UART_CR2_RIEN))
+.endif
 ; initialize timer4, used for millisecond interrupt  
 	mov TIM4_PSCR,#7 ; prescale 128  
 	mov TIM4_ARR,#125 ; set for 1msec.
@@ -4002,6 +4028,48 @@ DOCONST:
         ldw (x),y 
         ret 
 
+;----------------------------------
+; create double constant 
+; DCONST ( d -- ; <string> )
+;----------------------------------
+    .word LINK 
+    LINK=.
+    .byte 6 
+    .ascii "DCONST"
+DCONST:
+        CALL TOKEN
+        CALL SNAME 
+        CALL OVERT 
+        CALL COMPI 
+        .word DO_DCONST
+        CALL COMMA
+        CALL COMMA  
+        CALL FMOVE
+        CALL QDUP 
+        CALL QBRAN 
+        .word SET_RAMLAST  
+        CALL UPDATPTR  
+1$:     RET          
+    
+;----------------------------------
+; runtime for DCONST 
+; stack double constant 
+; DO-DCONST ( -- d )
+;-----------------------------------
+        .word LINK 
+        LINK=.
+        .byte 9 
+        .ascii "DO-DCONST"
+DO_DCONST:
+    popw y 
+    ldw YTEMP,y 
+    subw x,#2*CELLL 
+    ldw y,(y)
+    ldw (x),y 
+    ldw y,YTEMP 
+    ldw y,(2,y)
+    ldw (2,x),y 
+    ret 
 
 ;; Tools
 
@@ -4222,9 +4290,14 @@ HI:
 	.byte      VER+'0'
         .byte      '.' 
 	.byte      EXT+'0' ;version
-        CALL    DOTQP 
+        CALL    DOTQP
+.if NUCLEO          
+        .byte 18
+        .ascii  " on NUCLEO-8S208RB"
+.else ; DISCOVERY 
         .byte 19
-        .ascii  " for NUCLEO-8S208RB"
+        .ascii  " on STM8S-DISCOVERY"
+.endif
         JP     CR
 
 WANT_DEBUG=0
@@ -4433,14 +4506,14 @@ COLD1:  CALL     DOLIT
         CALL     OVERT
         JP     QUIT    ;start interpretation
 
-WANT_MATH_CONST = 1 
-.if WANT_MATH_CONST 
-        ; irrational constants 
-        ; approximation by integers ratio.
-        .include "const_ratio.asm"
-.endif ; WANT_MATH_CONST
 
         .include "flash.asm"
+.if WANT_SCALING_CONST 
+        .include "const_ratio.asm"
+.endif
+.if WANT_CONST_TABLE 
+        .include "ctable.asm"
+.endif
 
 ;===============================================================
 

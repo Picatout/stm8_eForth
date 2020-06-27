@@ -230,6 +230,8 @@ En *runtime* ce saut est toujours effectué.
 
 * __CREATE__&nbsp;&nbsp;( -- ; &lt;string&gt; ) Compile le nom d'une nouvelle variable dans le dictionnaire. **&lt;string&gt;** est le nom de la nouvelle variable. Les variables sont initialisées à **0**.  
 
+* __DCONST__&nbsp;&nbsp;( d -- ; &lt;string&gt;) Création d'une constante de type entier double.
+
 * __DECIMAL__&nbsp;&nbsp;( -- ) Affecte la valeur **10** à la variable système **BASE**. 
 
 * __DEPTH__&nbsp;&nbsp;( -- u ) retourne le nombre d'élément qu'il y a sur la pile.
@@ -245,6 +247,8 @@ En *runtime* ce saut est toujours effectué.
 * __DO$__&nbsp;&nbsp;( -- b ) Partie *runtime* de **$"** retourne l'adresse de la chaîne litérale qui a été compilée.  
 
 * __DOCONST__&nbsp;&nbsp;( -- n ) Partie *runtime* de **CONSTANT** empile la valeur de la constante.  
+
+* __DO_DCONST__&nbsp;&nbsp;( -- d ) Partie *runtime* de **DCONST**. Empile la contante double *d*.
 
 * __DOLIT__&nbsp;&nbsp;( -- n ) Partie *runtime* résultant de la compilation d'un entier litéral. *n* et l'entier qui a été compilé. 
 
@@ -266,6 +270,10 @@ En *runtime* ce saut est toujours effectué.
 * __EEC!__&nbsp;&nbsp;( c ud -- ) Écris en mémoire persistante le caractère *c*. *ud* est l'adresse destination sous-forme d'entier double non signé.
 
 * __EEC,__&nbsp;&nbsp;( c -- )  Compile en mémoire FLASH le caractère *c*.  
+
+* __EE-CREAD__&nbsp;&nbsp;( -- c) Empile le caractère à l'adresse pointé par **FPTR** et incrément le pointeur.
+
+** __EE-READ__&nbsp;&nbsp;( -- n ) Empile l'entier pointé par **FPTR** et incrément le pointeur de 2.
 
 * __EEP-CP__&nbsp;&nbsp;( -- ud ) Empile l'adresse de la variable système persistante **APP_CP**
 . *ud* est un entier double non signé. 
@@ -332,7 +340,7 @@ En *runtime* ce saut est toujours effectué.
 
 * __IMMEDIATE__&nbsp;&nbsp;( -- ) Active l'indicateur **IMMED** dans l'entête de dictionnaire du dernier mot qui a été compilé. Habituellement invoqué juste après le **;**. 
 
-* __INC-FPTR__&nbsp;&nbsp;( -- ) Incrémente la variable système **FARPTR**. 
+* __INC-PTR__&nbsp;&nbsp;( -- ) Incrémente la variable système **FPTR**. Pour DISCOVERY il s'agit de la variable système **PTR16**.  
 
 * __INIT-OFS__&nbsp;&nbsp;( -- ) Initialise la variable système **OFFSET** au début d'une nouvelle compilation. L'offset est la distance entre les valeurs des variables **CP** et **VP**
 Lorsque la variable système **TFLASH**  est à zéro **OFFSET** est initialisé à zéro. **OFFSET** est utilisé par le compilateur pour déterminer les adresses absolues à utiliser dans les instructions de saut **BRANCH** et **?BRANCH**. 
@@ -406,6 +414,8 @@ Lorsque la variable système **TFLASH**  est à zéro **OFFSET** est initialisé
 * __PRESET__&nbsp;&nbsp;( -- ) Vide la pile des arguments et le TIB avant d'invoquer **QUIT**.  
 
 * __PRISTINE__&nbsp;&nbsp;( -- ) Nettoie le système de toutes les modifications effectuées par l'utilisateur. Le système Forth se retrouve alors dans son état initial avant toute intervantion de l'utilisateur. 
+
+* __PTR+__&nbsp;&nbsp;( u -- ) Incrémente **FPTR** d'une valeur arbitraire *u*.
 
 * __QUERY__&nbsp;&nbsp;( -- ) Lecture d'une ligne de texte du terminal dans le TIB. La lecture se termine à la réception d'un caractère **CR**. Le nombre de caractères dans le TIB est dans la variable systèmE **#TIB**. 
 
