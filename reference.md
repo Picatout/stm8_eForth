@@ -230,6 +230,8 @@ En *runtime* ce saut est toujours effectué.
 
 * __CREATE__&nbsp;&nbsp;( -- ; &lt;string&gt; ) Compile le nom d'une nouvelle variable dans le dictionnaire. **&lt;string&gt;** est le nom de la nouvelle variable. Les variables sont initialisées à **0**.  
 
+* __CTFILL__&nbsp;&nbsp;( ad -- ) Outil d'initialisation d'une table de constantes octets dans la mémoire persistante. **ad** est l'adresse de la table. Module **ctable.asm**.
+
 * __DCONST__&nbsp;&nbsp;( d -- ; &lt;string&gt;) Création d'une constante de type entier double.
 
 * __DECIMAL__&nbsp;&nbsp;( -- ) Affecte la valeur **10** à la variable système **BASE**. 
@@ -553,11 +555,16 @@ Lorsque la variable système **TFLASH**  est à zéro **OFFSET** est initialisé
 
 * __WR-ROW__&nbsp;&nbsp;( a ud -- ) Écriture d'un bloc de 128 octets dans la mémoire persistante. **a** est l'adresse RAM qui contient les données à écrires et **ud** l'adresse destination. Si *ud* n'est pas alignée sur un bloc de 128 octets il le sera en mettant les 7 bits les moins significatifs à zéro. Dans la version **DISCOVERY** *ud* est remplacé par une adresse de type *entier simple non signé*.
 
+* __WTFILL__&nbsp;&nbsp;( ad -- ) Outil d'initialisation d'une table de contantes entiers dans la mémoire persistante. **ad** est l'adresse de la table. Module **ctable.asm**.
+
 * __XOR__&nbsp;&nbsp;( n1 n2 -- n3 ) **n3** est le résultat d'un ou exclusif bit à bit entre **n1** et **n2**.  
 
 * __[__&nbsp;&nbsp;( -- ) Initialise le vecteur EVAL en mode *interprétation*. 
 
 * __[COMPILE]__&nbsp;&nbsp;( -- &lt;string&gt; ) Ce mot est utilisé à l'intérieur d'une définition pour compiler le mot suivant qui est un mot *immédiat* donc serait exécuté plutôt que compilé.
+
+* __[N]?__&nbsp;&nbsp;( n+ - n T | a F ) Affiche **[n+]?** puis attend la saisie d'un entier.
+Si un entier a été entré au terminal retourne l'entier et **T** sinon retounre l'adresse du token **a** et **F**. Ce mot est utilisé par **CTFILL** et **WTFILL**. 
 
 * __\__&nbsp;&nbsp;( -- ) Introduit un commentaire qui se termine à la fin de la ligne.
 

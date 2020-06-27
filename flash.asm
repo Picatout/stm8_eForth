@@ -31,7 +31,7 @@
     LINK=.
     .byte 3 
     .ascii "FP!"
-PSTO:
+FPSTOR:
     ldw y,x
     ldw y,(y)
     ld a,yl 
@@ -136,7 +136,7 @@ UPDATLAST:
 	call LAST
 	call AT  
 	call EEPLAST
-	jp ee_store 
+	jp EESTORE 
 
 ;---------------------------------
 ; update APP_RUN 
@@ -148,7 +148,7 @@ UPDATLAST:
 	.ascii "UPDAT-RUN"
 UPDATRUN:
 	call EEPRUN
-	jp ee_store 
+	jp EESTORE 
 	
 ;---------------------------------
 ; update APP_CP with CP 
@@ -162,7 +162,7 @@ UPDATCP:
 	call CPP 
 	call AT 
 	call EEPCP 
-	jp ee_store 
+	jp EESTORE 
 
 ;----------------------------------
 ; update APP_VP with VP 
@@ -176,7 +176,7 @@ UPDATVP:
 	call VPP 
 	call AT
 	call EEPVP 
-	jp ee_store
+	jp EESTORE
 	
 
 ;----------------------------------
@@ -187,8 +187,8 @@ UPDATVP:
 LINK=.
     .byte 2
     .ascii "F@"
-farat:
-    call PSTO
+FARAT:
+    call FPSTOR
 	jp EE_READ 
 
 
@@ -200,8 +200,8 @@ farat:
     LINK=.
     .byte 3 
     .ascii "FC@" 
-farcat:
-    call PSTO
+FARCAT:
+    call FPSTOR
 	jp EE_CREAD  
     
 ;----------------------------------
@@ -213,7 +213,7 @@ farcat:
 LINK=.
     .byte 6 
     .ascii "UNLKEE"
-unlock_eeprom:
+UNLKEE:
 	mov FLASH_CR2,#0 
 	mov FLASH_NCR2,#0xFF 
 	mov FLASH_DUKR,#FLASH_DUKR_KEY1
@@ -230,7 +230,7 @@ unlock_eeprom:
 LINK=. 
     .byte 6 
     .ascii "UNLKFL"    
-unlock_flash:
+UNLKFL:
 	mov FLASH_CR2,#0 
 	mov FLASH_NCR2,#0xFF 
 	mov FLASH_PUKR,#FLASH_PUKR_KEY1
@@ -259,9 +259,9 @@ UNLOCK:
     jrult 9$
 	cpw y,#OPTION_END 
 	jrugt 9$
-	call unlock_eeprom
+	call UNLKEE
 	ret 
-4$: call unlock_flash
+4$: call UNLKFL
 9$: ret 
 
 ;-------------------------
@@ -408,9 +408,9 @@ WR_WORD:
 	BTW = 1   ; byte to write offset on stack
     OPT = 2 
 	VSIZE = 2
-ee_cstore:
+EECSTORE:
 	sub sp,#VSIZE
-    call PSTO
+    call FPSTOR
 	ld a,(1,x)
 	cpl a 
 	ld (BTW,sp),a ; byte to write 
@@ -451,8 +451,8 @@ ee_cstore:
 	LINK=.
 	.byte 3 
 	.ascii "EE!"
-ee_store:
-	call PSTO 
+EESTORE:
+	call FPSTOR 
 	call UNLOCK 
 	ldw y,x 
 	ldw y,(y)
@@ -477,7 +477,7 @@ ee_store:
 	.byte 9 
 	.ascii "ROW-ERASE" 
 row_erase:
-	call PSTO
+	call FPSTOR
 ;code must be execute from RAM 
 ;copy routine to PAD 
 	subw x,#CELLL 
@@ -501,11 +501,11 @@ block_erase:
 	jrule 2$ 
 	ret ; bad address 
 2$:	
-	call unlock_eeprom 
+	call UNLKEE 
 	jra proceed_erase
 ; erase flash block:
 erase_flash:
-	call unlock_flash 
+	call UNLKFL 
 proceed_erase:
 	call PAD 
 	ldw y,x
@@ -589,7 +589,7 @@ copy_prog_to_ram:
 	.byte 6 
 	.ascii "WR-ROW"
 write_row:
-	call PSTO
+	call FPSTOR
 ; align to FLASH block 
 	ld a,#0x80 
 	and a,PTR8 
@@ -631,7 +631,7 @@ set_option:
 		subw x,#CELLL 
 		clrw y 
 		ldw (x),y 
-		call ee_cstore
+		call EECSTORE
 		ret 
 
 
@@ -716,7 +716,7 @@ reset_vector:
 	ld a,#0x82 
 	ld yh,a
 	ldw (4,x),y
-	call ee_store
+	call EESTORE
 	subw x,#3*CELLL
 	clrw y 
 	ldw (x),y 
@@ -725,7 +725,7 @@ reset_vector:
 	ldw y,YTEMP  
 	addw y,#2
 	ldw (2,x),y 
-	call ee_store
+	call EESTORE
 9$:	ret 
 
 
@@ -811,7 +811,7 @@ set_vector:
 	ldw (2,x),y ; vector address 
 	clrw y 
 	ldw (x),y   ; as a double 
-	call ee_store 
+	call EESTORE 
 	ldw y,x 
 	ldw y,(2,y) ; bits 15..0 int vector 
 	subw x,#3*CELLL 
@@ -821,7 +821,7 @@ set_vector:
 	ldw (2,x),y 
 	clrw y 
 	ldw (x),y 
-	call ee_store
+	call EESTORE
 	addw x,#2*CELLL  
 9$: ret 
 
@@ -841,7 +841,7 @@ EE_COMMA:
 	ldw (2,x),y 
 	clrw y 
 	ldw (x),y
-	call ee_store
+	call EESTORE
 	popw y 
 	addw y,#2
 	ldw UCP,y
@@ -863,7 +863,7 @@ EE_CCOMMA:
 	ldw (2,x),y 
 	clrw y 
 	ldw (x),y
-	call ee_cstore
+	call EECSTORE
 	popw y 
 	incw y 
 	ldw UCP,y
@@ -879,7 +879,7 @@ EE_CCOMMA:
 	.byte 7 
 	.ascii "ROW>BUF"
 ROW2BUF: 
-	call PSTO 
+	call FPSTOR 
 	ld a,#BLOCK_SIZE
 	push a 
 	and a,PTR8 ; block align 

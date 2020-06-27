@@ -1,3 +1,7 @@
+#### 2020-06-27
+
+* Ajout de **CALLOT** dans le module **ctable.asm**. pour réserver de l'espace dans l'espace code pour une table de constantes.
+
 #### 2020-06-26
 
 * j'ai changé d'idée, maintenir 2 versions séparée de stm8_eForth l'une pour la carte NUCLEO et l'autre pour la discovery complique les choses. à l'exception de UART choisi pour la communication avec le terminal et la quantité de mémoire disponible on peut utiliser le même système. L'idée de séparer les 2 versions étaient de réduire la taille de la version DISCOVERY. Mais le gain n'est pas considérable. Le fichier **config.inc** var permettre de sélectionner les options et la cible désirée.   
@@ -5,6 +9,8 @@
 * Ajout de **WR-WORD** dans **flash.asm** 
 
 * Ajout de **CTFILL**, **WTFILL** dans **ctable.asm**.
+
+* Ajout de **[N]?** Comme outil d'initialisation d'une table de contantes. Utilisé par **CTFILL** et **WTFILL**. 
 
 #### 2020-06-25 
 

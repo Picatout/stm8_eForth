@@ -22,160 +22,100 @@
 ; and EEPROM
 ;------------------------------
 
+;-----------------------------
+; allocate space in CODE area 
+; for constant table.
+; CALLOT ( u -- ad )
+; u  bytes to allocates 
+; ad data address as double.
+;-----------------------------
+    .word LINK 
+    LINK=.
+    .byte 6
+    .ascii "CALLOT"
+CALLOT:
+    CALL CPP
+    CALL DUPP 
+    CALL AT 
+    CALL TOR 
+    CALL PSTOR 
+    CALL UPDATCP 
+    CALL RFROM
+    JP ZERO 
 
 ;------------------------------
 ; create constants bytes table 
 ; in persistant memory
-;  CT: ( --  ; <string> )
+;  CTABLE ( n+ --  ; <string> )
+; n+ bytes reserved 
 ;-----------------------------
     .word LINK 
     LINK=.
-    .byte 3
-    .ascii "CT:"
+    .byte 6
+    .ascii "CTABLE"
 CTABLE:
-
-    ret 
-
-;-------------------------------
-; terminate CTABLE compilation
-; CT; ( -- )
-;-------------------------------
-    .word LINK
-    LINK=.
-    .byte 3 
-    .ascii "CT;" 
-CTSEMI:
-
-    ret 
+    CALL CALLOT     
+    JP DCONST 
+     
 
 ;--------------------------------
 ; create constants words table 
 ; in persistant memory 
-; WT: ( -- ; <string> )
+; WTABLE ( n+ -- ; <string> )
+; n+  words reserved  
 ;--------------------------------
     .word LINK 
     LINK=.
-    .byte 3
-    .ascii "WT:"
+    .byte 6
+    .ascii "WTABLE"
 WTABLE:
-
-    ret 
-
-;-------------------------------
-; terminate WTABLE compilation
-; WT; ( -- )
-;-------------------------------
-    .word LINK
-    LINK=.
-    .byte 3 
-    .ascii "WT;" 
-WTSEMI:
-
-    ret 
-
-
-;----------------------------------
-; table runtime
-; stack table base address 
-; DOTABLE ( -- a|ud )
-;----------------------------------
-    .word LINK 
-    LINK=.
-    .byte 7
-    .ascii "DOTABLE"
-DOTABLE:
-    popw y 
-    ldw YTEMP,y 
-.if NUCLEO
-    subw x,#2*CELLL 
-    ldw y,(y)
-    ldw (x),y 
-    ldw y,YTEMP 
-    ldw y,(2,y)
-    ldw (2,x),y
-.else ; DISCOVERY 
-    subw x,#CELLL 
-    ldw y,(y)
-    ldw YTEMP,y
-    ldw y,(y)
-    ldw (x),y
-.endif 
-    ret ; address stacked by call to EXEC.
+    CALL CELLS  
+    CALL CALLOT 
+    JP DCONST 
 
 ;---------------------------------
 ; stack an element of CTABLE 
-; CT@ ( u a|ad -- c )
+; CTABL@ ( u ad -- c )
 ; u element order {0..size-1}
 ; a|ad table address 
 ;--------------------------------
     .word LINK 
     LINK=.
-    .byte 3
-    .ascii "CT@" 
+    .byte 6
+    .ascii "CTABL@" 
 CTAT:
-    call PSTO 
-    ldw y,x 
-    ldw y,(y)
-    addw y,PTR16
-    ldw PTR16,y 
-    clrw y
-.if NUCLEO ; 24 bits address
-    jrnc 1$
-    inc FPTR 
-1$:
-    ldf a,[FPTR]
-.else ; DISCOVERY 16 bits address     
-    ld a,[PTR16]
-.endif 
-    ld yl,a 
-    ldw (x),y 
-    ret 
+    call FPSTOR 
+    call PTRPLUS 
+    jp EE_CREAD 
 
 ;---------------------------------
 ; stack an element of WTABLE 
-; WT@ ( u a|ud -- w )
+; WTABL@ ( u ud -- w )
 ; u is element order {0..size-1}
 ; a|ud table address 
 ;----------------------------------
     .word LINK 
     LINK=.
-    .byte 3
-    .ascii "WT@" 
+    .byte 6
+    .ascii "WTABL@" 
 WTAT:
-    call PSTO 
-    ldw y,x 
-    ldw y,(y)
-    addw y,PTR16
-    ldw PTR16,y 
-.if NUCLEO ; 24 bits address
-    jrnc 1$
-    inc FPTR 
-1$:
-    ldf a,[FPTR]
-    ld yh,a 
-    call INC_FPTR 
-    ldf a,[FPTR]
-    ld yl,a 
-.else ; DISCOVERY 16 bits address     
-    ld a,[PTR16]
-    ld yh,a 
-    call inc_ptr 
-    ld a,[PTR16]
-    ld yl,a 
-.endif 
-    ldw (x),y 
+    call FPSTOR 
+    call CELLS 
+    call PTRPLUS 
+    call EE_READ 
     ret 
 
 ;--------------------------
-; fill character table 
-; CTFILL ( ud -- )
+; tool to initialize character table 
+; CTINIT ( ad -- )
+; ad is table address 
 ;--------------------------
     .word LINK 
     LINK=.
     .byte 6 
-    .ascii "CTFILL"
-CTFILL:
-    CALL PSTO
+    .ascii "CTINIT"
+CTINIT:
+    CALL FPSTOR
     CALL UNLOCK
     CALL ZERO 
 1$: CALL ONEP 
@@ -186,20 +126,21 @@ CTFILL:
     call WR_BYTE 
     CALL BRAN 
     .word 1$ 
-2$: CALL DROP 
+2$: CALL DDROP 
     CALL LOCK 
     ret 
 
 ;--------------------------
-; fill word table 
-; WTFILL ( ud -- )
+; tool to initialize word table 
+; WTINIT ( ad -- )
+; ad is table address 
 ;--------------------------
     .word LINK 
     LINK=.
     .byte 6 
-    .ascii "WTFILL"
-WTFILL:
-    CALL PSTO
+    .ascii "WTINIT"
+WTINIT:
+    CALL FPSTOR
     CALL UNLOCK
     CALL ZERO 
 1$: CALL ONEP 
@@ -210,18 +151,20 @@ WTFILL:
     call WR_WORD 
     CALL BRAN 
     .word 1$ 
-2$: CALL DROP 
+2$: CALL DDROP 
     CALL LOCK 
     ret 
 
 ;------------------------
 ; Prompted input for integer 
-; [n]? ( -- a )
+; display n+ in bracket and
+; '?' 
+; [N]? ( n+ -- a )
 ;------------------------
     .word LINK 
     LINK=.
     .byte 4
-    .ascii "[n]?" 
+    .ascii "[N]?" 
 INTQ:
     CALL CR 
     call DOLIT 

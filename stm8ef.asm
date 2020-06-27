@@ -454,7 +454,7 @@ AUTORUN:
         ldw (x),y 
         ldw y,#APP_RUN 
         ldw (2,x),y 
-        jp ee_store 
+        jp EESTORE 
 
 ;; Reset dictionary pointer before 
 ;; forgotten word. RAM space and 
