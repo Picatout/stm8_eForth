@@ -597,7 +597,7 @@ Ce module définie des constantes arithmétiques constituée de 2 entiers dont l
 
 * __LN2S__&nbsp;&nbsp;( -- 485 11464 ) Empile 2 entiers dont le rapport approxime la valeur de __10³ * ln(2)/2¹⁴.__
 
-* __LOG2S__&nbsp;&nbsp;( -- 2040 11103 ) Empile 2 entiers dont le rapport apprime la valeur de __10⁴ * log(2)/2¹⁴.__
+* __LOG2S__&nbsp;&nbsp;( -- 2040 11103 ) Empile 2 entiers dont le rapport approxime la valeur de __10⁴ * log(2)/2¹⁴.__
 
 
 * __PI__&nbsp;&nbsp;( -- 355 113 ) Empile 2 entiers dont le rapport se rapproche de la constante **PI**.  
@@ -630,7 +630,7 @@ Donc les tables de constantes ne devrait-être créée qu'en mode **TO-FLASH** p
 
 * __WTABLE__&nbsp;&nbsp;( u -- ad ; &lt;string&gt; ) Création d'une table de **u** entiers dans l'espace code. **&lt;string&gt;** est le nom de la table. **ad** est l'adresse de base de la table nouvellement créée.
 
-* __WTFINIT__&nbsp;&nbsp;( ad -- ) Outil d'initialisation d'une table de contantes entiers dans la mémoire persistante. **ad** est l'adresse de la table.  L'utilisateur doit saisir au terminal une valeur entière dans l'intervalle {-32768..32767} pour chaque entrée de la table qu'il désir initialiser. L'initialisation se termine lorsqu'une ligne vide ou une valeur non numérique est saisie au terminal.  **ATTENTION:** même si la variable **TFLASH** est à *faux* l'espace est toujours alloué dans la mémoire FLASH. Par contre la variable qui référence la table sera créée dans le dictionnaire en mémoire RAM. Donc après un redémarrage l'espace alloué pour cette table est toujours réservé en mémoire FLASH mais la variable de référence est perdue. Donc les tables de constantes ne devrait-être créée qu'en mode **TO-FLASH** pour que la référence soit préservée après redémarrage.  
+* __WTINIT__&nbsp;&nbsp;( ad -- ) Outil d'initialisation d'une table de contantes entiers dans la mémoire persistante. **ad** est l'adresse de la table.  L'utilisateur doit saisir au terminal une valeur entière dans l'intervalle {-32768..32767} pour chaque entrée de la table qu'il désir initialiser. L'initialisation se termine lorsqu'une ligne vide ou une valeur non numérique est saisie au terminal.  **ATTENTION:** même si la variable **TFLASH** est à *faux* l'espace est toujours alloué dans la mémoire FLASH. Par contre la variable qui référence la table sera créée dans le dictionnaire en mémoire RAM. Donc après un redémarrage l'espace alloué pour cette table est toujours réservé en mémoire FLASH mais la variable de référence est perdue. Donc les tables de constantes ne devrait-être créée qu'en mode **TO-FLASH** pour que la référence soit préservée après redémarrage.  
 
 * __[N]?__&nbsp;&nbsp;( n+ -- n T | a F ) Ce mot est invoqué par **CTINIT** et **WTINIT** pour effectuer la saisie au terminal des entiers qui servent à initialiser une table de constantes. 
 Pour chaque entier requie l'invite **[n+]?** est affichée au terminal en attente de la saisie par l'utilisateur d'un entier. **n+** est l'indice de table qui recevra l'entier saisie. Ce mot retourne  l'entier saisie **n** et **T** ou **a** et **F** Si la valeur saisie n'est pas un entier. 

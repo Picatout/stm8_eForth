@@ -12,7 +12,7 @@
 
 * Ajout de **WR-WORD** dans **flash.asm** 
 
-* Ajout de **CTFILL**, **WTFILL** dans **ctable.asm**.
+* Ajout de **CTINIT**, **WTINIT** dans **ctable.asm**.
 
 * Ajout de **[N]?** Comme outil d'initialisation d'une table de contantes. Utilisé par **CTFILL** et **WTFILL**. 
 
