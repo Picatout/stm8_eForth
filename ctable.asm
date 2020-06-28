@@ -46,7 +46,7 @@ CALLOT:
 ;------------------------------
 ; create constants bytes table 
 ; in persistant memory
-;  CTABLE ( n+ --  ; <string> )
+;  CTABLE ( n+ -- ad ; <string> )
 ; n+ bytes reserved 
 ;-----------------------------
     .word LINK 
@@ -61,7 +61,7 @@ CTABLE:
 ;--------------------------------
 ; create constants words table 
 ; in persistant memory 
-; WTABLE ( n+ -- ; <string> )
+; WTABLE ( n+ -- ad ; <string> )
 ; n+  words reserved  
 ;--------------------------------
     .word LINK 

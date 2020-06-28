@@ -1,5 +1,9 @@
 #### 2020-06-27
 
+* Réorganisation du [manuel de référence](reference.md) en sections séparées pour chaque module et création d'un index de sections. 
+
+* Travail sur le module **ctable.asm** complété.
+
 * Ajout de **CALLOT** dans le module **ctable.asm**. pour réserver de l'espace dans l'espace code pour une table de constantes.
 
 #### 2020-06-26

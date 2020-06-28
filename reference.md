@@ -1,9 +1,5 @@
 # STM8eForth V3.0  référence du vocabulaire.
 
-**NOTES:**
-
-Il existe 2 versions du système l'une pour la carte **NUCLEO** et l'autre pour la carte **DISCOVERY**. Comme il n'y a pas de mémoire étendue sur le MCU **stm8s105c6** de la carte **DISCOVERY** il n'y avait pas besoin d'adresses utilisant des **entiers double non signés**. donc le vocabulaire du module **flash_disco.asm** est différent de celui du module **flash.asm**. Dans la version **DISCOVERY** les adresses double ont étées abandonnées. Certains mots devenus inutiles dans cette version ont été supprimés. 
-
 ## Conventions typographique
 
 **a**  Adressse 16 bits 
@@ -43,18 +39,20 @@ Il existe 2 versions du système l'une pour la carte **NUCLEO** et l'autre pour 
 
 # Index 
 
-* [core](#core)
+Chaque module a une section séparé pour sont vocubulaire. Cet index conduit à la section concernée. 
 
-* [flash](#flash)
+* [core](#core) module stm8ef.asm 
 
-* [scaling constants](#scaling)
+* [flash](#flash) module flash.asm 
 
-* [constants table](#ctable)
+* [scaling constants](#scaling)  module math_const.asm 
+
+* [constants table](#ctable)  module ctable.asm 
 
 <hr>
 <a id="core"></a>
 
-## Vocabulaire du système
+## Vocabulaire principal du système
 
 * __!__&nbsp;&nbsp;( n a -- ) Dépose la valeur **n** à l'adresse **a**
 
@@ -132,8 +130,6 @@ Il existe 2 versions du système l'une pour la carte **NUCLEO** et l'autre pour 
 
 * __1-__&nbsp;&nbsp;( i1 -- i2 ) Décrémente i1 pour donner i2.
 
-* __12RT2__&nbsp;&nbsp;( -- 26797 25293 ) Empile 2 constantes dont le rapport s'approche de la racine 12ième de 2. 
-
 * __2!__&nbsp;&nbsp;( nd a -- ) Dépose un entier double à l'adresse a.  
 
 * __2*__&nbsp;&nbsp;( i1 -- i2 ) Multiplie par i1 par 2.
@@ -177,7 +173,7 @@ Si le champ code est invalide retourne **0**.
 
 * __?KEY__&nbsp;&nbsp;( -- c -1 | 0) Vérifie s'il y a un caractère de disponible en provenance du terminal. Si oui retourne le caractère **c** et **-1** sinon retourne **0**.  
 
-* __?STACK__&nbsp;&nbsp;( -- ) Vérifie si la pile des arguments est état sous-vidée *(underflow)*. Un abadon avec message d'erreur se produit dans ce cas.
+* __?STACK__&nbsp;&nbsp;( -- ) Vérifie si la pile des arguments est en état sous-vidée *(underflow)*. Un abadon avec message d'erreur se produit dans ce cas.
 
 * __?UNIQUE__&nbsp;&nbsp;( b -- b ) Vérifie si le nom pointé par a existe déjà dans le dictionnaire.  Affiche un messag d'avertissement s'il ce nom est déjà dans le dictionnaire. Ça signifit qu'on est en train de redéfinir un mot qui est déjà dans le dictionnaire.
 
@@ -214,8 +210,6 @@ Si le champ code est invalide retourne **0**.
 * __BRANCH__&nbsp;&nbsp;( -- ) Compile un saut inconditionnel avec une adresse litérale.
 En *runtime* ce saut est toujours effectué.
 
-* __BUF&gt;ROW__&nbsp;&nbsp;( ud -- ) Écris le contenu du tampon **ROWBUFF** dans la mémoire flash en utilisant l'opération d'écriture par bloc du MCU.   
-
 * __BYE__&nbsp;&nbsp;( -- ) Exécute l'instruction machine **HALT** pour mettre le MCU en mode suspendu. Dans ce mode l'oscillateur et arrêter et le MCU dépense un minimum d'énergie. Seul un *reset* ou une interruption externe peut réactivé le MCU. Si le MCU est réanimé par une interruption après l'exécution de celle-ci l'exécution se poursuit après l'instruction **HALT**. 
 
 * __C!__&nbsp;&nbsp;( c a -- ) Dépose le caractère *c* à l'adresse *a*. Sur la pile *c* occupe 2 octets mais en mémoire il n'occupe qu'un octete. 
@@ -225,8 +219,6 @@ En *runtime* ce saut est toujours effectué.
 * __C@__&nbsp;&nbsp;( a -- c ) Empile l'octet qui se trouve à l'adresse *a*.
 
 * __CALL,__&nbsp;&nbsp;( a -- ) Compile un appel de sous-routine dans la liste d'une définition.  *a* est l'adresse de la sous-routine. 
-
-* __CHKIVEC__&nbsp;&nbsp;( a -- ) Toutes les adresses de destination des vecteurs d'interruptions sont comparés à *a*. Tous les vecteurs qui pointent vers une adresse &lt;=*a* sont réinitialisés à la valeur par défaut. Ce mot est invoqué par **PRISTINE**. 
 
 * __CMOVE__&nbsp;&nbsp;( a1 a2 u -- ) Copie *u* octets de *a1* vers *a2*.
 
@@ -245,8 +237,6 @@ En *runtime* ce saut est toujours effectué.
 * __CR__&nbsp;&nbsp;( -- ) Envoie le caractère ASCII **CR** au terminal.
 
 * __CREATE__&nbsp;&nbsp;( -- ; &lt;string&gt; ) Compile le nom d'une nouvelle variable dans le dictionnaire. **&lt;string&gt;** est le nom de la nouvelle variable. Les variables sont initialisées à **0**.  
-
-* __CTFILL__&nbsp;&nbsp;( ad -- ) Outil d'initialisation d'une table de constantes octets dans la mémoire persistante. **ad** est l'adresse de la table. Module **ctable.asm**.
 
 * __DCONST__&nbsp;&nbsp;( d -- ; &lt;string&gt;) Création d'une constante de type entier double.
 
@@ -279,31 +269,6 @@ En *runtime* ce saut est toujours effectué.
 
 * __DUP__&nbsp;&nbsp;( n -- n n ) Empile une copie de l'élément au sommet de la pile.
 
-* __E__&nbsp;&nbsp;( -- 28667 10546 ) Le rapport des 2 entiers empilés donne une valeur approximative de la base du logarithme népérien. 
-
-* __EE!__&nbsp;&nbsp;( n ud -- ) Écriture en mémoire persistante (FLASH|EEPROM) de la valeur *n*. *ud* et un entier double non signé représentant l'adresse destination. 
-
-* __EE,__ ( n -- ) Compile en mémoire FLASH l'entier *n*. 
-
-* __EEC!__&nbsp;&nbsp;( c ud -- ) Écris en mémoire persistante le caractère *c*. *ud* est l'adresse destination sous-forme d'entier double non signé.
-
-* __EEC,__&nbsp;&nbsp;( c -- )  Compile en mémoire FLASH le caractère *c*.  
-
-* __EE-CREAD__&nbsp;&nbsp;( -- c) Empile le caractère à l'adresse pointé par **FPTR** et incrément le pointeur.
-
-** __EE-READ__&nbsp;&nbsp;( -- n ) Empile l'entier pointé par **FPTR** et incrément le pointeur de 2.
-
-* __EEP-CP__&nbsp;&nbsp;( -- ud ) Empile l'adresse de la variable système persistante **APP_CP**
-. *ud* est un entier double non signé. 
-
-* __EEP-LAST__&nbsp;&nbsp;( -- ud ) Empile l'adresse de la variable système persistante **APP_LAST**.
-
-* __EEP-RUN__&nbsp;&nbsp;( -- ud ) Empile l'adresse de la variable système persistante **APP_RUN**. 
-
-* __EEP-VP__&nbsp;&nbsp;( -- ud ) Empile l'adresse de la variable système persitante **APP_VP** 
-
-* __EEPROM__&nbsp;&nbsp;( -- ud ) Empile l'adresse de base de l'EEPROM. 
-
 * __EI__&nbsp;&nbsp;( -- ) Active les interruptions en exécutant l'instruction machine **RIM**.
 
 * __ELSE__&nbsp;&nbsp;( a1 -- a2 ) Compile l'adresse du saut avant dans la fente *a1* laissée sur la pile par le **IF** qui indique où doit se faire le saut avant pour exécuter une condition *fausse*. Laisse *a2* sur la pile qui est l'adresse de la fente qui doit-être comblée par le **THEN** et qui permet un saut avant après le **THEN** lors que la condition *vrai* est exécutée.   
@@ -318,23 +283,13 @@ En *runtime* ce saut est toujours effectué.
 
 * __EXTRACT__&nbsp;&nbsp;(  n1 base -- n2 c  ) Extrait le chiffre le moins significatif de *n* et le converti en caractère ASCII *c*. *n2=n1/base*.   
 
-* __F@__&nbsp;&nbsp;( ad -- n ) Empile l'entier qui se trouve à l'adresse étendue *ad*. Utile pour lire la mémoire flash au delà de 65535. Sur la version **NUCLEO** seulement.
-
-* __FADDR__&nbsp;&nbsp;( a -- ad ) Convertie l'adresse 16 bits *a* en adresse 32 bits *ad*. Sur la version **NUCLEO** seulement.
-
-* __FC@__&nbsp;&nbsp;( ad -- ) Empile l'octet qui se trouve à l'adresse étendue *ad*. Utile pour lire  à mémoire flash au delà de 65535. Sur la version **NUCLEO** seulement.
-
 * __FILL__&nbsp;&nbsp;( b u c -- ) Remplie *u* octets de la mémoire RAM à partir de l'adresse *b* avec le caractère *c*.  
 
 * __FIND__&nbsp;&nbsp;( a va -- ca na | a 0 ) Recherche le nom pointé par *a* dans le dictionnaire à partir de l'entrée indiquée par *va*. Si trouvé retourne *ca* l'adresse d'exécution. *na* l'adresse du champ nom. En cas d'échec retourne *a* et *0*.
 
-* __FMOVE__&nbsp;&nbsp;( -- a ) Déplace le dernier mot compilé de la mémoire RAM vers la mémoire FLASH. Retourne le pointeur de code mis à jour *a*.  
-
 * __FOR__&nbsp;&nbsp;( n+ -- ) Initialise une boucle FOR..NEXT. *n+* est un entier positif. La boucle se répète *n+1* fois. 
 
 * __FORGET__&nbsp;&nbsp;( -- ; &lt;string&gt; ) Supprime du dictionnaire la définition **&lt;string&gt;** ainsi que toutes celles qui ont étées créées après celle-ci. Ne supprime que les définitions en mémoire FLASH. Pour les définitions en mémoire RAM il faut faire un **REBOOT**. 
-
-* __FP!__&nbsp;&nbsp;( ad -- ) Initialize la variable système **FPTR** avec la valeur *ad*. Le far pointer est utilisé pour les opérations d'écriture en mémoire persistante.  
 
 * __FREEVAR__&nbsp;&nbsp;( na -- ) *na* étant l'adresse du champ nom d'une variable **FEEVAR** réinitialise le pointeur **VP** à cette adresse. Toute allocation de mémoire RAM qui suit cette adresse est perdu.  
 
@@ -354,11 +309,7 @@ En *runtime* ce saut est toujours effectué.
 
 * __IF__&nbsp;&nbsp;( f -- ) Vérifie la valeur de l'indicateur booléen *f* et exécute le code qui suis le **IF** si cette indicateur est *vrai* sinon saute après le **ELSE** ou le **THEN**. 
 
-* __IFMOVE__&nbsp;&nbsp;( -- a ) Transfert routine d'interruption qui vient d'être compilée vers la mémoire flash. *a* est la valeur mise à jour du pointeur de code *CP*. 
-
 * __IMMEDIATE__&nbsp;&nbsp;( -- ) Active l'indicateur **IMMED** dans l'entête de dictionnaire du dernier mot qui a été compilé. Habituellement invoqué juste après le **;**. 
-
-* __INC-PTR__&nbsp;&nbsp;( -- ) Incrémente la variable système **FPTR**. Pour DISCOVERY il s'agit de la variable système **PTR16**.  
 
 * __INIT-OFS__&nbsp;&nbsp;( -- ) Initialise la variable système **OFFSET** au début d'une nouvelle compilation. L'offset est la distance entre les valeurs des variables **CP** et **VP**
 Lorsque la variable système **TFLASH**  est à zéro **OFFSET** est initialisé à zéro. **OFFSET** est utilisé par le compilateur pour déterminer les adresses absolues à utiliser dans les instructions de saut **BRANCH** et **?BRANCH**. 
@@ -370,12 +321,6 @@ Lorsque la variable système **TFLASH**  est à zéro **OFFSET** est initialisé
 * __LAST__&nbsp;&nbsp;( -- a ) Empile l'adresse de la variable système **LAST**. 
 
 * __LITERAL__&nbsp;&nbsp;( n -- ) Compile *n* comme entier litéral. En *runtime* **DOLIT** est invoqué pour remettre sur la pile la valeur *n*.  
-
-* __LN2S__&nbsp;&nbsp;( -- 485 11464 ) Empile 2 entiers dont le rapport approxime la valeur de __10³ * ln(2)/2¹⁴.__
-
-* __LOCK__&nbsp;&nbsp;( -- ) Verrouille l'écrire dans la mémoire persistante (FLASH et EEPROM).
-
-* __LOG2S__&nbsp;&nbsp;( -- 2040 11103 ) Empile 2 entiers dont le rapport apprime la valeur de __10⁴ * log(2)/2¹⁴.__
 
 * __LSHIFT__&nbsp;&nbsp;( i1 n+ -- ) Décalager vers la gauche de *i1* *n+* bits. Les bits à droites sont mis à zéro.
 
@@ -425,15 +370,9 @@ Lorsque la variable système **TFLASH**  est à zéro **OFFSET** est initialisé
 
 * __PAUSE__&nbsp;&nbsp;( u -- ) Suspend l'exécution pour une durée de *u* millisecondes.  
 
-* __PI__&nbsp;&nbsp;( -- 355 113 ) Empile 2 entiers dont le rapport se rapproche de la constante **PI**.  
-
 * __PICK__&nbsp;&nbsp;( nx j -- nx nj ) Copie au sommet de la pile le jième élément de la pile. *j* est d'abord retiré de la pile ensuit les éléments sont compté à partir du sommet vers le fond de la pile. l'Élément au sommet est l'élément *0*.  Donc **0 PICK** est l'équivalent de **DUP** et **1 PICK** est l'équivalent de **OVER**. Le nombre d'éléments sur la pile doit-être &ge;j+1.
 
 * __PRESET__&nbsp;&nbsp;( -- ) Vide la pile des arguments et le TIB avant d'invoquer **QUIT**.  
-
-* __PRISTINE__&nbsp;&nbsp;( -- ) Nettoie le système de toutes les modifications effectuées par l'utilisateur. Le système Forth se retrouve alors dans son état initial avant toute intervantion de l'utilisateur. 
-
-* __PTR+__&nbsp;&nbsp;( u -- ) Incrémente **FPTR** d'une valeur arbitraire *u*.
 
 * __QUERY__&nbsp;&nbsp;( -- ) Lecture d'une ligne de texte du terminal dans le TIB. La lecture se termine à la réception d'un caractère **CR**. Le nombre de caractères dans le TIB est dans la variable systèmE **#TIB**. 
 
@@ -443,8 +382,6 @@ Lorsque la variable système **TFLASH**  est à zéro **OFFSET** est initialisé
 
 * __R@__&nbsp;&nbsp;( -- n ) La valeur au sommet de la pile des retours est copié sur la pile des arguments.  
 
-* __RAM&gt;EE__&nbsp;&nbsp;( ud a u1 -- u2 ) Écris dans la mémoire persistance *u1* octets de la mérmoire RAM à partir de l'adresse *a* vers l'adresse *ud*. Cependant l'écriture est limitée aux limites du bloc 128 octets qui contient l'adresse *ud*. Si *ud+u1*  dépasse la limite l'écriture s'arrête à la fin du bloc. Retourne *u2* le nombre d'octets réellement écris. 
-
 * __RAMLAST__&nbsp;&nbsp;( -- a ) Empile l'adresse de la variable système **RAMLAST**. 
 
 * __RANDOM__&nbsp;&nbsp;( u1 -- u2 ) Retourne un entier pseudo aléatoire dans l'intervalle **0&le;u2&lt;u1**.  
@@ -453,21 +390,13 @@ Lorsque la variable système **TFLASH**  est à zéro **OFFSET** est initialisé
 
 * __REPEAT__&nbsp;&nbsp;( -- ) Termine un boucle de la forme **BEGIN-WHILE-REPEAT**. Le branchement s'effectue après le **BEGIN**.
 
-* __RFREE__&nbsp;&nbsp;( a -- u ) *u* est le nombre d'octets libres dans le bloc qui contient l'adresse *a*. En fait u=128-a%128. 128 étant la longueur d'un bloc FLASH pour le MCU STM8S208RB.  
-
 * __ROT__&nbsp;&nbsp;( n1 n2 n3 -- n2 n3 n1 ) Rotation des 2 éléments supérieurs de la pile.
-
-* __ROW-ERASE__&nbsp;&nbsp;( ud -- ) Efface le bloc de mémoire persistante contentant l'adresse **ud**.  
-
-* __ROW&gt;BUF__&nbsp;&nbsp;( ud -- ) Copie le bloc de mémoire persistante contenant l'adresse **ud** vers le tampon système **TBUF**. 
 
 * __RP!__&nbsp;&nbsp;( n -- ) Initialise le pointeur de la pile des retours avec la valeur **n**.
 
 * __RP@__&nbsp;&nbsp;( -- n ) Empile la valeur du pointeur de la pile des retours. 
 
 * __RSHIFT__&nbsp;&nbsp;( n1 u -- n2 ) Décale *n1* de *u* bits vers la droite. Les bits à gauche sont remplacés par **0**. Même effet que l'opérateur **C** **&gt;&gt;**.  
-
-* __RST-IVEC__&nbsp;&nbsp;( u -- ) Réinitialise le vecteur d'interruption #**u** à sa valeur par défaut. 
 
 * __S>D__&nbsp;&nbsp;( i -- d ) Convertie un entier simple en entier double. 
 
@@ -476,10 +405,6 @@ Lorsque la variable système **TFLASH**  est à zéro **OFFSET** est initialisé
 * __SEED__&nbsp;&nbsp;( u -- ) Initialise le générateur pseudo-aléatoire.  
 
 * __SET-ISP__&nbsp;&nbsp;( u1 u2 -- ) Fixe le niveau de priorité logicielle d'interruption du vecteur *u2* avec la valeur *u1* {1,2,3}. Le niveau maximal est **3** et c'est la valeur par défaut..
-
-* __SET-IVEC__&nbsp;&nbsp;( ud u -- )  Initialise le vecteur d'interruption *u* avec l'adresse **ud** qui et l'adresse d'une routine de service d'interruption. 
-
-* __SET-OPT__&nbsp;&nbsp;( c u -- ) Écris le caractère *c* dans le registre d'OPTION *u*.  
 
 * __SIGN__&nbsp;&nbsp;( i -- ) Si i&lt;0 alors préfixe la chaîne numérique du caractère **-**. Est utilisé lors de la conversion d'un entier en chaîne de caractères.  
 
@@ -490,12 +415,6 @@ Lorsque la variable système **TFLASH**  est à zéro **OFFSET** est initialisé
 * __SPACE__&nbsp;&nbsp;( -- ) Envoie un caractère ASCII *espace* au terminal.
 
 * __SPACES__&nbsp;&nbsp;( n+ -- ) Envoie **n+** caractères ASCII *espace* au terminal. 
-
-* __SQRT10__&nbsp;&nbsp;( -- 22936 7253 ) Empile deux entiers dont le rapport approxime la racine carrée de 10. 
-
-* __SQRT2__&nbsp;&nbsp;( -- 19601  13860 ) Empile deux entiers dont le rapport approxime la racine carrée de 2.  
-
-* __SQRT3__&nbsp;&nbsp;( -- 18817 10864 ) Empile deux entiers dont le rapport approxime la racine carrée de 3. 
 
 * __STR__&nbsp;&nbsp;( i -- b u ) Converti en chaîne de caractère l'entier **i**. **b** est la chaîne résultatnte et **u** la longueur de cette chaîne. 
 
@@ -537,23 +456,7 @@ Lorsque la variable système **TFLASH**  est à zéro **OFFSET** est initialisé
 
 * __UM/MOD__&nbsp;&nbsp;( ud u -- ur uq ) Division non signé de l'entier double *ud* par l'entier simple non signé *u*. Retourne le reste *ur* et le quotient *uq*. 
 
-* __UNLKEE__&nbsp;&nbsp;( -- ) Déverouille pour l'écriture la mémoire EEPROM.  
-
-* __UNLKFL__&nbsp;&nbsp;( -- ) Déverouille pour l'écriture la mémoire FLASH.
-
-* __UNLOCK__&nbsp;&nbsp;(  -- ) Selon l'adresse contenue dans la variable système **FPTR** déverrouille la mémoire FLASH ou EEPROM.  
-
 * __UNTIL__&nbsp;&nbsp;( f -- ) Termine une boucle **BEGIN - UNTIL**. La boucle se termine quand **f** est *vrai*.  
-
-* __UPDAT-CP__&nbsp;&nbsp;( -- ) Met à jour la variable système persistante **EEP-CP** à partir de la variable **CP**.  
-
-* __UPDAT-LAST__&nbsp;&nbsp;( -- ) Met à jour la variable système persistante **EEP-LAST** à partir de la variable **LAST**. 
-
-* __UPDAT-PTR__&nbsp;&nbsp;( -- ) Met à jour les différentes variables système persistantes à partir des valeurs de leur correspondantes non persistantes.
-
-* __UPDAT-RUN__&nbsp;&nbsp;( a -- ) Met à jour la variable système persistante **EEP-RUN**. **a** est la nouvelle adresse du programme à exécuter au démarrage.
-
-* __UPDAT-VP__&nbsp;&nbsp;( -- ) Met à jour la variable système persistante **EEP-VP** à partir de la valeur de **VP**. 
 
 * __VARIABLE__&nbsp;&nbsp;( -- &lt;string&gt;) Crée une nouvelle variable de nom **&lt;string&gt;**. Cette variable est initialisée à zéro.  
 
@@ -566,13 +469,6 @@ Lorsque la variable système **TFLASH**  est à zéro **OFFSET** est initialisé
 * __WORD__&nbsp;&nbsp;( c -- a ) Extrait le prochain mot du **TIB** et le copie à la fin du dictionnaire. **c** est le caractère séparateur de mot et **a** est l'adresse où le mot a été copié. 
 
 * __WORDS__&nbsp;&nbsp;( -- ) Imprime la liste de tous les mots du dictionnaire. 
-
-* __WR-BYTE__&nbsp;&nbsp;( c -- ) Écris un octet dans la mémoire persistante à l'adresse indiquée par la variable système **FPTR**.  
-
-* __WR-ROW__&nbsp;&nbsp;( a ud -- ) Écriture d'un bloc de 128 octets dans la mémoire persistante. **a** est l'adresse RAM qui contient les données à écrires et **ud** l'adresse destination. Si *ud* n'est pas alignée sur un bloc de 128 octets il le sera en mettant les 7 bits les moins significatifs à zéro. Dans la version **DISCOVERY** *ud* est remplacé par une adresse de type *entier simple non signé*.
-
-* __WTFILL__&nbsp;&nbsp;( ad -- ) Outil d'initialisation d'une table de contantes entiers dans la mémoire persistante. **ad** est l'adresse de la table. Module **ctable.asm**.
-
 * __XOR__&nbsp;&nbsp;( n1 n2 -- n3 ) **n3** est le résultat d'un ou exclusif bit à bit entre **n1** et **n2**.  
 
 * __[__&nbsp;&nbsp;( -- ) Initialise le vecteur EVAL en mode *interprétation*. 
@@ -594,18 +490,149 @@ Si un entier a été entré au terminal retourne l'entier et **T** sinon retounr
 
 * __parse__&nbsp;&nbsp;( b1 u1 c -- b2 u2 delta ; <string> ) **c** étant le séparateur de mots saute par dessus les **c** jusqu'au premier caractère différent de **c** ensuite avance jusqu'au premier caractère **c**. **b2** est le début du mot, **u2** sa longueur et **delta** est la distance **b2-b1**.   
 
+[Index](#index)
 <hr>
 <a id="flash"></a>
 
 ## Module flash.asm 
+
+Ce module définit le vocabulaire nécessaire pour écrire dans la mémoire persitante FLASH,EEPROM et OPTION. Il y a aussi des mots pour modifier les vecteurs d'interruptions.
+
+* __BUF&gt;ROW__&nbsp;&nbsp;( ud -- ) Écris le contenu du tampon **ROWBUFF** dans la mémoire flash en utilisant l'opération d'écriture par bloc du MCU.   
+
+* __CHKIVEC__&nbsp;&nbsp;( a -- ) Toutes les adresses de destination des vecteurs d'interruptions sont comparés à *a*. Tous les vecteurs qui pointent vers une adresse &lt;=*a* sont réinitialisés à la valeur par défaut. Ce mot est invoqué par **PRISTINE**. 
+
+* __EE!__&nbsp;&nbsp;( n ud -- ) Écriture en mémoire persistante (FLASH|EEPROM) de la valeur *n*. *ud* et un entier double non signé représentant l'adresse destination. 
+
+* __EE,__ ( n -- ) Compile en mémoire FLASH l'entier *n*. 
+
+* __EEC!__&nbsp;&nbsp;( c ud -- ) Écris en mémoire persistante le caractère *c*. *ud* est l'adresse destination sous-forme d'entier double non signé.
+
+* __EEC,__&nbsp;&nbsp;( c -- )  Compile en mémoire FLASH le caractère *c*.  
+
+* __EE-CREAD__&nbsp;&nbsp;( -- c) Empile le caractère à l'adresse pointé par **FPTR** et incrément le pointeur.
+
+* __EE-READ__&nbsp;&nbsp;( -- n ) Empile l'entier pointé par **FPTR** et incrément le pointeur de 2.
+
+* __EEP-CP__&nbsp;&nbsp;( -- ud ) Empile l'adresse de la variable système persistante **APP_CP**
+. *ud* est un entier double non signé. 
+
+* __EEP-LAST__&nbsp;&nbsp;( -- ud ) Empile l'adresse de la variable système persistante **APP_LAST**.
+
+* __EEP-RUN__&nbsp;&nbsp;( -- ud ) Empile l'adresse de la variable système persistante **APP_RUN**. 
+
+* __EEP-VP__&nbsp;&nbsp;( -- ud ) Empile l'adresse de la variable système persitante **APP_VP** 
+
+* __EEPROM__&nbsp;&nbsp;( -- ud ) Empile l'adresse de base de l'EEPROM. 
+
+* __F@__&nbsp;&nbsp;( ad -- n ) Empile l'entier qui se trouve à l'adresse étendue *ad*. Utile pour lire la mémoire flash au delà de 65535. Sur la version **NUCLEO** seulement.
+
+* __FADDR__&nbsp;&nbsp;( a -- ad ) Convertie l'adresse 16 bits *a* en adresse 32 bits *ad*. Sur la version **NUCLEO** seulement.
+
+* __FC@__&nbsp;&nbsp;( ad -- ) Empile l'octet qui se trouve à l'adresse étendue *ad*. Utile pour lire  à mémoire flash au delà de 65535. Sur la version **NUCLEO** seulement.
+
+* __FMOVE__&nbsp;&nbsp;( -- a ) Déplace le dernier mot compilé de la mémoire RAM vers la mémoire FLASH. Retourne le pointeur de code mis à jour *a*.  
+
+* __FP!__&nbsp;&nbsp;( ad -- ) Initialize la variable système **FPTR** avec la valeur *ad*. Le far pointer est utilisé pour les opérations d'écriture en mémoire persistante.  
+
+* __IFMOVE__&nbsp;&nbsp;( -- a ) Transfert routine d'interruption qui vient d'être compilée vers la mémoire flash. *a* est la valeur mise à jour du pointeur de code *CP*. 
+
+* __INC-FPTR__&nbsp;&nbsp;( -- ) Incrémente la variable système **FPTR**.  
+
+* __LOCK__&nbsp;&nbsp;( -- ) Verrouille l'écrire dans la mémoire persistante (FLASH et EEPROM).
+
+* __PRISTINE__&nbsp;&nbsp;( -- ) Nettoie le système de toutes les modifications effectuées par l'utilisateur. Le système Forth se retrouve alors dans son état initial avant toute intervention de l'utilisateur. 
+
+* __PTR+__&nbsp;&nbsp;( u -- ) Incrémente **FPTR** d'une valeur arbitraire *u*.
+
+* __RAM&gt;EE__&nbsp;&nbsp;( ud a u1 -- u2 ) Écris dans la mémoire persistance *u1* octets de la mérmoire RAM à partir de l'adresse *a* vers l'adresse *ud*. Cependant l'écriture est limitée aux limites du bloc 128 octets qui contient l'adresse *ud*. Si *ud+u1*  dépasse la limite l'écriture s'arrête à la fin du bloc. Retourne *u2* le nombre d'octets réellement écris. 
+
+* __RFREE__&nbsp;&nbsp;( a -- u ) *u* est le nombre d'octets libres dans le bloc qui contient l'adresse *a*. En fait u=128-a%128. 128 étant la longueur d'un bloc FLASH pour les MCU **STM8S105C6** et **STM8S208RB.**  
+
+* __ROW-ERASE__&nbsp;&nbsp;( ud -- ) Efface le bloc de mémoire persistante contentant l'adresse **ud**.  
+
+* __ROW&gt;BUF__&nbsp;&nbsp;( ud -- ) Copie le bloc de mémoire persistante contenant l'adresse **ud** vers le tampon système **TBUF**. 
+
+* __RST-IVEC__&nbsp;&nbsp;( u -- ) Réinitialise le vecteur d'interruption #**u** à sa valeur par défaut. 
+
+* __SET-IVEC__&nbsp;&nbsp;( ud u -- )  Initialise le vecteur d'interruption *u* avec l'adresse **ud** qui et l'adresse d'une routine de service d'interruption. 
+
+* __SET-OPT__&nbsp;&nbsp;( c u -- ) Écris le caractère *c* dans le registre d'OPTION *u*.  
+
+* __UNLKEE__&nbsp;&nbsp;( -- ) Déverouille pour l'écriture la mémoire EEPROM.  
+
+* __UNLKFL__&nbsp;&nbsp;( -- ) Déverouille pour l'écriture la mémoire FLASH.
+
+* __UNLOCK__&nbsp;&nbsp;(  -- ) Selon l'adresse contenue dans la variable système **FPTR** déverrouille la mémoire FLASH ou EEPROM.  
+
+* __UPDAT-CP__&nbsp;&nbsp;( -- ) Met à jour la variable système persistante **EEP-CP** à partir de la variable **CP**.  
+
+* __UPDAT-LAST__&nbsp;&nbsp;( -- ) Met à jour la variable système persistante **EEP-LAST** à partir de la variable **LAST**. 
+
+* __UPDAT-PTR__&nbsp;&nbsp;( -- ) Met à jour les différentes variables système persistantes à partir des valeurs de leur correspondantes non persistantes.
+
+* __UPDAT-RUN__&nbsp;&nbsp;( a -- ) Met à jour la variable système persistante **EEP-RUN**. **a** est la nouvelle adresse du programme à exécuter au démarrage.
+
+* __UPDAT-VP__&nbsp;&nbsp;( -- ) Met à jour la variable système persistante **EEP-VP** à partir de la valeur de **VP**. 
+
+* __WR-BYTE__&nbsp;&nbsp;( c -- ) Écris un octet dans la mémoire persistante à l'adresse indiquée par la variable système **FPTR**.  Incrémente **FPTR**.
+
+* __WR-ROW__&nbsp;&nbsp;( a ud -- ) Écriture d'un bloc de 128 octets dans la mémoire persistante. **a** est l'adresse RAM qui contient les données à écrires et **ud** l'adresse destination. Si *ud* n'est pas alignée sur un bloc de 128 octets il le sera en mettant les 7 bits les moins significatifs à zéro. Dans la version **DISCOVERY** *ud* est remplacé par une adresse de type *entier simple non signé*.
+
+* __WR-WORD__&nbsp;&nbsp;( n -- ) Écris un entier 16 bits dans la mémoire persitante à l'adresse pointée par **FPTR**. Incrémente **FPTR**. 
+
+
+[Index](#index)
 
 <hr>
 <a id="scaling"></a>
 
 ## Module const_ratio.asm 
 
+Ce module définie des constantes arithmétiques constituée de 2 entiers dont le rapport approche un nombre irrationnel. Ces valeurs sont utilisées dans les opérations de *scaling*. 
+
+* __12RT2__&nbsp;&nbsp;( -- 26797 25293 ) Empile 2 constantes dont le rapport s'approche de la racine 12ième de 2. 
+
+* __E__&nbsp;&nbsp;( -- 28667 10546 ) Le rapport des 2 entiers empilés donne une valeur approximative de la base du logarithme népérien. 
+
+* __LN2S__&nbsp;&nbsp;( -- 485 11464 ) Empile 2 entiers dont le rapport approxime la valeur de __10³ * ln(2)/2¹⁴.__
+
+* __LOG2S__&nbsp;&nbsp;( -- 2040 11103 ) Empile 2 entiers dont le rapport apprime la valeur de __10⁴ * log(2)/2¹⁴.__
+
+
+* __PI__&nbsp;&nbsp;( -- 355 113 ) Empile 2 entiers dont le rapport se rapproche de la constante **PI**.  
+
+* __SQRT10__&nbsp;&nbsp;( -- 22936 7253 ) Empile deux entiers dont le rapport approxime la racine carrée de 10. 
+
+* __SQRT2__&nbsp;&nbsp;( -- 19601  13860 ) Empile deux entiers dont le rapport approxime la racine carrée de 2.  
+
+* __SQRT3__&nbsp;&nbsp;( -- 18817 10864 ) Empile deux entiers dont le rapport approxime la racine carrée de 3. 
+
+[Index](#index)
+
 <hr>
 <a id="ctable"></a> 
 
 ## Module ctable.asm
 
+Ce module définit le vocabulaire servant à la création et l'initialisation de tables de constantes persistantes. Deux types de tables peuvent-être créées, les tables d'octets et les tables d'entiers 16 bits. Ce module dépend du module **flash.asm**. 
+
+* __CALLOT__&nbsp;&nbsp;( u -- ad ) Alloue **u** octet dans l'espace *code* de la mémoire FLASH. **ad** est l'adresse de base de ce bloc de mémoire. 
+
+* __CTABL@__&nbsp;&nbsp;( u ad -- c ) Empile l'octet **c** d'indice **u** de la table dont l'adresse de base est **ud**.  Les indices de tables commence à zéro. 
+
+* __CTABLE__&nbsp;&nbsp;( u -- ad ; &lt;string&gt; ) Création d'une table de **u** octets dans l'espace code. **&lt;string&gt;** est le nom de la table. **ad** est l'adresse de base de la table nouvellement créée. **ATTENTION:** même si la variable **TFLASH** est à *faux* l'espace est toujours alloué dans la mémoire FLASH. Par contre la variable qui référence la table sera créée dans le dictionnaire en mémoire RAM. Donc après un redémarrage l'espace alloué pour cette table est toujours réservé en mémoire FLASH mais la variable de référence est perdue. 
+Donc les tables de constantes ne devrait-être créée qu'en mode **TO-FLASH** pour que la référence soit préservée après redémarrage.  
+
+* __CTINIT__&nbsp;&nbsp;( ad -- ) Outil d'initialisation des tables de constantes de type octet. **ad** est l'adresse de base de la table. L'utilisateur doit saisir au terminal une valeur entière dans l'intervalle {0..255} pour chaque entrée de la table.  L'initialisation se termine lorsqu'une ligne vide ou une valeur non numérique est saisie au terminal.
+
+* __WTABL@__&nbsp;&nbsp;( u ad -- n ) Empile l'entier **n** d'indice **u** de la table dont l'adresse de base est **ud**.  Les indices de tables commence à zéro. 
+
+* __WTABLE__&nbsp;&nbsp;( u -- ad ; &lt;string&gt; ) Création d'une table de **u** entiers dans l'espace code. **&lt;string&gt;** est le nom de la table. **ad** est l'adresse de base de la table nouvellement créée.
+
+* __WTFINIT__&nbsp;&nbsp;( ad -- ) Outil d'initialisation d'une table de contantes entiers dans la mémoire persistante. **ad** est l'adresse de la table.  L'utilisateur doit saisir au terminal une valeur entière dans l'intervalle {-32768..32767} pour chaque entrée de la table qu'il désir initialiser. L'initialisation se termine lorsqu'une ligne vide ou une valeur non numérique est saisie au terminal.  **ATTENTION:** même si la variable **TFLASH** est à *faux* l'espace est toujours alloué dans la mémoire FLASH. Par contre la variable qui référence la table sera créée dans le dictionnaire en mémoire RAM. Donc après un redémarrage l'espace alloué pour cette table est toujours réservé en mémoire FLASH mais la variable de référence est perdue. Donc les tables de constantes ne devrait-être créée qu'en mode **TO-FLASH** pour que la référence soit préservée après redémarrage.  
+
+* __[N]?__&nbsp;&nbsp;( n+ -- n T | a F ) Ce mot est invoqué par **CTINIT** et **WTINIT** pour effectuer la saisie au terminal des entiers qui servent à initialiser une table de constantes. 
+Pour chaque entier requie l'invite **[n+]?** est affichée au terminal en attente de la saisie par l'utilisateur d'un entier. **n+** est l'indice de table qui recevra l'entier saisie. Ce mot retourne  l'entier saisie **n** et **T** ou **a** et **F** Si la valeur saisie n'est pas un entier. 
+
+[Index](#index)

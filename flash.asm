@@ -178,7 +178,7 @@ UPDATVP:
 	call EEPVP 
 	jp EESTORE
 	
-
+.if NUCLEO
 ;----------------------------------
 ; fetch integer at address over 65535
 ;  F@   ( ud -- n )
@@ -203,7 +203,8 @@ FARAT:
 FARCAT:
     call FPSTOR
 	jp EE_CREAD  
-    
+.endif ; NUCLEO 
+
 ;----------------------------------
 ; UNLOCK EEPROM/OPT for writing/erasing
 ; wait endlessly for FLASH_IAPSR_DUL bit.
@@ -978,6 +979,7 @@ RAM2EE:
 	call RFROM 
 	ret 
 
+.if NUCLEO
 ;--------------------------
 ; expand 16 bit address 
 ; to 32 bit address 
@@ -989,6 +991,7 @@ RAM2EE:
 	.ascii "FADDR"
 FADDR:
 	jp ZERO 
+.endif ; NUCLEO 
 
 ;--------------------------
 ; move new colon definition to FLASH 
