@@ -1,3 +1,11 @@
+#### 2020-06-29
+
+* Révision tutoriel.md 
+
+#### 2020-06-28
+
+* Réorganiser le système make pour tenir compte des 2 plateformes. Dans le fichier **config.inc** il ajouter les variables **NUCLEO** et **DISCOVERY** en fonction de la cible choisie.
+
 #### 2020-06-27
 
 * Réorganisation du [manuel de référence](reference.md) en sections séparées pour chaque module et création d'un index de sections. 
@@ -8,13 +16,13 @@
 
 #### 2020-06-26
 
-* j'ai changé d'idée, maintenir 2 versions séparée de stm8_eForth l'une pour la carte NUCLEO et l'autre pour la discovery complique les choses. à l'exception de UART choisi pour la communication avec le terminal et la quantité de mémoire disponible on peut utiliser le même système. L'idée de séparer les 2 versions étaient de réduire la taille de la version DISCOVERY. Mais le gain n'est pas considérable. Le fichier **config.inc** var permettre de sélectionner les options et la cible désirée.   
+* j'ai changé d'idée, maintenir 2 versions séparée de stm8_eForth l'une pour la carte NUCLEO et l'autre pour la discovery complique les choses. à l'exception du UART choisi pour la communication avec le terminal et la quantité de mémoire disponible on peut utiliser le même système. L'idée de séparer les 2 versions étaient de réduire la taille de la version DISCOVERY. Mais le gain n'est pas considérable. Le fichier **config.inc** var permettre de sélectionner les options et la cible désirée.   
 
 * Ajout de **WR-WORD** dans **flash.asm** 
 
 * Ajout de **CTINIT**, **WTINIT** dans **ctable.asm**.
 
-* Ajout de **[N]?** Comme outil d'initialisation d'une table de contantes. Utilisé par **CTFILL** et **WTFILL**. 
+* Ajout de **[N]?** Comme outil d'initialisation d'une table de contantes. Utilisé par **CTINIT** et **WTINIT**. 
 
 #### 2020-06-25 
 

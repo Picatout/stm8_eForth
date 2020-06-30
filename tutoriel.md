@@ -72,11 +72,18 @@ N'importe quel de ces caractères à l'exception du premier qui est l'espace (i.
 
   Il y a 2 types de commentaires en **Forth** 
 
-  * Les commentaires délimités qui sont indiqués par le mot **(** et se  termine par le premier **)** rencontré. 
+  * Les commentaires délimités qui sont indiqués par le mot **(** et se  termine par le premier **')'** rencontré. 
 
   * Les commentaires qui se termine en fin de ligne et qui sont indiqués par le mot **\\**
 
   Notez que j'ai utilisé le qualificatif **mot** pour parler de ces 2 éléments de la syntaxe **Forth**. La syntaxe de **Forth** est très simple le seul séparateur des éléments lexical est l'espace. Et puisque **(** et __\\__ sont des mots ils doivent-être séparés du commentaire qui suit par un espace. **)** n'est pas un mot mais un caractère terminateur qui indique la fin du commentaire. Il n'est donc pas nécessaire de mettre un espace entre le dernier caractère du commenataire et la parenthèse de droite.<br>  **( commentaire délimité)**  est un commentaire valide.   
+
+  * **Caractère délimiteur**. Il est important de saisir la différence entre un mot qui est dans le dictionnaire comme le mot **."** et le caractère délimiteur **"**. Les mots sont isolés les uns des autes par un espace à gauche et à droite. Un caractère délimiteur sert à indiquer la fin d'une unité lexicale et n'a pas besoin d'être délimité par un espace de chaque côté. Exemple:
+  ```
+  : Hello CR ." Hello world!" ; 
+
+  ```
+  Le mot **Hello** lorsqu'il est invoqué envoie un caractère ASCII **CR** au terminal et ensuite imprime le message<BR> *Hello world!*.<BR>Le caractère **"** qui termine le message à imprimer est un délimiteur il n'est donc pas nécessaire de mettre un espace entre le **!** et lui. Par contre **."** est un verbe d'action qui est dans le dictionnaire il faut donc qu'il y est un espace à gauche et à droite de lui pour l'isoler afin qu'il soit reconnu par l'analysesur lexical.  
 
 ### Gestion de la pile des arguments (paramètres).
 
@@ -174,7 +181,7 @@ Puisque **LD2-TOGGLE** n'est invoqué qu'une fois à l'intérieur de la définit
 
 * **SWAP**  &nbsp; ( n1 n2 - n2 n1 )  Inverse la position des 2 éléments au sommet de la pile. 
 
-* **XOR**   &nbsp; ( n1 n2 -- n3 ) *n3* est le résultat de  l'opération *ou exclusif* entre *n1* et *n2*.
+* **XOR**   &nbsp; ( n1 n2 -- n3 ) *n3* est le résultat de  l'opération *ou exclusif* bit à bit entre *n1* et *n2*.
 
 * **DROP**  &nbsp; ( i -- ) Jette l'Élément qui est au sommet de la pile.
 
@@ -246,19 +253,18 @@ Générons les 31 fréquences
 ```
 **Nouveaux mots** 
 
-* **OR** &nbsp; ( n1 n2 -- n3 ) Applique la fonction Booléenne OU entre *n1* et *n2*. Le résultat *n3* remplace les 2 paramètres. 
+* **OR** &nbsp; ( n1 n2 -- n3 ) Applique la fonction Booléenne OU bit à bit entre *n1* et *n2*. Le résultat *n3* remplace les 2 paramètres. 
 
-* **FOR** &nbsp; ( n -- ) Débute une boucle avec compteur. *n* est la valeur initiale du compteur. Le compteur est décrémenté à la fin de chaque boucle. La boucle est exécutée **n+1** fois. Exemple:
+* **FOR** &nbsp; ( n+ -- ) Débute une boucle avec compteur. *n+* est la valeur initiale du compteur. Le compteur est décrémenté à la fin de chaque boucle. La boucle est exécutée **n+1** fois, la boucle s'arrête lorsque le compteur devient négatif. Exemple:
 ```
 : TEST FOR I . NEXT ;
 4 TEST 4 3 2 1 0 ok
 ```
 * **I** &nbsp; ( -- i ) Dépose sur la pile le compteur de la boucle FOR. 
 
-* **NEXT** &nbsp; ( R: a I -- a I | ) Vérifie si le compteur *I* est à zéro si c'est le cas enlève *a* et *I* de la pile des retours et sort de la boucle. Si le compteur n'est pas à zéro décremente le compteur et branche au début de la boucle dont l'adresse est indiquée par *a*. 
-Vous n'avez pas à vous préoccuper des 2 paramètres qui sont sur la pile des retours c'est le fonctionnement interne de la boucle FOR..NEXT qui les dépose là et les retire à la sortie de la boucle. 
+* **NEXT** &nbsp; ( R: I -- I |&epsi; ) Décrémente **I** et s'il devient négatif enlève  **I** de la pile des retours et sort de la boucle. Tant que **I&ge;0** retourne au début de la boucle **FOR**.<br>**Note:** le caractère &epsi; est utilisé pour représenté l'absence de tout élément.
 
-* **.** &nbsp; ( .. i ) Imprime sur le terminal la valeur qui se trouve au sommet de la pile.
+* **.** &nbsp; ( .. i ) Imprime au terminal l'entier qui se trouve au sommet de la pile.
 Cette valeur est retirée de la pile. Ce mot dans le langage Forth est appellé *dot*. 
 
 * **LSFHIFT** &nbsp; ( n1 n2 -- n3 ) Décale vers la gauche *n1* de *n2* bits. *n3* est le résultat. Les bits à droite sont remplacé par **0**.  C'est l'équivalent de **n1&lt;&lt;n2** en langage **C**.
@@ -295,17 +301,17 @@ $5300 DUP CONSTANT T2-CR1 \ registre de contrôle
 1+ DUP CONSTANT T2-CCR3H \ partie haute registre de comparaison canal 3
 1+ DUP CONSTANT T2-CCR3L \ partie basse registre de comparaison canal 3
 ```
-Puisse que tous les registres se suivent on laisse une copie sur la pile et on l'incrémente pour définir la constante suivante. Ça permet de faire un copier/coller dans la fenêtre du terminal ce qui est plus rapide.
+Puisque tous les registres se suivent on laisse une copie sur la pile et on l'incrémente pour définir la constante suivante. Ça permet de faire un copier/coller dans la fenêtre du terminal ce qui est plus rapide.
 
 Maintenant on va définir 2 mots l'un pour calculer la valeur à mettre dans T2-ARR à partir de la fréquence désirée. Le deuxième pour calculer la valeur à mettre dant T2-CCR1 pour obtenir un rapport cyclique de 50%. Pour la fréquence on va assumer que le registre T2-PSCR est initialisé à la valeur **3**. Ce qui signifie que Fcntr=Fhsi/2^3 donc 16Mhz/8=2Mhz. Cette fréquence est celle qui va alimenter le compteur T2-CNTR.
 
 ```
 : PWM-PER ( fr -- u ) \ fr est la fréquence désiré et u la valeur pour ARR.
- 31250 64 ( fr -- fr 31250 8 ) \ Astuce expliquée plus bas.
- ROT ( -- 31250 8 fr )
- DUP ( --  31250 8 fr fr ) 
- 2/ ( --  31250 8 fr fr/2 )
- >R ( --  31250 8 fr ) R: fr/2 
+ 31250 64 ( fr -- fr 31250 64 ) \ Astuce expliquée plus bas.
+ ROT ( -- 31250 64 fr )
+ DUP ( --  31250 64 fr fr ) 
+ 2/ ( --  31250 64 fr fr/2 )
+ >R ( --  31250 64 fr ) R: fr/2 
  */MOD ( -- r q ) \ 31250*8/fr -> reste et quotient
  SWAP ( -- q r ) \ ramène le reste au dessus
  R>   ( -- q r fr/2 ) \ pour calcul de l'arrondie 
@@ -316,7 +322,18 @@ Maintenant on va définir 2 mots l'un pour calculer la valeur à mettre dans T2-
 ```
 Comme stm8_eForth est un système à entiers de 16 bits le plus gros entier positif qu'on peut utiliser est 32767  hors la fréquence du *clock* qui alimente le compteur **T2-CNTR** est à 2Mhz. Pour contourner ce problème On pré-divise 2Mhz/64 ce qui donne 31250 qui est dans le domaine des entiers signés 16 bits {-32768..32767}. L'astuce ici est de le multiplier par 64 en gardant le produit sur 32 bits avant de faire la division par **fr**. Le mot __*/MOD__ est exactement conçu pour régler ce genre de problème. 31250 est d'abord multiplié par 64 et le produit est conservé sur 32 bits ensuite la division de l'entier 32 bits par l'entier 16 bits *fr* est effectuée. Le reste et le quotient sont empilés. 
 
-On a conservé la moitié du diviseur *fr* sur la pile des retours pour pouvoir s'en servir pour calculer l'arrondie à l'entier le plus proche. La division du reste par cette valeur ne peut que donner **0** ou **1** qu'on ajoute au quotient. La valeur *u* qui est maintenant au sommet de la pile est celle qui doit-être déposer dans le registe **T2-ARR**. Il s'agit de 2 registres en fait **T2-ARRH** et **T2-ARRL**. Il est précisé dans le manuel de référence que **ARRH** doit-être écris avant **ARRL.** On ne peut donc utiliser **u T2-ARRH !** pour écrire la valeur 16 bits.   
+On a conservé la moitié du diviseur *fr* sur la pile des retours pour pouvoir s'en servir pour calculer l'arrondie à l'entier le plus proche. La division du reste par cette valeur ne peut que donner **0** ou **1** qu'on ajoute au quotient. La valeur *u* qui est maintenant au sommet de la pile est celle qui doit-être déposer dans le registe **T2-ARR**. Il s'agit de 2 registres en fait **T2-ARRH** et **T2-ARRL**. Il est précisé dans le manuel de référence que **ARRH** doit-être écris avant **ARRL.** Donc on ne peut pas utiliser **u T2-ARRH !** pour écrire la valeur 16 bits. On va définir un mot pour faire ça.
+```
+: R16! ( i a -- ) \ sauvegarde l'entier i dans le registre 16 bits a.
+\ a est l'adresse de la partie haute du registre i.e. bits 15..8 
+ OVER ( i a -- i a i )
+ 8 RSHIFT (i a i/256 ) \ bits 15..8 
+ OVER  ( i a i/256 a ) 
+ C! ( i a i/256 a -- i a ) \ sauvegarde bits 15..8 
+ 1+ ( i a -- i a+1 ) \ adresse registre bits 7..0 
+ C! ( i a+1 -- ) \ sauvegarde bits 7..9
+ ;
+ ```  
 
 Le rapport cyclique de la tonalité sera calculé à partir de la valeur contenu dans le registre **T2-ARR** et du pourcentage désiré. CCRx=ARR*dc/100+r/50. *dc* est exprimé en %. *r* est le reste de la division. 
 ```
@@ -344,8 +361,8 @@ Il ne nous reste plus qu'à définir le mot qui va générer la tonalité
 ```
 : TONE ( ms fr -- ) \ génère une tonalité de fréquence *fr* pour une durée de *ms*.
 TONE-INIT \ initialise le périphérique 
-PWM-PER DUP 8 RSHIFT T2-ARRH C! T2-ARRL C! \ initialise la période 
-T2-ARRH 50 PWM-DC DUP 8 RSHIFT T2-CCR1H C! T2-CCR1L C! \ initialise le rapport cycle à 50% 
+PWM-PER T2-ARRH R16! \ initialise la période 
+T2-ARRH 50 PWM-DC T2-CCR1H R16! \ initialise le rapport cycle à 50% 
 1 T2-EGR C! 1 T2-CR1 C! PAUSE 0 T2-CR1 C! ;
 ```
 Pour générer un tonalité on invoque **TONE** de la façon suivante:
@@ -401,16 +418,14 @@ Il s'agit donc de configurer TIM2_CH2 pour produire une impulsion à toute les 2
 4 T2-PSCR C! \ Fcnt=16Mhz/16
 $D 3 LSHIFT T2-CCMR2 C! \ canal 2 en mode PWM 
 1 4 LSHIFT T2-CCER1 C! \ canal 2 actif 
-20000 DUP 8 RSHIFT T2-ARRH C! T2-ARRL C! \ période 20 msec 
-1500 DUP 8 RSHIFT T2-CCR2H C! T2-CCR2L C! \ position neutre 
+20000 T2-ARRH R16! \ période 20 msec 
+1500 T2-CCR2H R16! \ position neutre 
 5 T2-EGR C! \ met à jour les registres 
 1 T2-CR1 C! \ active le compteur 
 ; 
 \ contrôle de la position
 : SERVO-POS ( u -- ) \ 'u' largeur d'impulsion exprimée en µSec 
-DUP ( u -- u u ) \ besoin de 2 copies 
-8 RSHIFT T2-CCR2H C! \ partie haute du registre
-T2-CCR2L C! \ partie basse du registre  
+T2-CCR2H R16! \ largeur d'impulsion 
 5 T2-EGR C! \ mise à jour *update event*
 ;
 \ utilisation 
@@ -420,7 +435,7 @@ T2-CCR2L C! \ partie basse du registre
 ```
 * Notez qu'il se peut que le servo-moteur tire trop de courant lorsque le moteur tourne pour que l'alimentation de la carte soit suffisante.
 
-* Le progamme TONE ne peut-être utilisé en même temps quel le programme qui contrôle le servo-moteur puisqu'ils utilisent le même registre de période **T2-ARRH**. Pour les utiliser en même temps il faudrait choisir 2 minuteries différentes.
+* Le progamme TONE ne peut-être utilisé en même temps quel le programme qui contrôle le servo-moteur puisqu'ils utilisent le même registre de période **T2-ARR**. Pour les utiliser en même temps il faudrait choisir 2 minuteries différentes.
 
 * Le TIMER 2 possède 3 canaux. Les canaux d'une minuterie partage le même compteur de période donc seul le rapport cyclique peut-être différent entre les canaux. Ça convient bien par exemple pour contrôler une LED RGB ou encore 3 SERVO-MOTEURS. 
 

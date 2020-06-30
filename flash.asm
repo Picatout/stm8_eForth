@@ -979,7 +979,7 @@ RAM2EE:
 	call RFROM 
 	ret 
 
-.if NUCLEO
+
 ;--------------------------
 ; expand 16 bit address 
 ; to 32 bit address 
@@ -991,7 +991,7 @@ RAM2EE:
 	.ascii "FADDR"
 FADDR:
 	jp ZERO 
-.endif ; NUCLEO 
+
 
 ;--------------------------
 ; move new colon definition to FLASH 

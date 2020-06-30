@@ -47,3 +47,29 @@ Comme il s'agit de 2 MCU STM8 l'adaptation vers le stm8s208 ne devrait pas néce
 ## 2020-06-13
 
 * Débuter la rédaction d'un [Tutoriel](tutoriel.md).
+
+## 2020-06-28
+
+Le système pour construire et flasher la cible a changer car maintenant il y a 2 cibles. 
+* NUCLEO-8S208RB 
+* STM8S-DISCOVERY 
+
+La première chose à faire est de modifier les constantes **NUCLEO**  et **DISCOVERY** dans le fichier **config.inc** pour sélectionner la carte désirée.
+
+Comme il faut spécifier le MCU et la version du programmeur j'ai crééer un makefile pour chaque carte. **nucleo.mk** et **dicso.mk** le nom du fichier cible est aussi différent. Donc maintenant il faut spécifier le *makefile* qui doit-être utilisé. 
+
+Les règles qui sont les même. 
+
+* La règle par défaut consiste à créer le fichier *.ihx sans programmer la carte. 
+
+* La règle **flash** sert à programmer la carte avec le fichier *.ihx déjà compilé.
+
+* La règle **eforth** créée et flash la carte.
+
+* la règle **clean_eevars** remet à zéro les variables persistantes dans l'eeprom.
+
+* la règle **read_eevars** lit la valeur des variables persistantes dans l'eeprom et affiche 
+leur valeurs en utilisant la commande hexdump.
+
+
+

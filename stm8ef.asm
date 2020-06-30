@@ -9,13 +9,6 @@
          .optsdcc -mstm8
 	.nlist
         .include "inc/config.inc" 
-.if NUCLEO
-	.include "inc/nucleo_8s208.inc"
-	.include "inc/stm8s208.inc"
-.else ; DISCOVERY
-	.include "inc/stm8s105.inc"
-	.include "inc/stm8s_disco.inc"
-.endif 
 	.list
 	.page
 
@@ -53,7 +46,7 @@
 ; 0x9584 End of FORTH dictionary
 ;
 ;       2020-04-26 Addapted for NUCLEO-8S208RB by Picatout 
-;                  use UART1 instead of UART3 for communication with user.
+;                  use UART1 instead of UART2 for communication with user.
 ;                  UART1 is available as ttyACM* device via USB connection.
 ;                  Use TIMER4 for millisecond interrupt to support MS counter 
 ;                  and MSEC word that return MS value.
@@ -88,7 +81,7 @@
 ;       (650) 571-7639
 ;
 
-
+      
 ;*********************************************************
 ;	Assembler constants
 ;*********************************************************
@@ -179,11 +172,19 @@ CALLL   =     0xCD     ;CALL opcodes
 IRET_CODE =   0x80    ; IRET opcode 
 
         .macro _ledon
+        .if NUCLEO
         bset PC_ODR,#LED2_BIT
+        .else ;DISCOVERY 
+        bres PD_ODR,#LD1_BIT 
+        .endif
         .endm
 
         .macro _ledoff
+        .if NUCLEO 
         bres PC_ODR,#LED2_BIT
+        .else ;DISCOVERY 
+        bset PD_ODR,#LD1_BIT 
+        .endif
         .endm
 
 ;**********************************************************
@@ -300,11 +301,17 @@ ORIG:
         LDW     RP0,X
         LDW     X,#DATSTK ;initialize data stack
         LDW     SP0,X
+.if NUCLEO        
 ; initialize PC_5 as output to control LED2
 ; added by Picatout 
         bset PC_CR1,#LED2_BIT
         bset PC_CR2,#LED2_BIT
         bset PC_DDR,#LED2_BIT
+.else ;discovery 
+        bset PD_CR1,#LD1_BIT
+        bset PD_CR2,#LD1_BIT
+        bset PD_DDR,#LD1_BIT 
+.endif
         _ledoff
 ; initialize clock to HSI
 ; no divisor 16Mhz 
@@ -760,8 +767,8 @@ LINK	= .
         .ascii     "?KEY"
 QKEY:
         CLRW Y 
-        BTJF UART1_SR,#UART_SR_RXNE,INCH   ;check status
-        LD    A,UART1_DR   ;get char in A
+        BTJF UART_SR,#UART_SR_RXNE,INCH   ;check status
+        LD    A,UART_DR   ;get char in A
 	SUBW	X,#2
         LD     (1,X),A
 	CLR	(X)
@@ -780,8 +787,8 @@ LINK	= .
 EMIT:
         LD     A,(1,X)
 	ADDW	X,#2
-OUTPUT: BTJF UART1_SR,#UART_SR_TXE,OUTPUT  ;loop until tdre
-        LD    UART1_DR,A   ;send A
+OUTPUT: BTJF UART_SR,#UART_SR_TXE,OUTPUT  ;loop until tx empty 
+        LD    UART_DR,A   ;send A
         RET
 
 ;; The kernel
@@ -2615,8 +2622,8 @@ LINK = .
         .byte      3
         .ascii     "KEY"
 KEY:
-        btjf UART1_SR,#UART_SR_RXNE,. 
-        ld a,UART1_DR 
+        btjf UART_SR,#UART_SR_RXNE,. 
+        ld a,UART_DR 
         subw x,#CELLL 
         ld (1,x),a 
         clr (x)

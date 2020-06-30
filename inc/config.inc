@@ -21,7 +21,7 @@
 ; to assemble for a specific 
 ; board set it to 1 and the other
 ; to 0. 
-NUCLEO=1    
+NUCLEO=1  
 DISCOVERY=0
 
 ; set to 1 to include 
@@ -38,10 +38,23 @@ WANT_CONST_TABLE=1
 ; by system at EEPROM base.
 EEPROM_RES = 16 
 
-; size in bytes of EXTENDED MEMORY 
+
 .if NUCLEO 
-XMEM_SIZE=96304 
-.else
-XMEM_SIZE=0 
+	.include "inc/nucleo_8s208.inc"
+	.include "inc/stm8s208.inc"
+
+XMEM_SIZE=96304 ; size in bytes of EXTENDED MEMORY 
+UART_SR=UART1_SR
+UART_DR=UART1_DR
+
+.else ; DISCOVERY
+	.include "inc/stm8s105.inc"
+	.include "inc/stm8s_disco.inc"
+
+XMEM_SIZE=0 ; size in bytes of EXTENDED MEMORY 
+UART_SR=UART2_SR
+UART_DR=UART2_DR
+
 .endif 
+
 

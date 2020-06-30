@@ -1,21 +1,20 @@
 #############################
 # librairies make file
 #############################
-NAME=stm8ef
 SDAS=sdasstm8
 SDCC=sdcc
-SDAR=sdar
-CFLAGS=-mstm8 -lstm8 -L$(LIB_PATH) -I../inc
-INC=../inc/
-INCLUDES=$(INC)stm8s208.inc
+CFLAGS=-mstm8 -lstm8  -Iinc
+# sources files 
+MAIN_FILE=stm8ef.asm
+SRC=flash.asm const_ratio.asm ctable.asm
+INC=inc/
+INCLUDES=$(INC)config.inc $(INC)ascii.inc $(INC)stm8s208.inc\
+$(INC)stm8s105.inc $(INC)stm8s_disco.inc $(INC)nucleo_8s208.inc 
 BUILD=build/
-LIB_PATH=../lib/
-OBJECTS=$(BUILD)$(SRC:.c=.rel)
+OBJECTS=$(BUILD)$(SRC:.asm=.rel)
 SYMBOLS=$(OBJECTS:.rel=.sym)
 LISTS=$(OBJECTS:.rel=.lst)
 FLASH=stm8flash
-BOARD=stm8s208rb
-PROGRAMMER=stlinkv21
 
 .PHONY: all
 
@@ -24,9 +23,9 @@ all: clean $(NAME).rel $(NAME).ihx
 $(NAME).rel:
 	@echo
 	@echo "**********************"
-	@echo "compiling $(NAME)       "
+	@echo "assembling main file  "
 	@echo "**********************"
-	$(SDAS) -g -l -o $(BUILD)$(NAME).rel $(NAME).asm
+	$(SDAS) -g -l -o $(BUILD)$(NAME).rel $(MAIN_FILE)
 
 $(NAME).ihx: $(NAME).rel 
 	$(SDCC) $(CFLAGS) -Wl-u -o $(BUILD)$(NAME).ihx  $(BUILD)$(NAME).rel
@@ -42,15 +41,13 @@ clean: build
 
 clear_eevars:
 	@echo
-	@echo "***************"
-	@echo "erase EEPROM"
-	@echo "***************"
-	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -s eeprom -b 128 -w /dev/zero
+	@echo "**********************"
+	@echo "erase EEPROM variables"
+	@echo "**********************"
+	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -s eeprom -b 16 -w /dev/zero
 
 build:
 	mkdir build
-
-.PHONY: test 
 
 flash: clear_eevars $(LIB)
 	@echo
@@ -59,12 +56,13 @@ flash: clear_eevars $(LIB)
 	@echo "***************"
 	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -w $(BUILD)$(NAME).ihx 
 
-eforth: $(NAME).asm 
+eforth: $(MAIN_FILE) 
 	-rm build/* 
-	$(SDAS) -g -l -o $(BUILD)$(NAME).rel $(NAME).asm 
+	$(SDAS) -g -l -o $(BUILD)$(NAME).rel $(MAIN_FILE)
 	$(SDCC) $(CFLAGS) -Wl-u -o $(BUILD)$(NAME).ihx  $(BUILD)$(NAME).rel
 	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -w $(BUILD)$(NAME).ihx
 
-eevars_read:
+read_eevars:
 	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -s eeprom -b 16 -r eevars.bin
 	@hexdump -C eevars.bin 
+	@rm eevars.bin 
