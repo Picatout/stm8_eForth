@@ -4306,9 +4306,14 @@ HI:
 .if NUCLEO          
         .byte 18
         .ascii  " on NUCLEO-8S208RB"
-.else ; DISCOVERY 
+.endif
+.if DISCOVERY
         .byte 19
         .ascii  " on STM8S-DISCOVERY"
+.endif
+.if DOORBELL
+        .byte 16
+        .ascii " on stm8s105k6b6"
 .endif
         JP     CR
 
