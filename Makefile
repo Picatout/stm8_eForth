@@ -20,14 +20,18 @@ FLASH=stm8flash
 
 all: clean $(NAME).rel $(NAME).ihx 
 
-$(NAME).rel:
+$(NAME).rel: $(MAIN_FILE) $(SRC) $(INCLUDES)
 	@echo
 	@echo "**********************"
-	@echo "assembling main file  "
+	@echo "assembling main file  to " $(NAME).rel  
 	@echo "**********************"
 	$(SDAS) -g -l -o $(BUILD)$(NAME).rel $(MAIN_FILE)
 
 $(NAME).ihx: $(NAME).rel 
+	@echo 
+	@echo "**************************"
+	@echo "linking files to " $(NAME).ihx 
+	@echo "**************************"
 	$(SDCC) $(CFLAGS) -Wl-u -o $(BUILD)$(NAME).ihx  $(BUILD)$(NAME).rel
 
 
@@ -56,7 +60,7 @@ flash: clear_eevars $(LIB)
 	@echo "***************"
 	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -w $(BUILD)$(NAME).ihx 
 
-eforth: $(MAIN_FILE) 
+eforth: $(MAIN_FILE)  $(SRC) $(INCLUDES)
 	-rm build/* 
 	$(SDAS) -g -l -o $(BUILD)$(NAME).rel $(MAIN_FILE)
 	$(SDCC) $(CFLAGS) -Wl-u -o $(BUILD)$(NAME).ihx  $(BUILD)$(NAME).rel

@@ -175,7 +175,9 @@ IRET_CODE =   0x80    ; IRET opcode
         .if NUCLEO
         bset PC_ODR,#LED2_BIT
         .else ;DISCOVERY 
+        .if DISCOVERY
         bres PD_ODR,#LD1_BIT 
+        .endif
         .endif
         .endm
 
@@ -183,7 +185,9 @@ IRET_CODE =   0x80    ; IRET opcode
         .if NUCLEO 
         bres PC_ODR,#LED2_BIT
         .else ;DISCOVERY 
+        .if DISCOVERY
         bset PD_ODR,#LD1_BIT 
+        .endif 
         .endif
         .endm
 
@@ -307,7 +311,8 @@ ORIG:
         bset PC_CR1,#LED2_BIT
         bset PC_CR2,#LED2_BIT
         bset PC_DDR,#LED2_BIT
-.else ;discovery 
+.endif 
+.if DISCOVERY
         bset PD_CR1,#LD1_BIT
         bset PD_CR2,#LD1_BIT
         bset PD_DDR,#LD1_BIT 
@@ -319,7 +324,7 @@ ORIG:
 clock_init:
         clr CLK_CKDIVR
 	bset CLK_SWCR,#CLK_SWCR_SWEN
-.if NUCLEO
+.if NUCLEO|DOORBELL
 	ld a,#CLK_SWR_HSI
 .else ; DISCOVERY as 16Mhz crystal
 	ld a,#CLK_SWR_HSE

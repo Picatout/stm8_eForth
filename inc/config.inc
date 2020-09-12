@@ -19,10 +19,11 @@
 
 ; constants to select board
 ; to assemble for a specific 
-; board set it to 1 and the other
+; board or MCU set it to 1 and the other
 ; to 0. 
-NUCLEO=1  
+NUCLEO=0 
 DISCOVERY=0
+DOORBELL=1
 
 ; set to 1 to include 
 ; scaling constants vocabulary
@@ -46,15 +47,19 @@ EEPROM_RES = 16
 XMEM_SIZE=96304 ; size in bytes of EXTENDED MEMORY 
 UART_SR=UART1_SR
 UART_DR=UART1_DR
+.endif
 
-.else ; DISCOVERY
+.if DISCOVERY|DOORBELL
 	.include "inc/stm8s105.inc"
+.if DISCOVERY
 	.include "inc/stm8s_disco.inc"
-
+.endif 
 XMEM_SIZE=0 ; size in bytes of EXTENDED MEMORY 
 UART_SR=UART2_SR
 UART_DR=UART2_DR
-
 .endif 
+
+ 
+
 
 
