@@ -1,6 +1,9 @@
-#############################
-# librairies make file
-#############################
+##################################
+##  stm8_eForth make file
+##################################
+
+NAME=eForth
+# toolchain
 SDAS=sdasstm8
 SDCC=sdcc
 CFLAGS=-mstm8 -lstm8  -Iinc
