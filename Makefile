@@ -66,6 +66,14 @@ eforth: $(MAIN_FILE)  $(SRC) $(INCLUDES)
 	$(SDCC) $(CFLAGS) -Wl-u -o $(BUILD)$(NAME).ihx  $(BUILD)$(NAME).rel
 	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -w $(BUILD)$(NAME).ihx
 
+doorbell: $(MAIN_FILE) $(SRC) $(INCLUDE)
+	-rm build/*
+	$(SDAS) -g -l -o $(BUILD)$(NAME).rel $(MAIN_FILE)
+	$(SDAS) -g -l -o $(BUILD)doorbell.rel $(ASM)
+	$(SDCC) $(CFLAGS) -Wl-u -o $(BUILD)$(NAME).ihx  $(BUILD)$(NAME).rel $(BUILD)doorbell.rel  
+	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -w $(BUILD)$(NAME).ihx
+
+
 read_eevars:
 	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -s eeprom -b 16 -r eevars.bin
 	@hexdump -C eevars.bin 
