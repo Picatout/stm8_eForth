@@ -761,7 +761,102 @@ TORAM:
         clrw y 
         ldw UTFLASH,y 
         ret 
-        
+
+;; BAUD RATE constants table
+; values to put in BRR1 & BRR2 
+baudrate: 
+	.byte 0xa0,0x1b ; 2400
+	.byte 0xd0,0x5  ; 4800 
+	.byte 0x68,0x3  ; 9600
+	.byte 0x34,0x1  ; 19200
+	.byte 0x11,0x6  ; 57600
+	.byte 0x8,0xb   ; 115200
+
+; BAUD RATE CONSTANTS names 
+; 2400 baud
+	.word LINK
+LINK	= .
+	.byte 4
+	.ascii "B2K4" 
+B2K4:
+	subw x,#CELLL 
+        clrw y
+        ldw (x),y
+	ret
+; 4800 baud	
+	.word LINK
+LINK	= .
+	.byte 4
+	.ascii "B4K8" 
+B4K8:
+        subw x,#CELLL 
+        ldw y,#2 
+        ldw (x),y
+        ret 
+; 9600 baud
+	.word LINK
+LINK	= .
+	.byte 4
+	.ascii "B9K6" 
+B9K6:
+        subw x,#CELLL 
+        ldw y,#4 
+        ldw (x),y 
+        ret 
+; 19200 baud
+	.word LINK
+LINK	= .
+	.byte 5
+	.ascii "B19K2" 
+B19K2:
+        subw x,#CELLL
+        ldw y,#6 
+        ldw (x),y 
+        ret 
+; 57600 baud        
+	.word LINK
+LINK	= .
+	.byte 5
+	.ascii "B57K6" 
+B57K6:
+        subw x,#CELLL 
+        ldw y,#8 
+        ldw (x),y 
+        ret 
+; 115200 baud 
+	.word LINK
+LINK	= .
+	.byte 6
+	.ascii "B115K2" 
+B115K2:
+	subw x,#CELLL 
+        ldw y,#10 
+        ldw (x),y 
+        ret 
+	
+       
+;; set UART2 BAUD rate
+;	BAUD ( u -- )
+	.word LINK 
+LINK	= .
+	.byte 4
+	.ascii "BAUD" 
+BAUD:
+	subw x,#CELLL
+        ldw y,#baudrate 
+        ldw (x),y 
+        call PLUS
+        ldw y,x  
+        ldw y,(y)
+        ld a,(y)
+        push a 
+        incw y 
+        ld a,(y)
+        ld UART2_BRR2,a 
+        pop a
+        ld UART2_BRR1,a 
+        addw x,#CELLL 
+        ret 
 
 ;; Device dependent I/O
 ;       ?RX     ( -- c T | F )
@@ -779,7 +874,7 @@ QKEY:
 	CLR	(X)
         CPLW     Y
 INCH:
-	SUBW	X,#2
+		SUBW	X,#2
         LDW     (X),Y
         RET
 
@@ -791,7 +886,7 @@ LINK	= .
         .ascii     "EMIT"
 EMIT:
         LD     A,(1,X)
-	ADDW	X,#2
+		ADDW	X,#2
 OUTPUT: BTJF UART_SR,#UART_SR_TXE,OUTPUT  ;loop until tx empty 
         LD    UART_DR,A   ;send A
         RET
