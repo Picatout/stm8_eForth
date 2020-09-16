@@ -3253,7 +3253,7 @@ TAP:
 
 ;       kTAP    ( bot eot cur c -- bot eot cur )
 ;       Process a key stroke,
-;       CR or backspace.
+;       CR,LF or backspace.
         .word      LINK
 LINK = . 
         .byte      4
@@ -3261,7 +3261,11 @@ LINK = .
 KTAP:
         CALL     DUPP
         CALL     DOLIT
-        .word      CRR
+.if EOL_CR
+        .word   CRR
+.else ; EOL_LF 
+        .word   LF
+.endif 
         CALL     XORR
         CALL     QBRAN
         .word      KTAP2

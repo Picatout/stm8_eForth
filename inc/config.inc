@@ -25,6 +25,10 @@ NUCLEO=0
 DISCOVERY=0
 DOORBELL=1
 
+; select end of line character
+EOL_CR=1
+EOL_LF=0 
+
 ; set to 1 to include 
 ; scaling constants vocabulary
 ; see: const_ratio.asm 
