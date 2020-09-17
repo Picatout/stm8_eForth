@@ -26,7 +26,7 @@
 		CTRL_D = 4
 		CTRL_E = 5
 		CTRL_F = 6
-
+	
         BELL = 7    ; vt100 terminal generate a sound.
 		CTRL_G = 7
 
@@ -52,8 +52,10 @@
 		CTRL_O = 15
 		CTRL_P = 16
 		CTRL_Q = 17
+		XON = CTRL_Q
 		CTRL_R = 18
 		CTRL_S = 19
+		XOFF = CTRL_S 
 		CTRL_T = 20
 		CTRL_U = 21
 		CTRL_V = 22

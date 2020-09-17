@@ -364,12 +364,14 @@ EE_CREAD:
 	.ascii "WR-BYTE" 
 
 WR_BYTE:
+	call FC_XOFF
 	ldw y,x 
 	ldw y,(y)
 	addw x,#CELLL 
 	ld a,yl
 	ldf [FPTR],a
 	btjf FLASH_IAPSR,#FLASH_IAPSR_EOP,.
+	call FC_XON
 	jp INC_FPTR 
 
 ;---------------------------------------
@@ -384,6 +386,7 @@ WR_BYTE:
 	.byte 7 
 	.ascii "WR-WORD" 
 WR_WORD:
+	call FC_XOFF
 	ldw y,x
 	ldw y,(y)
 	addw x,#CELLL 
@@ -394,6 +397,7 @@ WR_WORD:
 	ld a,yl 
 	ldf [FPTR],a
 	btjf FLASH_IAPSR,#FLASH_IAPSR_EOP,.
+	call FC_XON
 	jp INC_FPTR 
 
 
@@ -478,6 +482,7 @@ EESTORE:
 	.byte 9 
 	.ascii "ROW-ERASE" 
 row_erase:
+	call FC_XOFF
 	call FPSTOR
 ;code must be execute from RAM 
 ;copy routine to PAD 
@@ -497,9 +502,11 @@ block_erase:
 ; erase EEPROM block
 	cpw y,#EEPROM_BASE 
 	jruge 1$
+	call FC_XON
 	ret ; bad address 
 1$: cpw y,#EEPROM_END 
 	jrule 2$ 
+	call FC_XON
 	ret ; bad address 
 2$:	
 	call UNLKEE 
@@ -514,6 +521,7 @@ proceed_erase:
 	addw x,#CELLL  
 	call (y) 
 	bres FLASH_IAPSR,#FLASH_IAPSR_DUL
+	call FC_XON
 	ret 
 
 ; this routine is to be copied to PAD 
@@ -590,6 +598,7 @@ copy_prog_to_ram:
 	.byte 6 
 	.ascii "WR-ROW"
 write_row:
+	call FC_XOFF
 	call FPSTOR
 ; align to FLASH block 
 	ld a,#0x80 
@@ -605,6 +614,7 @@ write_row:
 	call TIBBASE
 	call LOCK
 	popw x 
+	call FC_XON 
 	ret 
 
 ;-------------------------------------

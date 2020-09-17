@@ -8,7 +8,7 @@
 	.module EFORTH
          .optsdcc -mstm8
 	.nlist
-        .include "inc/config.inc" 
+        .include "inc/config.inc"
 	.list
 	.page
 
@@ -166,6 +166,8 @@ BASEE   =     10      ;default radix
 BKSPP   =     8       ;back space
 LF      =     10      ;line feed
 CRR     =     13      ;carriage return
+XON     =     17
+XOFF    =     19
 ERR     =     27      ;error escape
 TIC     =     39      ;tick
 CALLL   =     0xCD     ;CALL opcodes
@@ -886,10 +888,38 @@ LINK	= .
         .ascii     "EMIT"
 EMIT:
         LD     A,(1,X)
-		ADDW	X,#2
+	ADDW	X,#2
 OUTPUT: BTJF UART_SR,#UART_SR_TXE,OUTPUT  ;loop until tx empty 
         LD    UART_DR,A   ;send A
         RET
+
+;       FC-XON  ( -- )
+;       send XON character 
+        .word LINK
+LINK    = .
+        .byte 6 
+        .ascii "FC-XON"
+FC_XON:
+        subw x,#CELLL 
+        clr (x)
+        ld a,#XON 
+        ld (1,x),a 
+        call EMIT 
+        ret 
+
+;       FC-XOFF ( -- )
+;       Send XOFF character 
+        .word LINK
+LINK    = .
+        .byte 7
+        .ascii "FC-XOFF"
+FC_XOFF:
+        subw x,#CELLL 
+        clr (x)
+        ld a,#XOFF 
+        ld (1,x),a 
+        call EMIT 
+        ret
 
 ;; The kernel
 
