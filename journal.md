@@ -1,3 +1,15 @@
+#### 2020-09-20
+
+* Ajout du sous module  SendFile
+
+* Modifié **referencde.md** pour ajouter documention pour **FC-XON** et **FC-XOFF**
+
+#### 2020-09-17
+
+* Ajout des mots **FC-XON** et **FC-XOFF**. Envoie les caractères XON/XOFF au terminal pour le contrôle de flux logiciel. Pendant la programmation de la mémoire FLASH|EEPROM le MCU est stoppé donc si le terminal envoie des caractères à ce moment ils seront perdus. Donc Un signal XOFF est envoyé au terminal avant le début de l'opération d'écriture et un caractère XON est envoyé lorsque l'opération est terminée.
+
+* Ajout d'une file de réception pour les carctères reçu du terminal. Il s'agit d'une file circulaire de 8 caractères. Donc si le terminal transmet plus de 8 caractères consécutifs avant que le MCU lise ces acractères il y a perte de caractères en réception. En conjonction avec FC-XON et FC-XOFF cette file réduit les risque de perte de données en réception lors de la transmission d'un fichier source Forth au MCU.
+
 #### 2020-06-29
 
 * Révision tutoriel.md 

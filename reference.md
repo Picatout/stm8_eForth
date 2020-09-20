@@ -283,6 +283,10 @@ En *runtime* ce saut est toujours effectué.
 
 * __EXTRACT__&nbsp;&nbsp;(  n1 base -- n2 c  ) Extrait le chiffre le moins significatif de *n* et le converti en caractère ASCII *c*. *n2=n1/base*.   
 
+* __FC-XOFF__&nbsp;&nbsp;( -- ) Envoie du caractère ASCII XOFF (19) au terminal. Il s'agit du caractère de contrôle de flux logiciel selon le protocole XON/XOFF. Lorsque le terminal reçoit ce caractère il doit cesser de transmettre jusqu'à ce qu'il reçoive un caractère XON. 
+
+* __FC-XON__&nbsp;&nbsp;( -- ) Envoie du caractère ASCII XON (17) au terminal. Il s'agit du caractère de contrôle de flux logiciel selon le protocole XON/XOFF. Indique au terminal qu'il peut reprendre la transmission.
+
 * __FILL__&nbsp;&nbsp;( b u c -- ) Remplie *u* octets de la mémoire RAM à partir de l'adresse *b* avec le caractère *c*.  
 
 * __FIND__&nbsp;&nbsp;( a va -- ca na | a 0 ) Recherche le nom pointé par *a* dans le dictionnaire à partir de l'entrée indiquée par *va*. Si trouvé retourne *ca* l'adresse d'exécution. *na* l'adresse du champ nom. En cas d'échec retourne *a* et *0*.
