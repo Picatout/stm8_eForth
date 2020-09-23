@@ -343,21 +343,18 @@ uart_init:
 	bset PA_DDR,#UART1_TX_PIN ; tx pin
 	bset PA_CR1,#UART1_TX_PIN ; push-pull output
 	bset PA_CR2,#UART1_TX_PIN ; fast output
-	; baud rate 115200 Fmaster=8Mhz  8000000/115200=69=0x45
-	mov UART1_BRR2,#0x0b ; must be loaded first
-	mov UART1_BRR1,#0x8
-	mov UART1_CR2,#((1<<UART_CR2_TEN)|(1<<UART_CR2_REN));|(1<<UART_CR2_RIEN))
+	; baud rate 115200 Fmaster=16Mhz  16000000/115200=139=0x8b
 .else ; DISCOVERY use UART2 
 	bset CLK_PCKENR1,#CLK_PCKENR1_UART2
 	; configure tx pin
 	bset PD_DDR,#UART2_TX_PIN ; tx pin
 	bset PD_CR1,#UART2_TX_PIN ; push-pull output
 	bset PD_CR2,#UART2_TX_PIN ; fast output
-	; baud rate 115200 Fmaster=8Mhz  
-	mov UART2_BRR2,#0x0b ; must be loaded first
-	mov UART2_BRR1,#0x8
-	mov UART2_CR2,#((1<<UART_CR2_TEN)|(1<<UART_CR2_REN));|(1<<UART_CR2_RIEN))
 .endif
+; baud rate 115200 Fmaster=8Mhz  
+	mov UART_BRR2,#0x0b ; must be loaded first
+	mov UART_BRR1,#0x8
+	mov UART_CR2,#((1<<UART_CR2_TEN)|(1<<UART_CR2_REN));|(1<<UART_CR2_RIEN))
 ; initialize timer4, used for millisecond interrupt  
 	mov TIM4_PSCR,#7 ; prescale 128  
 	mov TIM4_ARR,#125 ; set for 1msec.
@@ -854,9 +851,9 @@ BAUD:
         push a 
         incw y 
         ld a,(y)
-        ld UART2_BRR2,a 
+        ld UART_BRR2,a 
         pop a
-        ld UART2_BRR1,a 
+        ld UART_BRR1,a 
         addw x,#CELLL 
         ret 
 

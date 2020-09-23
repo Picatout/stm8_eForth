@@ -1,3 +1,7 @@
+#### 2020-09-22
+
+* Modification à [config.inc](inc/config.inc) et à [stm8ef.asm](stm8ef.asm).
+
 #### 2020-09-20
 
 * Ajout du sous module  SendFile
