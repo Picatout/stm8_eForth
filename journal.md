@@ -1,4 +1,5 @@
 #### 2021-02-06
+* Modification au [readme](readme.md)
 
 * Modification to all makefile. *clear_eevars*  was not appllied before flashing new version causing disfionning. **.PHONY: clear_eevars** added. Also added *erase* rule and **FLASH_SIZE** in all __*.mk** files. 
 
@@ -9,6 +10,7 @@ stm8eForth v3.0 on NUCLEO-8S208RB
 HEX 2400 F4 A2C3 UM/MOD .S PRESET
  2243 17F <sp  ok
 ```
+Le bogue est maintenant corrigé. J'ai remplacé l'instruction **SRAW X** par l'instruction **RRCW X** à la suite de l'étiquette **MSMMb** de la patch fournie par **TG9541** ci-haut.
 
 #### 2020-09-22
 

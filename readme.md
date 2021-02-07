@@ -71,5 +71,11 @@ Les règles qui sont les même.
 * la règle **read_eevars** lit la valeur des variables persistantes dans l'eeprom et affiche 
 leur valeurs en utilisant la commande hexdump.
 
+* La règle **erase** efface toute la mémoire FLASH. 
 
-
+## Pour flasher une nouvelle version du firmware 
+```
+>make -fnucleo.mk erase 
+>make -fnucleo.mk eforth
+```
+**Erase** n'est requis que s'il y a déjà une version de eforth dans la mémoire flash.
