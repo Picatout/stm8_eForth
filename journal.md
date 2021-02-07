@@ -1,3 +1,15 @@
+#### 2021-02-06
+
+* Modification to all makefile. *clear_eevars*  was not appllied before flashing new version causing disfionning. **.PHONY: clear_eevars** added. Also added *erase* rule and **FLASH_SIZE** in all __*.mk** files. 
+
+* Tested (umod.txt)(https://github.com/TG9541/stm8ef/files/5926192/umMod.txt) correction for **UM/MOD** but this is not OK. 
+test **HEX 2400 F4 A2C3 UM/MOD .S** still give a bad answer for remainder, report **2243** but should be **A243**. 
+```
+stm8eForth v3.0 on NUCLEO-8S208RB
+HEX 2400 F4 A2C3 UM/MOD .S PRESET
+ 2243 17F <sp  ok
+```
+
 #### 2020-09-22
 
 * Modification à [config.inc](inc/config.inc) et à [stm8ef.asm](stm8ef.asm).

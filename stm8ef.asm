@@ -833,7 +833,6 @@ B115K2:
         ldw (x),y 
         ret 
 	
-       
 ;; set UART2 BAUD rate
 ;	BAUD ( u -- )
 	.word LINK 
@@ -1790,60 +1789,56 @@ LINK = .
         .byte      6
         .ascii     "UM/MOD"
 UMMOD:
-	LDW XTEMP,X	; save stack pointer
-	LDW X,(X)	; un
-	LDW YTEMP,X     ; save un
-	LDW Y,XTEMP	; stack pointer
-	LDW Y,(4,Y)     ; Y=udl
-	LDW X,XTEMP
-	LDW X,(2,X)	; X=udh
-	CPW X,YTEMP
-	JRULE MMSM1
-	LDW X,XTEMP
-	ADDW X,#2	; pop off 1 level
-	LDW Y,#0xFFFF
-	LDW (X),Y
-	CLRW Y
-	LDW (2,X),Y
-	RET
+        PUSHW   X               ; save stack pointer
+        LDW     X,(X)           ; un
+        LDW     YTEMP,X         ; save un
+        LDW     Y,(1,SP)        ; X stack pointer
+        LDW     Y,(4,Y)         ; Y=udl
+        LDW     X,(1,SP)        ; X
+        LDW     X,(2,X)         ; X=udh
+        CPW     X,YTEMP
+        JRULE   MMSM1           ; X is still on the R-stack
+; division overflow  return q=0,r=-1 
+        POPW    X
+        INCW    X               ; pop off 1 level
+        INCW    X               ; ADDW   X,#2
+        LDW     Y,#0xFFFF
+        LDW     (X),Y
+        CLRW    Y
+        LDW     (2,X),Y
+        RET
 MMSM1:
-; take advantage of divw x,y when udh==0
-        tnzw x  ; is udh==0?
-        jrne MMSM2 
-        ldw x,y    ;udl 
-        ldw y,YTEMP ; divisor 
-        divw x,y 
-        pushw x     ; quotient 
-        ldw x,XTEMP 
-        addw x,#CELLL 
-        ldw (2,x),y  ; ur
-        popw y 
-        ldw (x),y ; uq 
-        ret 
-MMSM2:        
-	LD A,#17	; loop count
+        LD      A,#17           ; loop count
 MMSM3:
-	CPW X,YTEMP	; compare udh to un
-	JRULT MMSM4	; can't subtract
-	SUBW X,YTEMP	; can subtract
+        CPW     X,YTEMP         ; compare udh to un
+        JRULT   MMSM4           ; can't subtract
+MMSMa:
+        SUBW    X,YTEMP         ; can subtract
+        RCF 
 MMSM4:
-	CCF	; quotient bit
-	RLCW Y	; rotate into quotient
-	RLCW X	; rotate into remainder
-	DEC A	; repeat
-	JRUGT MMSM3
-        RRCW X 
-	LDW YTEMP,X	; done, save remainder
-	LDW X,XTEMP
-	ADDW X,#2	; drop
-	LDW (X),Y
-	LDW Y,YTEMP	; save quotient
-	LDW (2,X),Y
-	RET
-	
+        CCF                     ; quotient bit
+        RLCW    Y               ; rotate into quotient
+        RLCW    X               ; rotate into remainder
+        DEC     A               ; repeat
+        JREQ    MMSMb           ; if A == 0
+        JRC     MMSMa           ; if carry out of rotate
+        JRA     MMSM3           ;
+MMSMb:
+        RRCW    X
+        LDW     YTEMP,X         ; done, save remainder
+        POPW    X
+        INCW    X               ; drop
+        INCW    X               ; ADDW   X,#2
+        LDW     (X),Y
+        LDW     Y,YTEMP         ; save quotient
+        LDW     (2,X),Y
+        RET
+
+;----------------------------------------------	
 ;       M/MOD   ( d n -- r q )
 ;       Signed floored divide of double by
 ;       single. Return mod and quotient.
+;----------------------------------------------	
         .word      LINK
 LINK = . 
         .byte      5

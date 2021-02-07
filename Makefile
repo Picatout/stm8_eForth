@@ -46,6 +46,7 @@ clean: build
 	@echo "***************"
 	rm -f $(BUILD)*
 
+.PHONY: clear_eevars 
 clear_eevars:
 	@echo
 	@echo "**********************"
@@ -53,17 +54,22 @@ clear_eevars:
 	@echo "**********************"
 	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -s eeprom -b 16 -w /dev/zero
 
+.PHONY: erase 
+erase: clear_eevars 
+	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -u
+	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -s flash -b $(FLASH_SIZE) -w /dev/zero   	
+
 build:
 	mkdir build
 
 flash: clear_eevars $(LIB)
 	@echo
 	@echo "***************"
-	@echo "flashing device"
+	@echo "flash program "
 	@echo "***************"
 	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -w $(BUILD)$(NAME).ihx 
 
-eforth: $(MAIN_FILE)  $(SRC) $(INCLUDES)
+eforth: clear_eevars $(MAIN_FILE)  $(SRC) $(INCLUDES)
 	-rm build/* 
 	$(SDAS) -g -l -o $(BUILD)$(NAME).rel $(MAIN_FILE)
 	$(SDCC) $(CFLAGS) -Wl-u -o $(BUILD)$(NAME).ihx  $(BUILD)$(NAME).rel
