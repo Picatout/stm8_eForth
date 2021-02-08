@@ -3213,7 +3213,7 @@ Hexadecimal [24-Bits]
       008974 1E 01            [ 2] 1797         LDW     X,(1,SP)        ; X
       008976 EE 02            [ 2] 1798         LDW     X,(2,X)         ; X=udh
       008978 B3 24            [ 2] 1799         CPW     X,YTEMP
-      00897A 23 0D            [ 2] 1800         JRULE   MMSM1           ; X is still on the R-stack
+      00897A 25 0D            [ 1] 1800         JRULT   MMSM1           ; X is still on the R-stack
                                    1801 ; division overflow  return q=0,r=-1 
       00897C 85               [ 2] 1802         POPW    X
       00897D 5C               [ 1] 1803         INCW    X               ; pop off 1 level

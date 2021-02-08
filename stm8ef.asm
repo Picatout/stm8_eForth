@@ -1797,7 +1797,7 @@ UMMOD:
         LDW     X,(1,SP)        ; X
         LDW     X,(2,X)         ; X=udh
         CPW     X,YTEMP
-        JRULE   MMSM1           ; X is still on the R-stack
+        JRULT   MMSM1           ; X is still on the R-stack
 ; division overflow  return q=0,r=-1 
         POPW    X
         INCW    X               ; pop off 1 level
