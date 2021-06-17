@@ -109,7 +109,9 @@ VAR_TOP =     STACK-32*CELLL  ; reserve 32 cells for data stack.
 
 ; user variables constants 
 UBASE = UPP       ; numeric base 
-UTMP = UBASE+2    ; temporary storage
+UFBASE = UBASE+2  ; floating point base 
+UFPSW = UFBASE+2  ; floating point state word 
+UTMP = UFPSW+2    ; temporary storage
 UINN = UTMP+2     ; >IN tib pointer 
 UCTIB = UINN+2    ; tib count 
 UTIB = UCTIB+2    ; tib address 
@@ -285,6 +287,8 @@ clear_ram0:
 ; COLD initialize these variables.
 UZERO:
         .word      BASEE   ;BASE
+        .word      10      ; floating point base 
+        .word      0       ; floating point state 
         .word      0       ;tmp
         .word      0       ;>IN
         .word      0       ;#TIB
@@ -4599,7 +4603,9 @@ COLD1:  CALL     DOLIT
         CALL     DOLIT
 	.word      UEND-UZERO
         CALL     CMOVE   ;initialize user area
-
+.if WANT_FLOAT 
+        CALL    FINIT 
+.endif 
 ; if APP_RUN==0 initialize with ca de 'hi'  
         ldw y,APP_RUN 
         jrne 0$
@@ -4652,6 +4658,9 @@ COLD1:  CALL     DOLIT
 .if WANT_CONST_TABLE 
         .include "ctable.asm"
 .endif
+.if WANT_FLOAT 
+        .include "float.asm"
+.endif 
 
 ;===============================================================
 

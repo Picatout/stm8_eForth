@@ -1,3 +1,7 @@
+#### 2021-06-15
+
+* Début du travail pour ajouter une librairie en virgule flottante de 32 bits. 
+
 #### 2021-02-07
 
 * Corrigé bogue autre bogue dans **UM/MOD** . Le test de débordement de la division acceptait un dividende dont la partie haute était égale au diviseur. hors une telle situation conduit à la perte du bit le plus significatif du quotient. Par exempel  0x20000 2 UM/MOD donnait 0 0 au lieu de 0 0x10000.
@@ -5,10 +9,10 @@
 #### 2021-02-06
 * Modification au [readme](readme.md)
 
-* Modification to all makefile. *clear_eevars*  was not appllied before flashing new version causing disfionning. **.PHONY: clear_eevars** added. Also added *erase* rule and **FLASH_SIZE** in all __*.mk** files. 
+* Modification aux makefile. *clear_eevars*  n'était pas appliqué avant de flasher une nouvelle version . **.PHONY: clear_eevars** ajouté. Ajouté aussi la règle *erase*  et **FLASH_SIZE** dans tous les fichiers __*.mk__. 
 
-* Tested (umod.txt)(https://github.com/TG9541/stm8ef/files/5926192/umMod.txt) correction for **UM/MOD** but this is not OK. 
-test **HEX 2400 F4 A2C3 UM/MOD .S** still give a bad answer for remainder, report **2243** but should be **A243**. 
+* Testé (umod.txt)(https://github.com/TG9541/stm8ef/files/5926192/umMod.txt) correction pour **UM/MOD** mais ce n'est pas OK. 
+test **HEX 2400 F4 A2C3 UM/MOD .S** un rest erronné, rapporte **2243** alors que ça devrait-être **A243**. 
 ```
 stm8eForth v3.0 on NUCLEO-8S208RB
 HEX 2400 F4 A2C3 UM/MOD .S PRESET

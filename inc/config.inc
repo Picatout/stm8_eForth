@@ -39,10 +39,13 @@ WANT_SCALING_CONST = 1
 ; see: ctable.asm 
 WANT_CONST_TABLE=1
 
+; to include floating point 
+; library 
+WANT_FLOAT = 1
+
 ; how many bytes are reserved 
 ; by system at EEPROM base.
 EEPROM_RES = 16 
-
 
 .if NUCLEO 
 	.include "inc/nucleo_8s208.inc"
