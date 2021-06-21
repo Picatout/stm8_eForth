@@ -1732,6 +1732,32 @@ LT1:    LD (X),A
         LD (1,X),A
 	RET     
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;       >   (n1 n2 -- f )
+;  signed compare n1 n2 
+;  true if n1 > n2 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        .word   LINK 
+        LINK = . 
+        .byte 1
+        .ascii ">"
+GREAT:
+        LD A,#0xFF ;
+        LDW Y,X 
+        LDW Y,(Y)
+        LDW YTEMP,Y 
+        ADDW X,#2 
+        LDW Y,X 
+        LDW Y,(Y)
+        CPW  Y,YTEMP 
+        JRSGT GREAT1 
+        CLR  A
+GREAT1:
+        LD (X),A 
+        LD (1,X),A 
+        RET 
+
+
 ;       MAX     ( n n -- n )
 ;       Return greater of two top items.
         .word      LINK
@@ -3107,7 +3133,40 @@ WORDD:
         CALL     PARSE
         CALL     HERE
         CALL     CELLP
-        JP     PACKS
+.IF CASE_SENSE 
+        JP      PACKS 
+.ELSE                 
+        CALL     PACKS
+; uppercase TOKEN 
+        CALL    DUPP 
+        CALL    COUNT 
+        CALL    TOR 
+        CALL    BRAN 
+        .word   UPPER2  
+UPPER:
+        CALL    DUPP 
+        CALL    CAT
+        CALL    DUPP 
+        CALL   DOLIT
+        .word   'a' 
+        CALL    DOLIT
+        .word   'z'+1 
+        CALL   WITHI 
+        CALL   QBRAN
+        .word  UPPER1  
+        CALL    DOLIT 
+        .word   0xDF 
+        CALL    ANDD 
+UPPER1:
+        CALL    OVER 
+        CALL    CSTOR          
+        CALL    ONEP 
+UPPER2: 
+        CALL    DONXT
+        .word   UPPER  
+        CALL    DROP  
+        RET 
+.ENDIF 
 
 ;       TOKEN   ( -- a ; <string> )
 ;       Parse a word from input stream

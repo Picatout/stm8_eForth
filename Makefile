@@ -21,7 +21,7 @@ FLASH=stm8flash
 
 .PHONY: all
 
-all: clean $(NAME).rel $(NAME).ihx 
+all: clean $(NAME).rel $(NAME).ihx  eforth clear_eevars 
 
 $(NAME).rel: $(MAIN_FILE) $(SRC) $(INCLUDES)
 	@echo
@@ -69,11 +69,14 @@ flash: clear_eevars $(LIB)
 	@echo "***************"
 	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -w $(BUILD)$(NAME).ihx 
 
-eforth: clear_eevars $(MAIN_FILE)  $(SRC) $(INCLUDES)
+compile: $(MAIN_FILE)  $(SRC) $(INCLUDES)
 	-rm build/* 
 	$(SDAS) -g -l -o $(BUILD)$(NAME).rel $(MAIN_FILE)
 	$(SDCC) $(CFLAGS) -Wl-u -o $(BUILD)$(NAME).ihx  $(BUILD)$(NAME).rel
+
+eforth: clear_eevars compile
 	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -w $(BUILD)$(NAME).ihx
+	
 
 doorbell: $(MAIN_FILE) $(SRC) $(INCLUDE)
 	-rm build/*

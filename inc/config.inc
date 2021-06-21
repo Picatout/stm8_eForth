@@ -43,6 +43,10 @@ WANT_CONST_TABLE=1
 ; library 
 WANT_FLOAT = 1
 
+; set to 1 to make vocabulary 
+; case sensitive 
+CASE_SENSE = 0 
+
 ; how many bytes are reserved 
 ; by system at EEPROM base.
 EEPROM_RES = 16 

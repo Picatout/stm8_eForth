@@ -1,3 +1,22 @@
+#### 2021-06-20
+
+* Travail sur [float.asm](float.asm)
+
+Ajout de **&lt;ROT**, **DABS**, **DSIGN**, **D#S**, **F.**, **E.**, **2SWAP**, **LSCALE**, **RSCALE**, __DD*__,  __F*__
+ 
+#### 2021-06-19
+
+* Ajout du mot **&gt;** dans [stm8ef.asm](stm8ef.asm).
+
+* Rendre le vocabulaire insensible à la casse. Ajouté  option **CASE_SENSE** dans [config.inc](inc/config.inc).
+
+* Librairie [float.asm](float.asm) créée. Ajout de l'option **WANT_FLOAT** dans [config.inc](inc/config.inc).
+
+* Modification du fichier [Makefile](Makefile) pour construite le projet et flash il faut maintenant faire la commande 
+```    
+picatout:~/github/stm8_eforth$ make -fnucleo.mk
+```
+
 #### 2021-06-15
 
 * Début du travail pour ajouter une librairie en virgule flottante de 32 bits. 
