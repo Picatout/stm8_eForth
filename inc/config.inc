@@ -39,9 +39,13 @@ WANT_SCALING_CONST = 1
 ; see: ctable.asm 
 WANT_CONST_TABLE=1
 
+; include double library 
+WANT_DOUBLE = 1 
+
 ; to include floating point 
-; library 
-WANT_FLOAT = 1
+; library
+; require double library  
+WANT_FLOAT = 0 
 
 ; set to 1 to make vocabulary 
 ; case sensitive 

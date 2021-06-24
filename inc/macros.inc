@@ -48,3 +48,37 @@
     .macro _arg name ofs 
     name=ARG_OFS+ofs 
     .endm 
+
+    ; macro to create dictionary header record
+    .macro _HEADER label,len,name 
+        .word LINK 
+        LINK=.
+        .byte len  
+        .ascii name
+        label:
+    .endm 
+
+    ; runtime literal 
+    .macro _DOLIT value 
+    CALL DOLIT 
+    .word value 
+    .endm 
+
+    ; branch if TOS==0 
+    ; 0BRANCH 
+    .macro _QBRAN target 
+    CALL QBRAN
+    .word target
+    .endm 
+
+    ; uncondittionnal BRANCH 
+    .macro _BRAN target 
+    CALL BRAN 
+    .word target 
+    .endm 
+
+    ; run time NEXT 
+    .macro _DONXT target 
+    CALL DONXT 
+    .word target 
+    .endm 

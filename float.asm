@@ -23,32 +23,8 @@
 ;                as is
 ;                eponent: 10^^(exp-127) 
 ;***********************************************  
-    ; macro to create dictionary header record
-    .macro _HEADER label,len,name 
-        .word LINK 
-        LINK=.
-        .byte len  
-        .ascii name
-        label:
-    .endm 
 
-    ; runtime literal 
-    .macro _DOLIT value 
-    CALL DOLIT 
-    .word value 
-    .endm 
-
-    ; 0BRANCH 
-    .macro _QBRAN target 
-    CALL QBRAN
-    .word target
-    .endm 
-
-    ; BRANCH 
-    .macro _BRAN target 
-    CALL BRAN 
-    .word target 
-    .endm 
+    .module FLOAT 
 
 ;-------------------------
 ;    FPSW ( -- a )
@@ -138,44 +114,6 @@
     _DOLIT 4 
     CALL ANDD 
     RET 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;    D0= ( d -- 0|-1 )
-;    check if double is 0 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER DZEQUAL,3,"D0="
-    CALL ORR 
-    LD A,#0xFF
-    LDW Y,X
-    LDW Y,(Y)
-    CPW Y,#0 
-    JREQ  ZEQ1
-    CLR A   ;false
-ZEQ1:
-    LD     (X),A
-    LD (1,X),A
-	RET     
-    
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;  DNEGATE ( d -- d )
-;  negate double (2's complement)
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER DNEGAT,7,"DNEGATE"
-    CALL INVER
-    CALL SWAPP 
-    CALL INVER 
-    LDW  Y,X 
-    LDW Y,(Y)
-    ADDW Y,#1 
-    LDW (X),Y 
-    JRNC DNEG1 
-    LDW Y,X 
-    LDW Y,(2,Y)
-    ADDW Y,#1
-    LDW (2,X),Y 
-DNEG1:
-    CALL SWAPP 
-    RET      
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   U> ( u1 u2 -- f )
@@ -327,122 +265,6 @@ STEXP3:
     CALL SFN 
     RET 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;    <ROT ( n1 n2 n3 -- n3 n1 n2 )
-;    rotate left 3 top elements 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER NROT,4,"<ROT"
-    LDW Y,X 
-    LDW Y,(Y)
-    LDW YTEMP,Y ; n3  
-    LDW Y,X 
-    LDW Y,(2,Y) ; Y = n2 
-    LDW (X),Y   ; TOS = n2 
-    LDW Y,X    
-    LDW Y,(4,Y) ; Y = n1 
-    LDW (2,X),Y ;   = n1 
-    LDW Y,YTEMP 
-    LDW (4,X),Y ; = n3 
-    RET 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   DABS ( d -- d )
-;   absolute value of double
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER DABS,4,"DABS"
-    CALL DUPP 
-    CALL ZLESS 
-    _QBRAN DABS1 
-    CALL DNEGA 
-DABS1:
-    RET 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;  DSIGN ( d -- d f )
-;  sign of double 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER DSIGN,5,"DSIGN"
-    LD A,#0 
-    LDW Y,X 
-    LDW Y,(Y)
-    JRPL DSIGN1
-    LD A,#0XFF 
-DSIGN1:
-    SUBW X,#-2 
-    LD (X),A 
-    LD (1,X),A 
-    RET 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   D/MOD ( d s - r qd )
-;   unsigned divide double by single 
-;   return double quotient 
-;   and single remainder 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER DSLMOD,5,"D/MOD"
-        LDW     Y,X             ; stack pointer to Y
-        LDW     X,(X)           ; un
-        LDW     YTEMP,X         ; save un
-        LDW     X,Y
-        PUSHW   X               ; save stack pointer
-        PUSHW   Y 
-        LDW     X,(2,X)           ; X=udh
-        LDW     Y,YTEMP         ; divisor 
-        DIVW    X,Y 
-        LDW     XTEMP,X         ; QUOTIENT hi 
-        LDW     X,Y             ; remainder in X 
-        POPW    Y 
-        LDW     Y,(4,Y)         ; Y=udl (offset before drop)
-        LD      A,#16           ; loop count
-        SLLW    Y               ; udl shift udl into udh
-DSLMOD3:
-        RLCW    X               ; rotate udl bit into uhdh (= remainder)
-        JRC     DSLMODa         ; if carry out of rotate
-        CPW     X,YTEMP         ; compare udh to un
-        JRULT   DSLMOD4         ; can't subtract
-DSLMODa:
-        SUBW    X,YTEMP         ; can subtract
-        RCF
-DSLMOD4:
-        CCF                     ; quotient bit
-        RLCW    Y               ; rotate into quotient, rotate out udl
-        DEC     A               ; repeat
-        JRNE    DSLMOD3           ; if A == 0
-DSLMODb:
-        LDW     YTEMP,X         ; done, save remainder
-        POPW    X               ; restore stack pointer
-        LDW     (2,X),Y           ; save quotient low 
-        LDW     Y,XTEMP         ; quotient hi 
-        LDW     (X),Y           ; save quotient hi 
-        LDW     Y,YTEMP         ; remainder onto stack
-        LDW     (4,X),Y
-        RET 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   D# ( d -- d )
-;   extract least digit 
-;   from double integer 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER DDIG,2,"D#"
-    CALL BASE 
-    CALL AT 
-    CALL DSLMOD
-    CALL ROT   
-    CALL DIGIT 
-    CALL HOLD 
-    RET 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;    D#S ( d -- s )
-;   extract digit from double 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER DDIGS,3,"D#S"
-    CALL    DDIG 
-    CALL    DDUP 
-    CALL    DZEQUAL
-    _QBRAN  DDIGS 
-    CALL    DROP 
-    RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   E. ( f# -- )
@@ -569,59 +391,7 @@ FDOT10:
     RET 
 
 
-; multiply double by single 
-; return double 
-;  ( d s -- d )
-    _HEADER DSSTAR,3,"DS*"
-;DSSTAR:
-    CALL TOR
-    CALL DUPP 
-    CALL ZLESS
-    CALL DUPP 
-    CALL TOR 
-    _QBRAN DSSTAR1 
-    CALL DNEGA 
-DSSTAR1:
-    CALL RFROM 
-    CALL NROT       
-    CALL SWAPP 
-    CALL RAT 
-    CALL UMSTA
-    CALL ROT 
-    CALL RFROM 
-    CALL UMSTA 
-    CALL DROP ; DROP OVERFLOW 
-    CALL PLUS 
-    CALL ROT 
-    _QBRAN DSSTAR3 
-    CALL DNEGA 
-DSSTAR3:
-    RET 
-
     
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;  2SWAP ( d1 d2 -- d2 d1 )
-;  swap double 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER DSWAP,5,"2SWAP"
-    LDW Y,X 
-    LDW Y,(Y)
-    LDW YTEMP,Y ; d2 hi 
-    LDW Y,X 
-    LDW Y,(2,Y)
-    LDW XTEMP,Y  ; d2 lo 
-    LDW Y,X 
-    LDW Y,(4,Y)  ; d1 hi 
-    LDW (X),Y 
-    LDW Y,X
-    LDW Y,(6,Y)  ; d1 lo 
-    LDW (2,X),Y
-    LDW Y,YTEMP  
-    LDW (4,X),Y 
-    LDW Y,XTEMP 
-    LDW (6,X),Y 
-    RET 
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;  LSCALE ( f# -- f# )
@@ -657,48 +427,6 @@ DSSTAR3:
     CALL STEXP 
     RET 
 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   DD* ( d1 d2 -- d3 )
-;   double product 
-;   
-;   d3 = d1 * d2
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER DDSTAR,3,"DD*"
-    _DOLIT 0 
-    CALL NROT  
-    CALL DUPP 
-    CALL ZLESS 
-    _QBRAN DDSTAR1 
-    CALL DNEGA 
-    CALL ROT  
-    CALL INVER 
-    CALL NROT  
-DDSTAR1:
-    CALL TOR 
-    CALL TOR
-    CALL NROT  
-    CALL DUPP 
-    CALL ZLESS 
-    _QBRAN DDSTAR2 
-    CALL DNEGA 
-    CALL ROT
-    CALL INVER 
-    CALL NROT 
-DDSTAR2:
-    CALL DDUP 
-    CALL RFROM 
-    CALL DSSTAR 
-    CALL DSWAP 
-    CALL RFROM 
-    CALL DSSTAR 
-    CALL DROP
-    CALL PLUS
-    CALL ROT 
-    _QBRAN DDSTAR3 
-    CALL DNEGA 
-DDSTAR3:  
-    RET 
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -747,59 +475,85 @@ FSTAR3:
 ;  f#3 = f#1/f#2
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FSLASH,2,"F/"
-    CALL ATEXP 
-    CALL TOR
-    CALL DSIGN 
-    CALL TOR
-    CALL DABS  
-    CALL DSWAP   
-    CALL ATEXP 
+    CALL ATEXP  ; f#1 dm2 e2  
+    CALL TOR    ; f#1 dm2   R: e2 
+    CALL DSIGN  ; f#1 dm2 s2 
+    CALL TOR    ; f#1 dm2  R: e2 s2 
+    CALL DABS   ; f#1 +dm2 
+    CALL DSWAP  ; +dm2 f#1 
+    CALL ATEXP  ; +dm2 dm1 e1 
+    CALL RFROM  ; +dm2 dm1 e1 s2 
+    CALL SWAPP  ; +dm2 dm1 s1 e1 
+    CALL TOR    ; +dm2 dm1 s2 R: e2 e1  
+    CALL NROT   ; +dm2 s2 dm1 
+    CALL DSIGN  ; +dm2 s2 dm1 s1 
+    CALL NROT   ; +dm2 s2 s1 dm1 
+    CALL DABS   ; +dm2 s2 s1 +dm1  
+    CALL TOR    
+    CALL TOR    ; +dm2 s2 s1 R: e2 e1 +dm1  
+    CALL XORR   ; +dm2 s R: e2 e1 +dm1 
+    CALL NROT   ; s +dm2 
     CALL RFROM 
-    CALL SWAPP 
-    CALL TOR
-    CALL NROT 
-    CALL DSIGN 
-    CALL NROT
-    CALL DABS  
-    CALL TOR 
-    CALL TOR
-    CALL XORR  
-    CALL NROT  
-    CALL RFROM 
-    CALL RFROM 
-    CALL DSWAP  
+    CALL RFROM  ; s +dm2 +dm1 
+    CALL DSWAP  ; s +dm1 +dm2 
 FSLASH1:
     CALL DUPP 
-    CALL ZEQUAL
-    _QBRAN FSLASH2 
-    _BRAN FSLASH4
+    _QBRAN FSLASH4 
 FSLASH2: 
+; reduce divisor
+    CALL FBASE 
+    CALL AT 
+    CALL DSLMOD
+    CALL ROT 
+    CALL DROP ; drop remainder 
+    CALL TOR 
+    CALL TOR
+; redure divident      
     CALL FBASE 
     CALL AT 
     CALL DSLMOD 
-    CALL ROT 
-    CALL DROP 
-    CALL TOR 
-    CALL TOR 
-    CALL FBASE 
-    CALL AT 
-    CALL DSLMOD 
-    CALL ROT 
-    CALL DROP 
+    CALL ROT    
+    CALL DROP    ; drop remainder 
+    CALL RFROM 
+    CALL RFROM   ; s +dm1 +dm2 
     _BRAN FSLASH1 
 FSLASH4:
-    CALL DROP 
+    CALL DROP   ; drop divisor hi, is 0 
     CALL DSLMOD 
+CALL DOTS 
+; scale up dquot to include remainder 
+    _DOLIT 2 
+    CALL PICK 
+    CALL NROT  ; s r r dquot 
+FSL1:
+    _DOLIT 2
+    CALL PICK 
+    _QBRAN FSL4 
+    CALL FBASE 
+    CALL AT 
+    CALL DSSTAR
+    CALL RFROM 
+    CALL ONEM 
+    CALL TOR 
     CALL ROT 
-    CALL DROP 
+    CALL FBASE 
+    CALL AT 
+    CALL SLASH 
+    CALL NROT 
+    _BRAN FSL1 
+FSL4:
+    CALL ROT
+    CALL TOR 
     CALL ROT 
+    CALL RFROM 
+    CALL DPLUS  
+    CALL ROT    ; dquot s 
     _QBRAN FSLASH5 
-    CALL DNEGA 
+    CALL DNEGA  ; negate quotient 
 FSLASH5:
     CALL RFROM 
     CALL RFROM 
-    CALL PLUS 
+    CALL PLUS   
     CALL STEXP 
     RET     
 
-    

@@ -1,3 +1,19 @@
+#### 2021-06-23
+
+* Ajout de vocabulaire à [double.asm](double.asm). **D&gt;**, **D&lt**, **D0=**, **D0&lt;**, **D&gt;R**, **DR&gt;**. 
+
+#### 2021-06-22
+
+* Création du fichier [double.asm](double.asm) pour séparer le vocabulaire de traitement des entiers doubles (32 bits) du vocabulaire de traitement des nombres à virgules flottantes.
+Ajouter option **WANT_DOUBLE** dans [config.inc](inc/config.inc).
+
+* Continuer travail sur le vocabulaire des entiers doubles. 
+
+* Ajout de **H.** pour afficher un entier en hexadécimal dans [stm8ef.asm](stm8ef.asm). 
+
+* Déplacé **&lt;ROT** de float.asm vers stm8eforth.asm 
+
+
 #### 2021-06-20
 
 * Travail sur [float.asm](float.asm)

@@ -8,6 +8,7 @@
 	.module EFORTH
          .optsdcc -mstm8
 	.nlist
+        .include "inc/macros.inc" 
         .include "inc/config.inc"
 	.list
 	.page
@@ -1526,6 +1527,24 @@ ROT:
         ldw (2,x),y
         ret 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;    <ROT ( n1 n2 n3 -- n3 n1 n2 )
+;    rotate left 3 top elements 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER NROT,4,"<ROT"
+    LDW Y,X 
+    LDW Y,(Y)
+    LDW YTEMP,Y ; n3  
+    LDW Y,X 
+    LDW Y,(2,Y) ; Y = n2 
+    LDW (X),Y   ; TOS = n2 
+    LDW Y,X    
+    LDW Y,(4,Y) ; Y = n1 
+    LDW (2,X),Y ;   = n1 
+    LDW Y,YTEMP 
+    LDW (4,X),Y ; = n3 
+    RET 
+
 ;       2DROP   ( w w -- )
 ;       Discard two items on stack.
         .word      LINK
@@ -2684,6 +2703,8 @@ DGTQ1:  CALL     DUPP
         CALL     RFROM
         JP     ULESS
 
+.if  WANT_DOUBLE
+.else 
 ;       NUMBER? ( a -- n T | a F )
 ;       Convert a number string to
 ;       integer. Push a flag on tos.
@@ -2763,6 +2784,7 @@ NUMQ6:  CALL     RFROM
         CALL     RFROM
         CALL     BASE
         JP     STORE
+.endif ; WANT_DOUBLE  
 
 ;; Basic I/O
 
@@ -2947,6 +2969,22 @@ UDOT:
         CALL     EDIGS
         CALL     SPACE
         JP     TYPES
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   H. ( n -- )
+;   display n in hexadecimal 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER HDOT,2,"H."
+        CALL BASE 
+        CALL AT 
+        CALL TOR 
+        CALL HEX 
+        CALL UDOT 
+        CALL RFROM 
+        CALL BASE 
+        CALL STORE 
+        RET 
+
 
 ;       .       ( w -- )
 ;       Display an integer in free
@@ -4717,6 +4755,9 @@ COLD1:  CALL     DOLIT
 .if WANT_CONST_TABLE 
         .include "ctable.asm"
 .endif
+.if WANT_DOUBLE 
+        .include "double.asm"
+.endif 
 .if WANT_FLOAT 
         .include "float.asm"
 .endif 
