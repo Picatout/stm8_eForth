@@ -26,6 +26,13 @@
 
     .module FLOAT 
 
+.if WANT_DOUBLE 
+; already included 
+.else
+;  must be included  
+    .include "double.asm"
+.endif  
+
 ;-------------------------
 ;    FPSW ( -- a )
 ;    floating state variable
@@ -392,6 +399,13 @@ FDOT10:
 
 
     
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   FLOAT? <string> ( a -- f T | a F )
+;   convert <string> to float 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER FLOATQ,5,"FLOAT?"
+
+    RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;  LSCALE ( f# -- f# )
@@ -428,7 +442,6 @@ FDOT10:
     RET 
 
 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    F* ( f#1 f#2 -- f#3 )
 ;    float product 
@@ -442,7 +455,7 @@ FDOT10:
     CALL RFROM 
     CALL PLUS  
     CALL TOR
-    CALL DDSTAR
+    CALL DSTAR
     CALL DSIGN 
     CALL NROT 
     CALL DABS 

@@ -927,9 +927,9 @@ FC_XOFF:
 ;       doLIT   ( -- w )
 ;       Push an inline literal.
         .word      LINK
-LINK	= 	.
-	.byte      COMPO+5
-        .ascii     "DOLIT"
+;LINK	= 	.
+;	.byte      COMPO+5
+;        .ascii     "DOLIT"
 DOLIT:
 	SUBW X,#2
         ldw y,(1,sp)
@@ -1226,6 +1226,22 @@ ZLESS:
 ZL1:    LD     (X),A
         LD (1,X),A
 	RET     
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;       0= ( n -- f )
+;   n==0?
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER ZEQUAL,2,"0="
+        LD A,#0XFF 
+        LDW Y,X 
+        LDW Y,(Y)
+        JREQ ZEQU1 
+        LD A,#0 
+ZEQU1:  
+        LD (X),A 
+        LD (1,X),A         
+        RET 
+
 
 ;       AND     ( w w -- w )
 ;       Bitwise AND.
@@ -4251,10 +4267,10 @@ CONSTANT:
 
 ; CONSTANT runtime semantic 
 ; doCONST  ( -- n )
-        .word LINK 
-        LINK=.
-        .byte 7
-        .ascii "DOCONST"
+;        .word LINK 
+;        LINK=.
+;        .byte 7
+;        .ascii "DOCONST"
 DOCONST:
         subw x,#CELLL
         popw y 
@@ -4264,12 +4280,12 @@ DOCONST:
 
 ;----------------------------------
 ; create double constant 
-; DCONST ( d -- ; <string> )
+; 2CONSTANT ( d -- ; <string> )
 ;----------------------------------
     .word LINK 
     LINK=.
-    .byte 6 
-    .ascii "DCONST"
+    .byte 9 
+    .ascii "2CONSTANT"
 DCONST:
         CALL TOKEN
         CALL SNAME 
@@ -4290,10 +4306,10 @@ DCONST:
 ; stack double constant 
 ; DO-DCONST ( -- d )
 ;-----------------------------------
-        .word LINK 
-        LINK=.
-        .byte 9 
-        .ascii "DO-DCONST"
+;        .word LINK 
+;        LINK=.
+;        .byte 9 
+;        .ascii "DO-DCONST"
 DO_DCONST:
     popw y 
     ldw YTEMP,y 

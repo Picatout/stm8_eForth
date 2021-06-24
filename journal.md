@@ -1,6 +1,19 @@
+#### 2021-06-24
+
+* Travail sur [double.asm](double.asm).  
+
+* Ajout de  **2R@**,**2LITERAL**,**2VARIABLE**, 
+
+* Renommé **DCONST** au standard Forth 2012 -&gt; **2CONSTANT**.
+
+* Supprimé du dictionnaire les runtime **DOLIT**, **DOCONST** et **DO-DCONST**. 
+
+* Changer le caractère identifiant les litéraux double de '!' à '#'.
+
 #### 2021-06-23
 
-* Ajout de vocabulaire à [double.asm](double.asm). **D&gt;**, **D&lt**, **D0=**, **D0&lt;**, **D&gt;R**, **DR&gt;**. 
+* Ajout de vocabulaire à [double.asm](double.asm). **D&gt;**, **D&lt**, **D0=**, **D0&lt;**, **2&gt;R**, **2R&gt;**, **2SWAP**, **2ROT**.
+
 
 #### 2021-06-22
 

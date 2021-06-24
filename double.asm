@@ -3,12 +3,44 @@
 ;    doubles are signed 32 bits 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
     .module DOUBLE 
+
+; get all digits in row 
+; stop at first non-digit or end of string 
+; ( dlo dhi a cntr -- dlo dhi [ a+ cntr- | a+ 0 ] )
+parse_digits:
+    CALL TOR ; dlo dhi a R: cntr 
+1$:
+    CALL COUNT ; dlo dhi a+ c 
+    CALL BASE 
+    CALL AT 
+    CALL DIGTQ 
+    _QBRAN 4$ ; not a digit
+    CALL DTOR  ; dlo dhi R: cntr a+ c  
+    CALL BASE 
+    CALL AT 
+    CALL DSSTAR
+    CALL RFROM 
+    CALL ZERO 
+    CALL DPLUS 
+    CALL RFROM  ; dlo dhi a+ 
+    CALL RFROM ; dlo dhi a+ cntr 
+    CALL ONEM 
+    CALL DUPP 
+    _QBRAN 2$ 
+    CALL TOR  
+    _BRAN 1$ ; dlo dhi a+ R: cntr 
+2$: ; end of string ( dlo hi a+ 0 )
+    RET 
+4$: CALL DROP  ; dlo dhi a+ 
+    CALL RFROM ; dlo dhi a+ cntr- 
+    RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   NUMBER? (a -- s|d T | a F )
 ;   convert string to integer 
-;   double begin with '!' 
+;   double begin with '#' 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER NUMBQ,7,"NUMBER?"
 ; save current base value 
@@ -23,10 +55,10 @@
     _DOLIT 2 
     CALL PICK  ; a 0 0 a R: base    
     CALL COUNT ; a 0 0 a+ n 
-; check for '!' double integer 
+; check for '#' double integer 
     CALL OVER  ; a 0 0 a+ n a+
     CALL CAT   ; a 0 0 a+ n c 
-    _DOLIT '!' ; a 0 0 a+ n c '!' 
+    _DOLIT '#' ; a 0 0 a+ n c '#' 
     CALL EQUAL 
     CALL TOR   ; a 0 0 a+ n R: base d? 
     CALL RAT   ; a 0 0 a+ n d? R: base d?
@@ -64,56 +96,30 @@ NUMQ1:
     CALL SUBB  
     CALL SWAPP 
 ; check for end of string     
-    CALL QDUP    ; count==0?
-    _QBRAN NUMQ6 ; yes , not a number 
-; initialize loop counter 
-    CALL ONEM    ; n-1 
-    CALL TOR     ; loop counter 
-; parse digits loop 
-NUMQ2:   ; a dlo dhi a+ R: base d? sign cntr  
-    CALL DUPP 
-    CALL TOR   ; a dlo dhi a+ R: base d? sign cntr a+ 
-    CALL CAT 
-    CALL BASE 
-    CALL AT 
-    CALL DIGTQ  ; a dlo dhi u f R: base d? sign cntr a+  
-    _QBRAN NUMQ4 ; not digit  
-    CALL TOR    ; a dlo dhi R: base d? sign cntr a+ digit   
-    CALL BASE 
-    CALL AT 
-    CALL DSSTAR 
-    CALL RFROM 
-    CALL ZERO 
-    CALL DPLUS  
-    CALL RFROM  
-    CALL ONEP    ; a dlo dhi a+ R: base d? sign cntr 
-    _DONXT NUMQ2 
-    CALL DROP   ; a dlo dhi R: base d? sign 
-    CALL RFROM  
+    CALL QDUP    ; a dlo dhi a+ cntr R: base d? sign 
+    _QBRAN NUMQ4 ; yes , not a number 
+    CALL parse_digits
+    CALL ZEQUAL  
+    _QBRAN NUMQ4 ; error not end of string  ( a dlo dhi a+ R: base d? sign )
+    CALL DROP  ; a dlo dhi 
+    CALL RFROM  ; a dlo dhi sign 
     _QBRAN NUMQ3
     CALL DNEGA
 NUMQ3: 
     CALL ROT ; dlo dhi a  R: base d?
-    CALL DROP 
-    _DOLIT -1 
-    CALL RFROM ; dlo dhi -1 d? R: base 
+    CALL DROP
+    _DOLIT -1  
+    CALL RFROM ; dlo dhi d? R: base 
     CALL INVER 
     _QBRAN NUMQ8 
     CALL SWAPP 
     CALL DROP 
-    _BRAN NUMQ8 
-NUMQ4: ; 'u' not digit error , ( a dlo dhi u R: base d? sign cntr a+ )
-    ADDW X,#4 ; drop dhi u, ( a dlo R: base d? sign cntr a+ ) 
-    ADDW SP,#8 ; drop d? sign cntr a+  R: base 
+    _BRAN NUMQ8
+NUMQ4: ; not end of string error , ( a dlo dhi a+ R: base d? sign )
+    ADDW X,#4 ; drop dhi a+  , ( a dlo R: base d? sign ) 
+    ADDW SP,#4 ; drop d? sign  R: base 
     CLRW Y 
     LDW (X),Y ; dlo replaced by 0 ( -- a 0 R: base ) 
-    _BRAN NUMQ8 
-NUMQ5: 
-    CALL DUPP  ; a 0 dlo dlo 
-; no digits error 
-NUMQ6: ;   a 0 0 a+ R: base d? sign 
-    ADDW X,#4 ; a 0 R: base d? sign 
-    ADDW SP,#4  ; a 0 R: base 
 ; restore original base value     
 NUMQ8: 
     CALL RFROM 
@@ -367,10 +373,10 @@ DCLZ8:
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   <2ROT ( d1 d2 d3 -- d3 d1 d2 )
+;   2<ROT ( d1 d2 d3 -- d3 d1 d2 )
 ;   rotate left doubles 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER NDROT,5,"<2ROT"
+    _HEADER NDROT,5,"2<ROT"
 ; save d3 in temp 
     LDW Y,X 
     LDW Y,(Y)
@@ -549,9 +555,9 @@ DCMP4:
     RET
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   D>R ( d -- R: d )
+;   2>R ( d -- R: d )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER DTOR,3,"D>R"
+    _HEADER DTOR,3,"2>R"
     POPW Y 
     LDW YTEMP,Y 
     LDW Y,X 
@@ -564,9 +570,9 @@ DCMP4:
     JP [YTEMP]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;  DR> ( -- d ) R: d --      
+;  2R> ( -- d ) R: d --      
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER DRFROM,3,"DR>"
+    _HEADER DRFROM,3,"2R>"
     POPW Y      ; d hi 
     LDW YTEMP,Y 
     SUBW X,#4
@@ -576,6 +582,75 @@ DCMP4:
     LDW (2,X),Y 
     JP [YTEMP]
     
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  2VARIABLE <name> 
+;  create a double variable 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER DVARIA,9,"2VARIABLE"
+        CALL HERE
+        CALL DUPP
+        _DOLIT 4  
+        CALL PLUS 
+        CALL VPP 
+        CALL STORE
+        CALL CREAT
+        CALL DUPP
+        CALL COMMA
+        CALL ZERO
+        CALL OVER 
+        CALL STORE 
+        CALL ZERO 
+        CALL SWAPP 
+        CALL STORE
+        CALL FMOVE ; move definition to FLASH
+        CALL QDUP 
+        CALL QBRAN 
+        .word SET_RAMLAST   
+        call UPDATVP  ; don't update if variable kept in RAM.
+        CALL UPDATPTR
+        RET         
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  2LITERAL ( d -- )
+;  compile double literal 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER DLITER,IMEDD+8,"2LITERAL"
+    CALL COMPI 
+    .word do2lit 
+    CALL COMMA 
+    JP   COMMA 
+
+
+; runtime for 2LITERAL 
+do2lit:
+    SUBW X,#4 
+    LDW Y,(1,SP)
+    LDW Y,(Y)
+    LDW (X),Y 
+    LDW Y,(1,SP)
+    LDW Y,(2,Y)
+    LDW (2,X),Y 
+    POPW Y 
+    JP (4,Y)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   2OVER ( d1 d2 -- d1 d2 d1 )
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER DOVER,5,"2OVER"
+    LDW Y,X 
+    SUBW X,#4 
+    PUSHW Y 
+    LDW Y,(4,Y)  ; d1 hi 
+    LDW (X),Y 
+    POPW Y 
+    LDW Y,(6,Y)  ;d1 lo 
+    LDW (2,X),Y 
+    RET 
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   D2/ ( d -- d/2 )

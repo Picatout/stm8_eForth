@@ -45,7 +45,7 @@ WANT_DOUBLE = 1
 ; to include floating point 
 ; library
 ; require double library  
-WANT_FLOAT = 0 
+WANT_FLOAT = 1
 
 ; set to 1 to make vocabulary 
 ; case sensitive 
