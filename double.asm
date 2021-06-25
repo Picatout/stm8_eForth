@@ -355,8 +355,10 @@ DSSTAR3:
     JRMI DCLZ8 ; no leading zero 
     JREQ DCLZ4 ; >=16 
 DCLZ1: ; <16
-    SLLW Y 
-    JRMI DCLZ8 
+    SLLW Y
+    INC A 
+    TNZW Y 
+    JRMI DCLZ8
     JRA DCLZ1 
 DCLZ4:
     LD A,#16 
@@ -485,20 +487,13 @@ DGREAT4:
 ;   d1<d2? 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER DLESS,2,"D<"
-    LD A,#0 
-    LDW Y,X 
-    LDW Y,(4,Y)
-    CPW Y,(X)
-    JRSGT DLESS4 
-    LDW Y,X 
-    LDW Y,(6,Y)
-    CPW Y,(2,X)
-    JRSGE DEQU4 
-    LD A,#0XFF
+    CALL DSUB
+    _DOLIT 0 
+    CALL NROT  
+    CALL DZLESS 
+    _QBRAN DLESS4
+    CALL INVER  
 DLESS4:
-    ADDW X,#6
-    LD (X),A 
-    LD (1,X),A 
     RET
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -582,6 +577,19 @@ DCMP4:
     LDW (2,X),Y 
     JP [YTEMP]
     
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   2R@ ( -- d )
+;   fecth a double from RSTACK
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER DRAT,3,"2R@"
+    POPW Y 
+    LDW YTEMP,Y 
+    SUBW X,#4 
+    LDW Y,(1,SP)
+    LDW (X),Y 
+    LDW Y,(3,SP)
+    LDW (2,X),Y 
+    JP [YTEMP]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;  2VARIABLE <name> 
@@ -666,6 +674,22 @@ do2lit:
     RRCW Y 
     LDW (2,X),Y 
     RET
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  D2* ( d -- d*2 )
+;  multiply double by 2 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER D2STAR,3,"D2*"
+    LDW Y,X 
+    LDW Y,(2,Y)
+    RCF 
+    RLCW Y 
+    LDW (2,X),Y 
+    LDW Y,X 
+    LDW Y,(Y)
+    RLCW Y 
+    LDW (X),Y 
+    RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   DLSHIFT ( d n -- d )
@@ -781,6 +805,103 @@ DDSTAR2:
 DDSTAR3:  
     RET 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   D/  ( d1 d2 -- d3 )
+;   double division d3=d1/d2
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER DSLASH,2,"D/"  
+    _DOLIT 0 
+    CALL TOR   ; R: sign 
+    LDW Y,X     
+    LDW Y,(Y)
+    JRPL DSLA1
+    CALL DNEGA
+    CALL RFROM 
+    CALL INVER 
+    CALL TOR  ; sign inverted 
+DSLA1:
+    _DOLIT 2 
+    CALL PICK 
+    CALL ZLESS 
+    _QBRAN DSLA2
+    CALL DSWAP 
+    CALL DNEGA
+    CALL DSWAP       
+    CALL RFROM 
+    CALL INVER 
+    CALL TOR   ;  sign inverted again 
+DSLA2:
+; unsigned double division 
+    CALL ZERO 
+    CALL ZERO
+    CALL DTOR ; quotient  R: sign qlo qhi 
+    CALL DOVER 
+    CALL DCLZ ; n2, dividend leading zeros  
+    CALL TOR 
+    CALL DDUP    
+    CALL DCLZ  ; n1, divisor leading zeros
+    CALL RFROM ; n1 n2 
+    CALL SUBB
+    CALL DUPP   
+    CALL ZLESS 
+    CALL INVER 
+    _QBRAN DSLA7 ; quotient is null 
+    CALL DUPP 
+    CALL TOR    ; loop counter 
+    CALL QDUP 
+    _QBRAN DSLA3
+    CALL DLSHIFT ; align divisor with dividend 
+DSLA3: ; division loop 
+    CLRW Y 
+    PUSHW Y  
+    CALL DOVER 
+    CALL DOVER 
+    CALL DLESS 
+    CALL INVER  
+    _QBRAN DSLA4 
+    POPW Y 
+    ADDW Y,#1 
+    PUSHW Y 
+    CALL DDUP 
+    CALL DTOR
+    CALL DSUB
+    CALL DRFROM  
+DSLA4: ; shift quotient and add 1 bit 
+    POPW Y 
+    LDW YTEMP,Y 
+    LDW Y,(5,SP) ; quotient low 
+    RCF 
+    RLCW Y
+    LDW (5,SP),Y 
+    LDW Y,(3,SP) ; quotient hi 
+    RLCW Y 
+    LDW (3,SP),Y 
+    LDW Y,(5,SP) 
+    ADDW Y,YTEMP
+    LDW (5,SP),Y 
+    LDW Y,(1,SP) ; loop counter 
+    TNZW Y 
+    JREQ DSLA8
+    SUBW Y,#1  
+    LDW (1,SP),Y  
+; shift dividend left 1 bit      
+    CALL DSWAP 
+    CALL D2STAR 
+    CALL DSWAP 
+    JRA DSLA3 
+DSLA7:
+    ADDW X,#2 ; drop shift count  
+DSLA8:
+    ADDW X,#8 ; drop remainder and divisor 
+    ADDW SP,#2 ; drop loop count on RSTACK 
+    ; quotient replace dividend 
+    CALL DRFROM 
+    POPW Y ; sign 
+    TNZW Y 
+    JREQ DSLA9 
+    CALL DNEGA 
+DSLA9: 
+    RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   D+ ( d1 d2 -- d3 )

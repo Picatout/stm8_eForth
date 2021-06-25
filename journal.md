@@ -1,5 +1,7 @@
 #### 2021-06-24
 
+* Ajout de **D/**.
+
 * Travail sur [double.asm](double.asm).  
 
 * Ajout de  **2R@**,**2LITERAL**,**2VARIABLE**, 
