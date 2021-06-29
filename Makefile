@@ -56,6 +56,10 @@ clear_eevars:
 
 .PHONY: erase 
 erase: clear_eevars 
+	@echo ""
+	@echo "************************"
+	@echo "  reset all flash types "
+	@echo "************************"
 	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -u
 	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -s flash -b $(FLASH_SIZE) -w /dev/zero   	
 
@@ -63,22 +67,29 @@ build:
 	mkdir build
 
 flash: clear_eevars $(LIB)
-	@echo
+	@echo ""
 	@echo "***************"
 	@echo "flash program "
 	@echo "***************"
 	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -w $(BUILD)$(NAME).ihx 
 
 compile: $(MAIN_FILE)  $(SRC) $(INCLUDES)
+	@echo ""
+	@echo "******************"
+	@echo "  compiling       "
+	@echo "******************"
 	-rm build/* 
 	$(SDAS) -g -l -o $(BUILD)$(NAME).rel $(MAIN_FILE)
 	$(SDCC) $(CFLAGS) -Wl-u -o $(BUILD)$(NAME).ihx  $(BUILD)$(NAME).rel
 
-eforth: clear_eevars compile
-	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -w $(BUILD)$(NAME).ihx
+eforth: compile flash 
 	
 
 doorbell: $(MAIN_FILE) $(SRC) $(INCLUDE)
+	@echo ""
+	@echo "**********************************"
+	@echo " build and flash doorbell project"
+	@echo "**********************************"
 	-rm build/*
 	$(SDAS) -g -l -o $(BUILD)$(NAME).rel $(MAIN_FILE)
 	$(SDAS) -g -l -o $(BUILD)doorbell.rel $(ASM)
@@ -87,6 +98,10 @@ doorbell: $(MAIN_FILE) $(SRC) $(INCLUDE)
 
 
 read_eevars:
+	@echo ""
+	@echo "******************************"
+	@echo " read eeprom system variables"
+	@echo "******************************"
 	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -s eeprom -b 16 -r eevars.bin
 	@hexdump -C eevars.bin 
 	@rm eevars.bin 

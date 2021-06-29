@@ -28,6 +28,7 @@
 ; usage example to compute circle area
 ; : CAREA DUP * PI */ ;
 ; 
+
         .word LINK 
         LINK=.
         .byte 2
@@ -145,5 +146,4 @@ LN2S:
     ldw y,#11464 
     ldw (x),y 
     ret 
-
 

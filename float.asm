@@ -46,17 +46,6 @@
     LDW (X),Y
     RET
 
-;----------------------------
-;    FBASE ( -- a )
-;    floating point numerical
-;    base variable 
-;----------------------------
-    _HEADER FBASE,5,"FBASE"
-	LDW Y,#UFBASE  
-	SUBW X,#2
-    LDW (X),Y
-    RET
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   FRESET ( -- )
 ;   reset FPSW variable 
@@ -74,10 +63,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FINIT,5,"FINIT"
     CALL FRESET 
-    CALL BASE 
-    CALL AT 
-    CALL FBASE 
-    CALL STORE 
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -282,8 +267,7 @@ STEXP3:
     CALL BASE 
     CALL AT 
     CALL TOR 
-    CALL FBASE 
-    CALL AT
+    _DOLIT 10 
     CALL BASE 
     CALL STORE 
     CALL ATEXP ; m e 
@@ -340,8 +324,7 @@ EDOT5:
     CALL BASE 
     CALL AT 
     CALL TOR 
-    CALL FBASE 
-    CALL AT
+    _DOLIT 10 
     CALL BASE 
     CALL STORE 
     CALL    ATEXP
@@ -397,14 +380,120 @@ FDOT10:
     CALL    STORE 
     RET 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; return parsed exponent or 
+; 0 if failed
+; at entry exprect *a=='E'    
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+parse_exponent: ; a cntr -- e -1 | 0 
+    CALL TOR   ; R: cntr 
+    CALL DUPP 
+    CALL CAT 
+    _DOLIT 'E' 
+    CALL EQUAL 
+    _QBRAN 1$
+    CALL ONEP 
+    CALL RFROM  ; a cntr 
+    CALL ONEM
+    CALL DUPP 
+    _QBRAN 2$ ; a cntr 
+    CALL ZERO
+    CALL DUPP 
+    CALL DSWAP ; 0 0 a cntr  
+    CALL nsign 
+    CALL TOR   ; R: esign  
+    CALL parse_digits
+    _QBRAN PARSEXP_SUCCESS ; parsed to end of string 
+; failed invalid character
+    CALL DDROP ; 0 a 
+1$: 
+    CALL RFROM ; sign||cntr  
+2$:
+    CALL DDROP  ; a cntr || a sign || 0 cntr   
+    CALL ZERO   ; return only 0 
+    RET 
+PARSEXP_SUCCESS: 
+    CALL DDROP ; drop dhi a 
+    CALL RFROM ; es 
+    _QBRAN 1$
+    CALL NEGAT
+1$:
+    _DOLIT -1 ; -- e -1 
+    RET 
 
-    
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   FLOAT? <string> ( a -- f T | a F )
-;   convert <string> to float 
+;   FLOAT?  ( a dlo dhi a+ cntr sign d? -- f -3 | a 0 )
+;   called by NUMBER? 
+;   convert string to float 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FLOATQ,5,"FLOAT?"
-
+    _QBRAN FLOATQ0 
+    _BRAN FLOAT_ERROR  ; not a float, string start with '#'
+FLOATQ0:
+; BASE must be 10 
+    CALL BASE 
+    CALL AT 
+    _DOLIT 10 
+    CALL EQUAL 
+    _QBRAN FLOAT_ERROR 
+; if float next char is '.' or 'E' 
+    CALL TOR ; R: sign  
+    CALL TOR ; R: sign cntr 
+    CALL DUPP
+    CALL CAT 
+    _DOLIT '.' 
+    CALL EQUAL 
+    _QBRAN FLOATQ1 ; not a dot 
+    CALL ONEP 
+    CALL RFROM  ; dlo dhi a cntr R: sign  
+    CALL ONEM 
+    CALL DUPP 
+    CALL TOR  ; R: sign cntr 
+; parse fractional part
+    CALL parse_digits ; dlo dhi a cntr -- dm a cntr 
+    CALL DUPP 
+    CALL RFROM 
+    CALL SWAPP 
+    CALL SUBB ; fd -> fraction digits count 
+    CALL TOR  ; dlo dhi a cntr R: sign fd 
+    CALL DUPP ; cntr cntr  
+    _QBRAN 1$ ; end of string, no exponent
+    _BRAN FLOATQ2
+1$: CALL SWAPP 
+    CALL DROP ; a
+    _BRAN FLOATQ3        
+FLOATQ1: ; must push fd==0 on RSTACK 
+    CALL RFROM ; cntr 
+    CALL ZERO  ; fd 
+    CALL TOR   ; dm a cntr R: sign fd 
+FLOATQ2: 
+    CALL parse_exponent 
+    _QBRAN FLOAT_ERROR0 ; exponent expected 
+FLOATQ3: ; dm 0 || dm e  
+    CALL RFROM ;  fd  
+    CALL SUBB  ; exp=e-fd 
+    CALL NROT 
+    CALL RFROM  ; sign 
+    _QBRAN FLOATQ4 
+    CALL DNEGA 
+FLOATQ4:
+    CALL ROT 
+    CALL STEXP 
+    CALL ROT 
+    CALL DROP 
+    _DOLIT -3 
+    RET       
+FLOAT_ERROR0: 
+    CALL DRFROM ; sign df      
+FLOAT_ERROR: 
+    CALL DEPTH 
+    CALL CELLS 
+    CALL SPAT 
+    CALL SWAPP 
+    CALL PLUS  
+    CALL SPSTO 
+    _DOLIT 0 
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -416,8 +505,7 @@ FDOT10:
     _DOLIT 1 
     CALL SUBB 
     CALL TOR
-    CALL FBASE 
-    CALL AT 
+    _DOLIT 10 
     CALL DSSTAR
     CALL RFROM 
     CALL STEXP 
@@ -432,8 +520,7 @@ FDOT10:
     _DOLIT 1 
     CALL PLUS 
     CALL TOR 
-    CALL FBASE 
-    CALL AT 
+    _DOLIT 10 
     CALL DSLMOD 
     CALL ROT 
     CALL DROP 
@@ -448,24 +535,23 @@ FDOT10:
 ;    f#3=f#1 * f#2 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FSTAR,2,"F*"
-    CALL ATEXP 
-    CALL TOR 
-    CALL DSWAP 
-    CALL ATEXP
-    CALL RFROM 
-    CALL PLUS  
+    CALL ATEXP ; f#1 m2 e2 
+    CALL TOR   
+    CALL DSWAP ; m2 f#1
+    CALL ATEXP ; m2 m1 e1 
+    CALL RFROM ; m2 m1 e1 e2 
+    CALL PLUS  ; m2 m1 e 
     CALL TOR
-    CALL DSTAR
+    CALL DSTAR ; m2 m1 m2*m1 
     CALL DSIGN 
     CALL NROT 
     CALL DABS 
-FSTAR1:
+FSTAR1: ; scale down 32 bit to 24 bits 
     CALL DUPP
     _DOLIT 0X7F   
     CALL GREAT 
     _QBRAN FSTAR2 
-    CALL FBASE 
-    CALL AT 
+    _DOLIT 10 
     CALL DSLMOD 
     CALL ROT 
     CALL DROP
@@ -514,16 +600,14 @@ FSLASH1:
     _QBRAN FSLASH4 
 FSLASH2: 
 ; reduce divisor
-    CALL FBASE 
-    CALL AT 
+    _DOLIT 10 
     CALL DSLMOD
     CALL ROT 
     CALL DROP ; drop remainder 
     CALL TOR 
     CALL TOR
 ; redure divident      
-    CALL FBASE 
-    CALL AT 
+    _DOLIT 10 
     CALL DSLMOD 
     CALL ROT    
     CALL DROP    ; drop remainder 
@@ -533,7 +617,6 @@ FSLASH2:
 FSLASH4:
     CALL DROP   ; drop divisor hi, is 0 
     CALL DSLMOD 
-CALL DOTS 
 ; scale up dquot to include remainder 
     _DOLIT 2 
     CALL PICK 
@@ -542,15 +625,13 @@ FSL1:
     _DOLIT 2
     CALL PICK 
     _QBRAN FSL4 
-    CALL FBASE 
-    CALL AT 
+    _DOLIT 10 
     CALL DSSTAR
     CALL RFROM 
     CALL ONEM 
     CALL TOR 
     CALL ROT 
-    CALL FBASE 
-    CALL AT 
+    _DOLIT 10 
     CALL SLASH 
     CALL NROT 
     _BRAN FSL1 
@@ -570,3 +651,96 @@ FSLASH5:
     CALL STEXP 
     RET     
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   SCALE> ( # -- #  )
+;   scale down a double dividing it 
+;   by 10;  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER SCALETO,6,"SCALE>"
+    CALL DSIGN 
+    CALL TOR 
+    CALL DABS 
+SCAL1:
+    _DOLIT 10 
+    CALL DSLMOD 
+    CALL ROT  
+    CALL DROP 
+    CALL RFROM 
+    _QBRAN SCAL2 
+    CALL DNEGAT 
+SCAL2: 
+    RET 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   D>F  ( # -- f# )
+;   convert double to float 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER DTOF,3,"D>F"
+    CALL DSIGN 
+    CALL TOR
+    CALL DABS  
+    CALL ZERO 
+    CALL NROT
+DTOF1:      
+    CALL DDUP 
+    _DOLIT 0XFFFF 
+    _DOLIT 0X7F 
+    CALL DGREAT 
+    _QBRAN DTOF4
+    CALL ROT 
+    CALL ONEP 
+    CALL NROT 
+    CALL SCALETO 
+    _BRAN DTOF1 
+DTOF4:     
+    CALL RFROM 
+    _QBRAN DTOF6
+    CALL DNEGAT 
+DTOF6: 
+    CALL ROT 
+    CALL STEXP 
+    RET 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   F>D  ( f# -- # )
+;  convert float to double 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER FTOD,3,"F>D"
+    CALL ATEXP 
+    CALL QDUP
+    _QBRAN FTOD8
+    CALL DUPP   
+    CALL ZLESS 
+    _QBRAN FTOD4 
+; negative exponent 
+    CALL ABSS 
+    CALL TOR
+    _BRAN FTOD2  
+FTOD1:
+    CALL DDUP 
+    CALL DZEQUAL 
+    CALL INVER 
+    _QBRAN FTOD3 
+    _DOLIT 10 
+    CALL DSLMOD 
+    CALL ROT 
+    CALL DROP
+FTOD2:      
+    _DONXT FTOD1
+    RET  
+FTOD3: 
+    CALL RFROM 
+    CALL DROP 
+    RET 
+; positive exponent 
+FTOD4:
+    CALL TOR 
+    _BRAN FTOD6
+FTOD5:
+    _DOLIT 10 
+    CALL ZERO 
+    CALL DSTAR 
+FTOD6: 
+    _DONXT FTOD5 
+FTOD8:     
+    RET 

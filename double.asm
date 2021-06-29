@@ -6,13 +6,39 @@
 
     .module DOUBLE 
 
+; check for negative sign 
+; ajust pointer and cntr 
+nsign: ; a cntr -- a cntr f 
+    CALL ZERO 
+    CALL TOR  ; R: sign 
+    CALL TOR  ; R: sign cntr 
+    CALL DUPP 
+    CALL CAT 
+    _DOLIT '-'
+    CALL EQUAL 
+    _QBRAN nsign1 
+    CALL ONEP ; a+ 
+    CALL RFROM 
+    CALL ONEM ; cntr-
+    CALL RFROM ; sign 
+    CALL INVER ; -1
+    CALL TOR   ; R: sign 
+    CALL TOR   ; R: cntr 
+nsign1:
+    CALL RFROM 
+    CALL RFROM 
+    RET 
+
+
 ; get all digits in row 
 ; stop at first non-digit or end of string 
 ; ( dlo dhi a cntr -- dlo dhi [ a+ cntr- | a+ 0 ] )
 parse_digits:
-    CALL TOR ; dlo dhi a R: cntr 
 1$:
-    CALL COUNT ; dlo dhi a+ c 
+    CALL DUPP 
+    _QBRAN 5$ 
+    CALL TOR   ; dlo dhi a R: cntr 
+    CALL COUNT ; dlo dhi a+ char 
     CALL BASE 
     CALL AT 
     CALL DIGTQ 
@@ -27,18 +53,16 @@ parse_digits:
     CALL RFROM  ; dlo dhi a+ 
     CALL RFROM ; dlo dhi a+ cntr 
     CALL ONEM 
-    CALL DUPP 
-    _QBRAN 2$ 
-    CALL TOR  
-    _BRAN 1$ ; dlo dhi a+ R: cntr 
-2$: ; end of string ( dlo hi a+ 0 )
-    RET 
+    _BRAN 1$ ; dlo dhi a+ R: 
 4$: CALL DROP  ; dlo dhi a+ 
-    CALL RFROM ; dlo dhi a+ cntr- 
+    CALL ONEM  ; unget char 
+    CALL RFROM ; dlo dhi a+ cntr-
+5$:
     RET 
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   NUMBER? (a -- s|d T | a F )
+;   NUMBER? (a -- s -1 |d -2 | a F )
 ;   convert string to integer 
 ;   double begin with '#' 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -82,23 +106,14 @@ NUMQ0:
     CALL SWAPP
     CALL ONEM ; a 0 0 a+ n-  R: base d?
 ; check for minus sign 
-NUMQ1:    
-    CALL OVER 
-    CALL CAT   
-    _DOLIT '-' 
-    CALL EQUAL 
+NUMQ1: 
+    CALL nsign 
     CALL TOR ; R: base d? sign  
-; update a and n, if sign==0 no change  
-    CALL RAT   
-    CALL PLUS  
-    CALL SWAPP 
-    CALL RAT 
-    CALL SUBB  
-    CALL SWAPP 
 ; check for end of string     
     CALL QDUP    ; a dlo dhi a+ cntr R: base d? sign 
     _QBRAN NUMQ4 ; yes , not a number 
     CALL parse_digits
+    CALL QDUP 
     CALL ZEQUAL  
     _QBRAN NUMQ4 ; error not end of string  ( a dlo dhi a+ R: base d? sign )
     CALL DROP  ; a dlo dhi 
@@ -108,18 +123,25 @@ NUMQ1:
 NUMQ3: 
     CALL ROT ; dlo dhi a  R: base d?
     CALL DROP
-    _DOLIT -1  
+    _DOLIT -2  ; double return -2 flag 
     CALL RFROM ; dlo dhi d? R: base 
     CALL INVER 
     _QBRAN NUMQ8 
     CALL SWAPP 
-    CALL DROP 
+    CALL DROP
+    CALL ONEP   ; single return -1 flag   
     _BRAN NUMQ8
-NUMQ4: ; not end of string error , ( a dlo dhi a+ R: base d? sign )
+NUMQ4: ; not end of string error , ( a dlo dhi a+ cntr R: base d? sign )
+.if WANT_FLOAT
+    CALL RFROM ; sign 
+    CALL RFROM ; d? 
+    CALL FLOATQ ; ( a dlo dhi a+ cntr sign d? )    
+.else 
     ADDW X,#4 ; drop dhi a+  , ( a dlo R: base d? sign ) 
     ADDW SP,#4 ; drop d? sign  R: base 
     CLRW Y 
     LDW (X),Y ; dlo replaced by 0 ( -- a 0 R: base ) 
+.endif 
 ; restore original base value     
 NUMQ8: 
     CALL RFROM 
@@ -466,16 +488,16 @@ DEQU4:
 ;   d1>d2?
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER DGREAT,2,"D>"
-    LD A,#0 
+    LD A,#0XFF 
     LDW Y,X 
     LDW Y,(4,Y)  ; d1 hi 
     CPW Y,(X)    ; d2 hi 
-    JRSLT DGREAT4 
+    JRSGT DGREAT4 
     LDW Y,X 
     LDW Y,(6,Y)
     CPW Y,(2,X)
-    JRSLE DGREAT4 
-    LD A,#0XFF
+    JRUGT DGREAT4 
+    LD A,#0
 DGREAT4:
     ADDW X,#6
     LD (X),A 
@@ -770,36 +792,34 @@ DDSLMOD1:
 ;   d3 = d1 * d2
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER DSTAR,2,"D*"
-    _DOLIT 0 
-    CALL NROT  
+    CALL DUPP 
+    CALL ZLESS  
+    CALL TOR    ; R: d2sign 
+    CALL DABS   
+    CALL RFROM 
+    CALL NROT  ; d1 d2s ud2
+    CALL DTOR  ; d1 d2s R: ud2  
+    CALL TOR   ; d1 R: ud2 d2s   
     CALL DUPP 
     CALL ZLESS 
-    _QBRAN DDSTAR1 
-    CALL DNEGA 
-    CALL ROT  
-    CALL INVER 
-    CALL NROT  
-DDSTAR1:
-    CALL TOR 
-    CALL TOR
-    CALL NROT  
-    CALL DUPP 
-    CALL ZLESS 
-    _QBRAN DDSTAR2 
-    CALL DNEGA 
-    CALL ROT
-    CALL INVER 
-    CALL NROT 
-DDSTAR2:
-    CALL DDUP 
     CALL RFROM 
-    CALL DSSTAR 
-    CALL DSWAP 
-    CALL RFROM 
-    CALL DSSTAR 
-    CALL DROP
-    CALL PLUS
-    CALL ROT 
+    CALL XORR   
+    CALL TOR   ; d1 R: ud2 prod_sign  
+    CALL DABS ; ud1 R: ud2 ps  
+    CALL RFROM  
+    CALL NROT   ; ps ud1 
+    CALL DDUP   ; ps ud1 ud1  
+    CALL RFROM  ; ps ud1 ud1 ud2hi 
+    CALL DSSTAR ; ps ud1 dprodhi 
+; shift partial product 16 bits left 
+    CALL DROP   ; drop overflow 
+    CALL ZERO   ; ps ud1 prodhi 
+    CALL SWAPP  
+    CALL DSWAP  ; ps dprodhi ud1 
+    CALL RFROM  ; ps dprodhi ud1 ud2lo
+    CALL DSSTAR ; ps  dprodhi dprodlo 
+    CALL DPLUS
+    CALL ROT    ; dprod ps 
     _QBRAN DDSTAR3 
     CALL DNEGA 
 DDSTAR3:  
@@ -982,3 +1002,4 @@ ILOG2:
     CALL DROP 
     CALL RFROM 
     RET 
+

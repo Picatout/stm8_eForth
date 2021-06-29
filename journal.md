@@ -1,3 +1,7 @@
+#### 2021-06-27
+
+* Modifié [Makefile](Makefile).
+
 #### 2021-06-24
 
 * Ajout de **D/**.

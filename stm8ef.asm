@@ -110,8 +110,7 @@ VAR_TOP =     STACK-32*CELLL  ; reserve 32 cells for data stack.
 
 ; user variables constants 
 UBASE = UPP       ; numeric base 
-UFBASE = UBASE+2  ; floating point base 
-UFPSW = UFBASE+2  ; floating point state word 
+UFPSW = UBASE+2  ; floating point state word 
 UTMP = UFPSW+2    ; temporary storage
 UINN = UTMP+2     ; >IN tib pointer 
 UCTIB = UINN+2    ; tib count 
@@ -288,7 +287,6 @@ clear_ram0:
 ; COLD initialize these variables.
 UZERO:
         .word      BASEE   ;BASE
-        .word      10      ; floating point base 
         .word      0       ; floating point state 
         .word      0       ;tmp
         .word      0       ;>IN
@@ -4032,8 +4030,12 @@ SCOMP:
         JP     EXECU
 SCOM1:  JP     JSRC
 SCOM2:  CALL     NUMBQ   ;try to convert to number
+        CALL    QDUP  
         CALL     QBRAN
         .word      ABOR1
+        _DOLIT  -1
+        CALL    EQUAL
+        _QBRAN DLITER  
         JP     LITER
 
 ;       OVERT   ( -- )
