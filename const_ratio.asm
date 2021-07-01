@@ -1,20 +1,22 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Copyright Jacques Deschênes 2019,2020,2021 
+;; This file is part of stm32_eforth  
 ;;
-; Copyright Jacques Deschênes 2019,2020 
-; This file is part of stm8_eForth  
-;
-;     stm8_eForth is free software: you can redistribute it and/or modify
-;     it under the terms of the GNU General Public License as published by
-;     the Free Software Foundation, either version 3 of the License, or
-;     (at your option) any later version.
-;
-;     stm8_eForth is distributed in the hope that it will be useful,
-;     but WITHOUT ANY WARRANTY; without even the implied warranty of
-;     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;     GNU General Public License for more details.
-;
-;     You should have received a copy of the GNU General Public License
-;     along with stm8_eForth.  If not, see <http://www.gnu.org/licenses/>.
+;;     stm8_eforth is free software: you can redistribute it and/or modify
+;;     it under the terms of the GNU General Public License as published by
+;;     the Free Software Foundation, either version 3 of the License, or
+;;     (at your option) any later version.
 ;;
+;;     stm32_eforth is distributed in the hope that it will be useful,
+;;     but WITHOUT ANY WARRANTY;; without even the implied warranty of
+;;     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;;     GNU General Public License for more details.
+;;
+;;     You should have received a copy of the GNU General Public License
+;;     along with stm32_eforth.  If not, see <http:;;www.gnu.org/licenses/>.
+;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 ;--------------------------------------------------------------------
 ; Irrationals constants 
