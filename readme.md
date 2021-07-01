@@ -22,6 +22,11 @@ M. Ting a aussi travaillé sur le développement de processeurs adapté au langa
 
 Comme il s'agit de 2 MCU STM8 l'adaptation vers le stm8s208 ne devrait pas nécessité beaucoup de travail. Le plus gros du travail sera l'adaptation pour SDAS.  J'ignore pour quel assembleur le fichier a été créé mais ma tentative d'assemblage avec SDAS a échouée.  Le fichier a moins de 4000 lignes, ce n'est pas la mer à boire.
 
+# Historique 
+
+## 2021-07-01 
+
+Je travaille sur la version 4.0 qui ajoute quelques mots au fichier de base [stm8_ef.asm](stm8_ef.asm) et 2 librairies. [double.asm](double.asm) pour les entiers 32 bits ainsi que [float.asm](float.asm) qui est une librairie arithmétique en virgule flottante 32 bits. 
 
 ## 2020-01-31
 
