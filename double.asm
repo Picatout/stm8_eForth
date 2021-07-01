@@ -980,30 +980,3 @@ DSUB1:
     RET 
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;    ILOG ( ud base -- n )
-;    integer part of double in base 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER ILOG,4,"ILOG"
-    _DOLIT 0 
-    CALL TOR 
-    CALL NROT 
-ILOG1: 
-    _DOLIT 2 
-    CALL PICK 
-    CALL DSLMOD 
-    CALL ROT 
-    CALL DROP 
-    CALL DDUP
-    CALL DZEQUAL 
-    _TBRAN ILOG2
-    CALL RFROM 
-    CALL ONEP 
-    CALL TOR 
-    _BRAN ILOG1 
-ILOG2:
-    CALL DDROP 
-    CALL DROP 
-    CALL RFROM 
-    RET 
-

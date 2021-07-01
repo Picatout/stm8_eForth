@@ -6,6 +6,10 @@ DESCRIPTION: project log.
 
 #### 2021-07-01
 
+* Renommé **@EXPONENT** en **F&gt;ME**.
+
+* Renommé **!EXPONENT** en **ME&gt;F**. 
+ 
 * révision et test.
 
 

@@ -192,12 +192,12 @@
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;  @EXPONENT ( f# -- m e )
+;  F>ME ( f# -- m e )
 ;  split float in mantissa/exponent 
 ;  m mantissa as a double 
 ;  e exponent as a single 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER ATEXP,9,"@EXPONENT"             
+    _HEADER ATEXP,4,"F>ME"             
     CALL FRESET
     CALL SFN
     CALL SFZ 
@@ -219,10 +219,10 @@ POSMANT:
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;    !EXPONENT ( m e -- f# )
+;    ME>F ( m e -- f# )
 ;    built float from mantissa/exponent 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER STEXP,9,"!EXPONENT"
+    _HEADER STEXP,4,"ME>F"
     CALL DUPP 
     CALL ABSS 
     _DOLIT 127 

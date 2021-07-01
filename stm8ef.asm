@@ -171,7 +171,7 @@ APP_VP = APP_CP+2  ; free data space pointer
 ;***********************************************
 ;; Version control
 
-VER     =     3         ;major release version
+VER     =     4         ;major release version
 EXT     =     0         ;minor extension
 
 ;; Constants
