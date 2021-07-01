@@ -33,6 +33,8 @@
     .include "double.asm"
 .endif  
 
+    MAX_MANTISSA = 0x7FFFFF 
+
 ;-------------------------
 ;    FPSW ( -- a )
 ;    floating state variable
@@ -105,26 +107,6 @@
     CALL AT  
     _DOLIT 4 
     CALL ANDD 
-    RET 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   U> ( u1 u2 -- f )
-;   f = true if u1>u2 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER UGREAT,2,"U>"
-    LD A,#0
-    LDW Y,X 
-    LDW Y,(2,Y)
-    LDW YTEMP,Y 
-    LDW Y,X
-    ADDW X,#2 
-    LDW Y,(Y)
-    CPW Y,YTEMP 
-    JRMI UGREAT1 
-    LD A,#0XFF 
-UGREAT1:
-    LD (X),A 
-    LD (1,X),A 
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -300,6 +282,7 @@ EDOT3:
     _QBRAN EDOT4 
     _DOLIT '-'
     CALL HOLD 
+    CALL DROP 
 EDOT4:       
     CALL EDIGS 
     CALL TYPES
@@ -528,6 +511,177 @@ FLOAT_ERROR:
     CALL STEXP 
     RET 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   SCALE>M ( ud1 -- e ud2 )
+;   scale down a double  
+;   by repeated d/10
+;   until ud<=MAX_MANTISSA   
+;   e is log10 exponent of scaled down
+;   ud2 is scaled down ud1 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER SCALETOM,7,"SCALE>M"
+    CALL ZERO 
+    CALL NROT 
+SCAL1:
+    CALL DUPP 
+    _DOLIT 0X7F 
+    CALL UGREAT 
+    _QBRAN SCAL2  
+    _DOLIT 10 
+    CALL DSLMOD 
+    CALL ROT  
+    CALL DROP
+    CALL ROT 
+    CALL ONEP 
+    CALL NROT  
+    _BRAN SCAL1 
+SCAL2: 
+    RET 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  UDIV10 ( ut -- ut )
+;  divide a 48 bits uint by 10 
+;  used to scale down MM* 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+UDIV10:
+    LDW Y,X 
+    LDW Y,(Y)
+    LD A,#10 
+    DIV Y,A 
+    LDW (X),Y 
+    LD YH,A 
+    LD A,(2,X)
+    LD YL,A 
+    LD A,#10 
+    DIV Y,A 
+    LD YH,A 
+    LD A,YL 
+    LD (2,X),A 
+    LD A,(3,X)
+    LD YL,A 
+    LD A,#10 
+    DIV Y,A 
+    LD YH,A 
+    LD A,YL 
+    LD (3,X),A 
+    LD A,(4,X)
+    LD YL,A 
+    LD A,#10 
+    DIV Y,A 
+    LD YH,A 
+    LD A,YL 
+    LD (4,X),A 
+    LD A,(5,X)
+    LD YL,A 
+    LD A,#10 
+    DIV Y,A 
+    LD A,YL 
+    LD (5,X),A 
+    RET 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   MM* ( m1 m2 -- m3 e )
+;   mantissa product 
+;  scale down to 23 bits 
+;   e  is log10 scaling factor.
+;   The maximum product size 
+;   before scaling is 46 bits .
+;   UDIV10 is used to scale down.  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER MMSTAR,3,"MM*"
+    CALL DDUP
+    CALL DZEQUAL
+    _TBRAN MMSTA2
+MMSTA1:
+    CALL DOVER 
+    CALL DZEQUAL 
+    _QBRAN MMSTA3 
+MMSTA2: ; ( -- 0 0 0 )
+    ADDW X,#2 
+    CLRW Y 
+    LDW (X),Y 
+    LDW (2,X),Y
+    LDW (4,X),Y 
+    RET 
+MMSTA3:
+    CALL DSIGN 
+    CALL TOR    ; R: m2sign 
+    CALL DABS   ; m1 um2 
+    CALL DSWAP  ; um2 m1 
+    CALL DSIGN  ; um2 m1 m1sign 
+    CALL RFROM 
+    CALL XORR 
+    CALL TOR   ; R: product_sign 
+    CALL DABS  ; um2 um1  
+    CALL DTOR  ; um2 
+    CALL DUPP  ; um2 um2hi 
+    CALL RAT   ; um2 um2hi um1hi
+; first partial product  
+; pd1=um2hi*um1hi 
+    CALL STAR 
+    CALL ZERO 
+    CALL SWAPP ; pd1<<16  
+    CALL DSWAP ; pd1 um2 
+    CALL OVER  ; pd1 um2 um2lo 
+    CALL RFROM ; pd1 um2 um2lo um1hi 
+; pd2=um2lo*um1hi 
+    CALL UMSTA ; pd1 um2 pd2 
+    CALL DSWAP ; pd1 pd2 um2 
+    CALL RAT   ; pd1 pd2 um2 um1lo 
+; pd3= um2hi*um1lo 
+    CALL UMSTA ; pd1 pd2 um2lo pd3 
+    CALL ROT ; pd1 pd2 pd3 um2lo 
+    CALL TOR ; pd1 pd2 pd3 R: psign um1lo um2lo 
+; pd1+pd2+pd3  pd1
+    CALL DPLUS 
+    CALL DPLUS  
+CALL DOTS 
+    CALL DRFROM ; triple um2lo um1lo 
+; last partial product um2lo*um1lo 
+    CALL UMSTA ; prod pd4 
+; mm*=prod<<16+pd4  
+    CALL DTOR ;   R: psign pd4lo pd4hi  
+ ; add pd4hi to prodlo and propagate carry 
+    LDW Y,X 
+    LDW Y,(2,Y)  ; prodlo 
+    ADDW Y,(1,SP)  ; prodlo+pd4hi 
+    LDW (1,SP),Y    ; plo phi  
+    LDW Y,X
+    LDW Y,(Y) ; prodhi  
+    JRNC MMSTA4
+    ADDW Y,#1 ; add carry 
+MMSTA4:     
+    SUBW X,#2 
+    LDW (X),Y 
+    POPW Y 
+    LDW (2,X),Y 
+    POPW Y 
+    LDW (4,X),Y
+    CALL ZERO 
+    CALL TOR 
+MMSTA5:
+    CALL QDUP 
+    _QBRAN MMSTA6 
+    CALL UDIV10 
+    CALL RFROM 
+    CALL ONEP 
+    CALL TOR 
+    _BRAN MMSTA5 
+; now scale to double 
+; scale further <= MAX_MANTISSA 
+MMSTA6: 
+    CALL RFROM 
+    CALL NROT 
+    CALL SCALETOM
+    CALL DTOR 
+    CALL PLUS 
+    CALL DRFROM 
+    CALL RFROM
+    _QBRAN MMSTA7
+    CALL DNEGA
+MMSTA7:
+    CALL ROT ; m e 
+    RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    F* ( f#1 f#2 -- f#3 )
@@ -541,31 +695,11 @@ FLOAT_ERROR:
     CALL ATEXP ; m2 m1 e1 
     CALL RFROM ; m2 m1 e1 e2 
     CALL PLUS  ; m2 m1 e 
-    CALL TOR
-    CALL DSTAR ; m2 m1 m2*m1 
-    CALL DSIGN 
-    CALL NROT 
-    CALL DABS 
-FSTAR1: ; scale down 32 bit to 24 bits 
-    CALL DUPP
-    _DOLIT 0X7F   
-    CALL GREAT 
-    _QBRAN FSTAR2 
-    _DOLIT 10 
-    CALL DSLMOD 
-    CALL ROT 
-    CALL DROP
+    CALL TOR   ; m2 m1 R: e 
+    CALL MMSTAR ; m2*m1 e   
     CALL RFROM 
-    CALL ONEP 
-    CALL TOR  
-    _BRAN FSTAR1
-FSTAR2:
-    CALL ROT 
-    _QBRAN FSTAR3 
-    CALL DNEGA 
-FSTAR3:     
-    CALL RFROM 
-    CALL STEXP 
+    CALL PLUS 
+    CALL STEXP ; f#3 
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -574,101 +708,58 @@ FSTAR3:
 ;  f#3 = f#1/f#2
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FSLASH,2,"F/"
-    CALL ATEXP  ; f#1 dm2 e2  
-    CALL TOR    ; f#1 dm2   R: e2 
-    CALL DSIGN  ; f#1 dm2 s2 
-    CALL TOR    ; f#1 dm2  R: e2 s2 
-    CALL DABS   ; f#1 +dm2 
-    CALL DSWAP  ; +dm2 f#1 
-    CALL ATEXP  ; +dm2 dm1 e1 
-    CALL RFROM  ; +dm2 dm1 e1 s2 
-    CALL SWAPP  ; +dm2 dm1 s1 e1 
-    CALL TOR    ; +dm2 dm1 s2 R: e2 e1  
-    CALL NROT   ; +dm2 s2 dm1 
-    CALL DSIGN  ; +dm2 s2 dm1 s1 
-    CALL NROT   ; +dm2 s2 s1 dm1 
-    CALL DABS   ; +dm2 s2 s1 +dm1  
-    CALL TOR    
-    CALL TOR    ; +dm2 s2 s1 R: e2 e1 +dm1  
-    CALL XORR   ; +dm2 s R: e2 e1 +dm1 
-    CALL NROT   ; s +dm2 
-    CALL RFROM 
-    CALL RFROM  ; s +dm2 +dm1 
-    CALL DSWAP  ; s +dm1 +dm2 
-FSLASH1:
-    CALL DUPP 
-    _QBRAN FSLASH4 
-FSLASH2: 
-; reduce divisor
+    CALL ATEXP  ; f#1 m2 e2  
+    CALL TOR    ; f#1 m2   R: e2 
+    CALL DSWAP  ; m2 f#1 
+    CALL ATEXP  ; m2 m1 e1 
+    CALL RFROM  ; m2 m1 e1 e2
+    CALL PLUS   ; m2 m1 e 
+    CALL TOR    ; m2 m1 R: e 
+    CALL DSWAP  ; m1 m2 R: e
+    CALL DDUP  ; m1 m2 m2 R: e
+    CALL DTOR  ; m1 m2 R: e m2 ( keep divisor need later ) 
+    CALL DDSLMOD ; remainder m1/m2 R: e m2 
+    CALL DOVER ; if remainder null done 
+    CALL DZEQUAL 
+    _TBRAN FSLASH8 
+; get fractional digits from remainder until mantissa saturate
+FSLASH1: ; remainder mantissa R: e divisor 
+; check for mantissa saturation 
+    CALL DDUP 
+    _DOLIT 0XCCCC 
+    _DOLIT 0xC
+    CALL DGREAT 
+    _TBRAN FSLASH8 ; another loop would result in mantissa overflow 
+; multiply mantissa by 10 
     _DOLIT 10 
-    CALL DSLMOD
-    CALL ROT 
-    CALL DROP ; drop remainder 
-    CALL TOR 
-    CALL TOR
-; redure divident      
+    CALL ZERO 
+    CALL DSTAR 
+; mutliply remainder by 10     
+    CALL DSWAP 
     _DOLIT 10 
-    CALL DSLMOD 
-    CALL ROT    
-    CALL DROP    ; drop remainder 
-    CALL RFROM 
-    CALL RFROM   ; s +dm1 +dm2 
-    _BRAN FSLASH1 
-FSLASH4:
-    CALL DROP   ; drop divisor hi, is 0 
-    CALL DSLMOD 
-; scale up dquot to include remainder 
-    _DOLIT 2 
-    CALL PICK 
-    CALL NROT  ; s r r dquot 
-FSL1:
-    _DOLIT 2
-    CALL PICK 
-    _QBRAN FSL4 
-    _DOLIT 10 
-    CALL DSSTAR
-    CALL RFROM 
-    CALL ONEM 
-    CALL TOR 
-    CALL ROT 
-    _DOLIT 10 
-    CALL SLASH 
-    CALL NROT 
-    _BRAN FSL1 
-FSL4:
-    CALL ROT
-    CALL TOR 
-    CALL ROT 
-    CALL RFROM 
-    CALL DPLUS  
-    CALL ROT    ; dquot s 
-    _QBRAN FSLASH5 
-    CALL DNEGA  ; negate quotient 
-FSLASH5:
-    CALL RFROM 
-    CALL RFROM 
-    CALL PLUS   
+    CALL ZERO 
+    CALL DSTAR 
+; divide remainder by m2     
+    CALL DRAT 
+    CALL DDSLMOD 
+    CALL DSWAP ; mantissa frac_digit remainder R: e divisor  
+    CALL DTOR  ; mantissa frac_digit R: e divisor remainder 
+    CALL DPLUS ; mantissa+frac_digit 
+    CALL DRFROM ; mantissa remainder 
+    CALL DRFROM ; mantissa remainder divisor 
+    CALL RFROM  ; mantissa remainder divisor e 
+    CALL ONEM   ; decrement exponent 
+    CALL TOR    ; mantissa remainder divisor R: e 
+    CALL DTOR   ; mantissa remainder R: e divisor 
+    CALL DSWAP  ; remainder mantissa  
+    _BRAN FSLASH1
+FSLASH8: ; remainder mantissa R: e divisor 
+    CALL DSWAP  
+    CALL DDROP  ; drop remainder     
+    CALL DRFROM
+    CALL DDROP  ; drop divisor 
+    CALL RFROM  ; exponent 
     CALL STEXP 
-    RET     
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   SCALE> ( # -- #  )
-;   scale down a double dividing it 
-;   by 10;  
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER SCALETO,6,"SCALE>"
-    CALL DSIGN 
-    CALL TOR 
-    CALL DABS 
-SCAL1:
-    _DOLIT 10 
-    CALL DSLMOD 
-    CALL ROT  
-    CALL DROP 
-    CALL RFROM 
-    _QBRAN SCAL2 
-    CALL DNEGAT 
-SCAL2: 
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -679,24 +770,12 @@ SCAL2:
     CALL DSIGN 
     CALL TOR
     CALL DABS  
-    CALL ZERO 
-    CALL NROT
 DTOF1:      
-    CALL DDUP 
-    _DOLIT 0XFFFF 
-    _DOLIT 0X7F 
-    CALL DGREAT 
-    _QBRAN DTOF4
-    CALL ROT 
-    CALL ONEP 
-    CALL NROT 
-    CALL SCALETO 
-    _BRAN DTOF1 
-DTOF4:     
-    CALL RFROM 
-    _QBRAN DTOF6
+    CALL SCALETOM 
+    CALL RFROM
+    _QBRAN DTOF2 
     CALL DNEGAT 
-DTOF6: 
+DTOF2: 
     CALL ROT 
     CALL STEXP 
     RET 
@@ -706,9 +785,14 @@ DTOF6:
 ;  convert float to double 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FTOD,3,"F>D"
-    CALL ATEXP 
+    CALL ATEXP ; m e 
     CALL QDUP
-    _QBRAN FTOD8
+    _QBRAN FTOD9
+    CALL TOR 
+    CALL DSIGN 
+    CALL NROT 
+    CALL DABS
+    CALL RFROM  
     CALL DUPP   
     CALL ZLESS 
     _QBRAN FTOD4 
@@ -719,28 +803,36 @@ DTOF6:
 FTOD1:
     CALL DDUP 
     CALL DZEQUAL 
-    CALL INVER 
-    _QBRAN FTOD3 
+    _TBRAN FTOD3 
     _DOLIT 10 
     CALL DSLMOD 
     CALL ROT 
     CALL DROP
 FTOD2:      
     _DONXT FTOD1
-    RET  
+    _BRAN FTOD8   
 FTOD3: 
     CALL RFROM 
     CALL DROP 
-    RET 
+    _BRAN FTOD8  
 ; positive exponent 
 FTOD4:
     CALL TOR 
     _BRAN FTOD6
 FTOD5:
+    CALL DDUP 
+    _DOLIT 0XCCCC
+    _DOLIT 0XCCC  
+    CALL DGREAT 
+    _TBRAN FTOD3 
     _DOLIT 10 
     CALL ZERO 
     CALL DSTAR 
 FTOD6: 
     _DONXT FTOD5 
-FTOD8:     
+FTOD8:
+    CALL ROT 
+    _QBRAN FTOD9 
+    CALL DNEGA
+FTOD9:          
     RET 

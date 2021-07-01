@@ -64,6 +64,13 @@
     .word value 
     .endm 
 
+    ; branch if TOS<>0
+    ; TBRANCH 
+    .macro _TBRAN target 
+    CALL TBRAN 
+    .word target 
+    .endm 
+    
     ; branch if TOS==0 
     ; 0BRANCH 
     .macro _QBRAN target 

@@ -1,3 +1,19 @@
+#### 2021-06-30
+
+* Travail sur __F/__. 
+
+* Travail sur __F*__. 
+
+#### 2021-06-29
+
+* Travail sur __F*__. 
+
+#### 2021-06-28
+
+* Ajout de **SCALE>**, **D>F**, **F>D**.
+
+* Test et débogage. 
+
 #### 2021-06-27
 
 * Modifié [Makefile](Makefile).

@@ -968,7 +968,20 @@ QBRAN:
         JREQ     BRAN
 	POPW Y
 	JP (2,Y)
-        
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  TBRANCH ( f -- )
+;  branch if f==TRUE 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER TBRAN,COMPO+7,"TBRANCH"
+        LDW Y,X 
+        ADDW X,#2 
+        LDW Y,(Y)
+        JRNE BRAN 
+        POPW Y 
+        JP (2,Y)
+
+
 ;       branch  ( -- )
 ;       Branch to an inline address.
         .word      LINK
@@ -1764,6 +1777,27 @@ LESS:
 LT1:    LD (X),A
         LD (1,X),A
 	RET     
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   U> ( u1 u2 -- f )
+;   f = true if u1>u2 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER UGREAT,2,"U>"
+    LD A,#0 
+    LDW Y,X 
+    LDW Y,(Y)
+    LDW YTEMP,Y 
+    ADDW X,#2 
+    LDW Y,X
+    LDW Y,(Y)
+    CPW Y,YTEMP 
+    JRULE UGREAT1 
+    LD A,#0xff  
+UGREAT1:
+    LD (X),A 
+    LD (1,X),A 
+    RET 
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       >   (n1 n2 -- f )

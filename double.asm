@@ -125,8 +125,7 @@ NUMQ3:
     CALL DROP
     _DOLIT -2  ; double return -2 flag 
     CALL RFROM ; dlo dhi d? R: base 
-    CALL INVER 
-    _QBRAN NUMQ8 
+    _TBRAN NUMQ8 
     CALL SWAPP 
     CALL DROP
     CALL ONEP   ; single return -1 flag   
@@ -168,10 +167,10 @@ ZEQ1:
 	RET     
     
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;  DNEGATE ( d -- d )
+;  2NEGATE ( d -- d )
 ;  negate double (2's complement)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER DNEGAT,7,"DNEGATE"
+    _HEADER DNEGAT,7,"2NEGATE"
     CALL INVER
     CALL SWAPP 
     CALL INVER 
@@ -743,45 +742,28 @@ DLSHIFT2:
     LDW (X),Y 
     RET 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;  DD/MOD ( d1 d2 -- dr dq )
-;  unsigned division double 
-;  double.
-;  return double quotient and 
-;  double remainder 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER DDSLMOD,6,"DD/MOD"
-    CALL DDUP 
-    CALL DCLZ 
-    CALL DUPP
-    _DOLIT 16 
-    CALL GREAT 
-    _QBRAN DDSLMOD1 
-    CALL DDROP 
-    CALL DSLMOD 
-    RET 
-DDSLMOD1:
-    CALL DUPP      
-    CALL TOR 
-    CALL DLSHIFT
-    _DOLIT 32 
-    CALL RFROM 
-    CALL SUBB 
-    _DOLIT 5 
-    CALL PICK 
-    _DOLIT 5 
-    CALL PICK 
-    CALL DCLZ 
-    CALL TOR 
-    CALL DSWAP 
-    CALL RAT 
-    CALL DLSHIFT 
-    CALL DSWAP 
-    CALL RFROM 
-    CALL RFROM 
-    CALL SWAPP 
-    CALL SUBB ; number dividend left shift to do.
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  DRSHIFT ( d n -- d )
+;  shift right n bits 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER DRSHIFT,7,"DRSHIFT"
+    LD A,(1,X)
+    AND A,#0X1F 
+    ADDW X,#2 
+DRSHIFT1:
+    TNZ A 
+    JREQ DRSHIFT2 
+    LDW Y,X 
+    LDW Y,(Y)
+    SRAW Y 
+    LDW (X),Y 
+    LDW Y,X 
+    LDW Y,(2,Y)
+    RRCW Y 
+    LDW (2,X),Y 
+    DEC A
+    JRA DRSHIFT1  
+DRSHIFT2:
     RET 
 
 
@@ -826,16 +808,17 @@ DDSTAR3:
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   D/  ( d1 d2 -- d3 )
-;   double division d3=d1/d2
+;   DD/MOD  ( d1 d2 -- dr dq )
+;   double division dq=d1/d2
+;   dr remainder double 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER DSLASH,2,"D/"  
+    _HEADER DDSLMOD,6,"DD/MOD"  
     _DOLIT 0 
     CALL TOR   ; R: sign 
     LDW Y,X     
     LDW Y,(Y)
     JRPL DSLA1
-    CALL DNEGA
+    CALL DNEGA  ; ud2 
     CALL RFROM 
     CALL INVER 
     CALL TOR  ; sign inverted 
@@ -845,8 +828,8 @@ DSLA1:
     CALL ZLESS 
     _QBRAN DSLA2
     CALL DSWAP 
-    CALL DNEGA
-    CALL DSWAP       
+    CALL DNEGA  ; ud1 
+    CALL DSWAP  ; ud1 ud2 ( divident divisor )     
     CALL RFROM 
     CALL INVER 
     CALL TOR   ;  sign inverted again 
@@ -864,41 +847,41 @@ DSLA2:
     CALL SUBB
     CALL DUPP   
     CALL ZLESS 
-    CALL INVER 
-    _QBRAN DSLA7 ; quotient is null 
+    _TBRAN DSLA7 ; quotient is null 
     CALL DUPP 
     CALL TOR    ; loop counter 
+    CALL DUPP 
+    CALL TOR    ; need to copies 
     CALL QDUP 
     _QBRAN DSLA3
     CALL DLSHIFT ; align divisor with dividend 
-DSLA3: ; division loop 
+DSLA3: ; division loop -- dividend divisor  
     CLRW Y 
     PUSHW Y  
     CALL DOVER 
     CALL DOVER 
     CALL DLESS 
-    CALL INVER  
-    _QBRAN DSLA4 
+    _TBRAN DSLA4 
     POPW Y 
     ADDW Y,#1 
-    PUSHW Y 
-    CALL DDUP 
-    CALL DTOR
-    CALL DSUB
-    CALL DRFROM  
+    PUSHW Y    ; quotiend least bit 
+    CALL DDUP  ; dividend divisor divisor 
+    CALL DTOR  
+    CALL DSUB  ; dividend-divisor 
+    CALL DRFROM  ; dividend- divisor  
 DSLA4: ; shift quotient and add 1 bit 
     POPW Y 
     LDW YTEMP,Y 
-    LDW Y,(5,SP) ; quotient low 
+    LDW Y,(7,SP) ; quotient low 
     RCF 
     RLCW Y
-    LDW (5,SP),Y 
-    LDW Y,(3,SP) ; quotient hi 
+    LDW (7,SP),Y 
+    LDW Y,(5,SP) ; quotient hi 
     RLCW Y 
-    LDW (3,SP),Y 
-    LDW Y,(5,SP) 
-    ADDW Y,YTEMP
     LDW (5,SP),Y 
+    LDW Y,(7,SP) 
+    ADDW Y,YTEMP
+    LDW (7,SP),Y 
     LDW Y,(1,SP) ; loop counter 
     TNZW Y 
     JREQ DSLA8
@@ -912,14 +895,17 @@ DSLA4: ; shift quotient and add 1 bit
 DSLA7:
     ADDW X,#2 ; drop shift count  
 DSLA8:
-    ADDW X,#8 ; drop remainder and divisor 
-    ADDW SP,#2 ; drop loop count on RSTACK 
+    ADDW X,#4 ; drop divisor
+    CALL RFROM
+    CALL DROP   ; loop counter 
+    CALL RFROM   ; shift count
+    CALL DRSHIFT 
     ; quotient replace dividend 
-    CALL DRFROM 
+    CALL DRFROM  ; quotient 
     POPW Y ; sign 
     TNZW Y 
     JREQ DSLA9 
-    CALL DNEGA 
+    CALL DNEGA ; remainder quotient 
 DSLA9: 
     RET 
 
@@ -991,8 +977,7 @@ ILOG1:
     CALL DROP 
     CALL DDUP
     CALL DZEQUAL 
-    CALL INVER 
-    _QBRAN ILOG2
+    _TBRAN ILOG2
     CALL RFROM 
     CALL ONEP 
     CALL TOR 
