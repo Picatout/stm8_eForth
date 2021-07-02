@@ -390,47 +390,38 @@ uart_init:
         rim
         jp  COLD   ;default=MN1
 
-
+        LINK=0 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;        
 ;; place MCU in sleep mode with
 ;; halt opcode 
 ;; BYE ( -- )
-        .word 0
-        LINK=.
-        .byte 3 
-        .ascii "BYE"
-BYE: 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER BYE,3,"BYE"
         halt 
         ret 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Enable interrupts 
 ; EI ( -- )
-        .word LINK 
-        LINK=.
-        .byte 2
-        .ascii "EI"
-EI:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER EI,2,"EI"
         rim 
         ret 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Disable interrupts
 ; DI ( -- )
-        .word LINK 
-        LINK=.
-        .byte 2 
-        .ascii "DI"
-DI:
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER DI,2,"DI"
         sim 
         ret 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; set interrupt priority level 
 ; SET-ISP ( n1 n2 -- )
 ; n1 level {1..3}
 ; n2 vector {0..29}
-        .word LINK 
-        LINK=.
-        .byte 7 
-        .ascii "SET-ISP"
-SETISP:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER SETISP,7,"SET-ISP"
         ldw y,x 
         ldw y,(y)
         ld a,#4 ; 4 slot per register 
@@ -465,14 +456,12 @@ SETISP:
         call SWAPP 
         call CSTOR
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; sélectionne l'application 
 ; qui démarre automatique lors 
 ; d'un COLD start 
-        .word LINK 
-        LINK=.
-        .byte 7
-        .ascii "AUTORUN"
-AUTORUN:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER AUTORUN,7,"AUTORUN"
         call TOKEN 
         call DUPP 
         call QBRAN 
@@ -489,15 +478,13 @@ AUTORUN:
         ldw (2,x),y 
         jp EESTORE 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Reset dictionary pointer before 
 ;; forgotten word. RAM space and 
 ;; interrupt vector defined after 
 ;; must be resetted also.
-        .word LINK 
-        LINK=.
-        .byte 6
-        .ascii "FORGET" 
-FORGET: 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER FORGET,6,"FORGET"
         call TOKEN
         call DUPP 
         call QBRAN 
@@ -570,16 +557,12 @@ FORGET4:
         jp DROP 
 
 
-;---------------------------------
+;;;;;;;;;;;;;;;;;;;;;
 ; if na is variable 
 ; free variable data  
 ; FREEVAR ( na -- )
-;---------------------------------
-        .word LINK 
-        LINK=.
-        .byte 7 
-        .ascii "FREEVAR"
-FREEVAR:
+;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER FREEVAR,7,"FREEVAR"
         call DUPP ; ( na na -- )
         CALL CAT  ; ( na c -- )
         call ONEP ;
@@ -602,13 +585,11 @@ FREEVAR:
 FREEVAR4: ; not variable
         jp  DROP 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    SEED ( n -- )
 ; Initialize PRNG seed with n 
-        .word LINK 
-        LINK=. 
-        .byte 4 
-        .ascii "SEED" 
-SEED:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER SEED,4,"SEED"
         ldw y,x 
         addw x,#CELLL
         ldw y,(y)
@@ -617,14 +598,11 @@ SEED:
         ld a,yl 
         ld SEEDY,a 
         ret 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    RANDOM ( u1 -- u2 )
 ; Pseudo random number betwen 0 and u1-1
-        .word LINK 
-        LINK=.
-        .byte 6
-        .ascii "RANDOM" 
-RANDOM:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER RANDOM,6,"RANDOM"
 ;local variable 
         SPSAVE=1
         VSIZE=2 
@@ -685,27 +663,21 @@ RANDOM:
 	ret 
 
 
-;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; get millisecond counter 
 ;; msec ( -- u )
-;; Added by Picatout 2020-04-26
-        .word LINK  
-        LINK = . 
-        .byte 4
-        .ascii "MSEC"
-MSEC: 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER MSEC,4,"MSEC"
         subw x,#CELLL 
         ldw y,MS 
         ldw (x),y 
         ret 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; suspend execution for u msec 
 ;  pause ( u -- )
-        .word LINK 
-        LINK=.
-        .byte 5 
-        .ascii "PAUSE"
-PAUSE:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER PAUSE,5,"PAUSE"
         ldw y,x
         ldw y,(y)
         addw y,MS 
@@ -715,26 +687,22 @@ PAUSE:
         addw x,#CELLL 
         ret 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; initialize count down timer 
-;  TIMER ( u -- )  milliseconds 
-        .word LINK 
-        LINK=.
-        .byte 5 
-        .ascii "TIMER" 
-TIMER:
+;  TIMER ( u -- )  milliseconds
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER TIMER,5,"TIMER"
         ldw y,x
         ldw y,(y) 
         ldw CNTDWN,y
         addw x,#CELLL 
         ret 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; check for TIMER exiparition 
 ;  TIMEOUT? ( -- 0|-1 )
-        .word LINK 
-        LINK=. 
-        .byte 8 
-        .ascii "TIMEOUT?"
-TIMEOUTQ: 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER TIMEOUTQ,8,"TIMEOUT?"
         clr a
         subw x,#CELLL 
         ldw y,CNTDWN 
@@ -744,22 +712,18 @@ TIMEOUTQ:
         ld (x),a 
         ret         
 
+;;;;;;;;;;;;;;;;;;;;;
 ; reboot MCU 
 ; REBOOT ( -- )
-        .word LINK 
-        LINK=. 
-        .byte 6 
-        .ascii "REBOOT"
-reboot:
+;;;;;;;;;;;;;;;;;;;;;
+        _HEADER reboot,6,"REBOOT"
         jp NonHandledInterrupt
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; compile to flash memory 
 ; TO-FLASH ( -- )
-        .word LINK 
-        LINK=.
-        .byte 8
-        .ascii "TO-FLASH"
-TOFLASH:
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER TOFLASH,8,"TO-FLASH"
         call RAMLAST 
         call AT 
         call QDUP 
@@ -772,19 +736,19 @@ TOFLASH:
         ldw UTFLASH,y
         ret 
 
+;;;;;;;;;;;;;;;;;;;;;;
 ; compile to RAM 
 ; TO-RAM ( -- )
-        .word LINK 
-        LINK=.
-        .byte 6 
-        .ascii "TO-RAM"
-TORAM:
+;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER TORAM,6,"TO-RAM"
         clrw y 
         ldw UTFLASH,y 
         ret 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; BAUD RATE constants table
 ; values to put in BRR1 & BRR2 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 baudrate: 
 	.byte 0xa0,0x1b ; 2400
 	.byte 0xd0,0x5  ; 4800 
@@ -793,75 +757,63 @@ baudrate:
 	.byte 0x11,0x6  ; 57600
 	.byte 0x8,0xb   ; 115200
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; BAUD RATE CONSTANTS names 
-; 2400 baud
-	.word LINK
-LINK	= .
-	.byte 4
-	.ascii "B2K4" 
-B2K4:
+; 2400 baud  ( -- n )
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER B2K4,4,"B2K4"
 	subw x,#CELLL 
         clrw y
         ldw (x),y
 	ret
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; 4800 baud	
-	.word LINK
-LINK	= .
-	.byte 4
-	.ascii "B4K8" 
-B4K8:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER B4K8,4,"B4K8"
         subw x,#CELLL 
         ldw y,#2 
         ldw (x),y
         ret 
+
+;;;;;;;;;;;;;;;;;;;;
 ; 9600 baud
-	.word LINK
-LINK	= .
-	.byte 4
-	.ascii "B9K6" 
-B9K6:
+;;;;;;;;;;;;;;;;;;;;
+        _HEADER B9K6,4,"B9K6"
         subw x,#CELLL 
         ldw y,#4 
         ldw (x),y 
         ret 
+;;;;;;;;;;;;;;
 ; 19200 baud
-	.word LINK
-LINK	= .
-	.byte 5
-	.ascii "B19K2" 
-B19K2:
+;;;;;;;;;;;;;;
+        _HEADER B19K2,5,"B19K2"
         subw x,#CELLL
         ldw y,#6 
         ldw (x),y 
         ret 
-; 57600 baud        
-	.word LINK
-LINK	= .
-	.byte 5
-	.ascii "B57K6" 
-B57K6:
+;;;;;;;;;;;;;;
+; 57600 baud  
+;;;;;;;;;;;;;;
+        _HEADER B57K6,5,"B57K6"
         subw x,#CELLL 
         ldw y,#8 
         ldw (x),y 
         ret 
+;;;;;;;;;;;;;;
 ; 115200 baud 
-	.word LINK
-LINK	= .
-	.byte 6
-	.ascii "B115K2" 
-B115K2:
+;;;;;;;;;;;;;;
+        _HEADER B115K2,6,"B115K2"
 	subw x,#CELLL 
         ldw y,#10 
         ldw (x),y 
         ret 
-	
+
+;;;;;;;;;;;;;;;;;;;;;;;	
 ;; set UART2 BAUD rate
 ;	BAUD ( u -- )
-	.word LINK 
-LINK	= .
-	.byte 4
-	.ascii "BAUD" 
-BAUD:
+;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER BAUD,4,"BAUD"
 	subw x,#CELLL
         ldw y,#baudrate 
         ldw (x),y 
@@ -879,13 +831,11 @@ BAUD:
         ret 
 
 ;; Device dependent I/O
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       ?RX     ( -- c T | F )
 ;         Return input byte and true, or false.
-        .word      LINK 
-LINK	= .
-        .byte      4
-        .ascii     "?KEY"
-QKEY:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER QKEY,4,"?KEY"
         CLRW Y 
         BTJF UART_SR,#UART_SR_RXNE,INCH   ;check status
         LD    A,UART_DR   ;get char in A
@@ -898,26 +848,22 @@ INCH:
         LDW     (X),Y
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       TX!     ( c -- )
 ;       Send character c to  output device.
-        .word      LINK
-LINK	= .
-        .byte      4
-        .ascii     "EMIT"
-EMIT:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER EMIT,4,"EMIT"
         LD     A,(1,X)
 	ADDW	X,#2
 OUTPUT: BTJF UART_SR,#UART_SR_TXE,OUTPUT  ;loop until tx empty 
         LD    UART_DR,A   ;send A
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       FC-XON  ( -- )
 ;       send XON character 
-        .word LINK
-LINK    = .
-        .byte 6 
-        .ascii "FC-XON"
-FC_XON:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER FC_XON,6,"FC-XON"
         subw x,#CELLL 
         clr (x)
         ld a,#XON 
@@ -925,13 +871,11 @@ FC_XON:
         call EMIT 
         ret 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       FC-XOFF ( -- )
 ;       Send XOFF character 
-        .word LINK
-LINK    = .
-        .byte 7
-        .ascii "FC-XOFF"
-FC_XOFF:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER FC_XOFF,7,"FC-XOFF"
         subw x,#CELLL 
         clr (x)
         ld a,#XOFF 
@@ -941,12 +885,10 @@ FC_XOFF:
 
 ;; The kernel
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       doLIT   ( -- w )
 ;       Push an inline literal.
-        .word      LINK
-;LINK	= 	.
-;	.byte      COMPO+5
-;        .ascii     "DOLIT"
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 DOLIT:
 	SUBW X,#2
         ldw y,(1,sp)
@@ -955,13 +897,11 @@ DOLIT:
         popw y 
         jp (2,y)
 
-;       next    ( -- )
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;       NEXT    ( -- )
 ;       Code for  single index loop.
-        .word      LINK
-LINK	= 	.
-	.byte      COMPO+4
-        .ascii     "next"
-DONXT:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER DONXT,COMPO+4,"NEXT"
 	LDW Y,(3,SP)
 	DECW Y
 	JRPL NEX1 ; jump if N=0
@@ -974,12 +914,11 @@ NEX1:
 	LDW Y,(Y)
 	JP (Y)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       ?branch ( f -- )
 ;       Branch if flag is zero.
-;        .word      LINK
-;LINK	= 	.
-;	.byte      COMPO+7
-;       .ascii     "?BRANCH"
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;       _HEADER QBRAN,COMPO+7,"?BRANCH"        
 QBRAN:	
         LDW Y,X
 	ADDW X,#2
@@ -1001,13 +940,11 @@ TBRAN:
         POPW Y 
         JP (2,Y)
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       branch  ( -- )
 ;       Branch to an inline address.
-;        .word      LINK
-;LINK	= 	.
-;	.byte      COMPO+6
-;        .ascii     "BRANCH"
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;       _HEADER BRAN,COMPO+6,"BRANCH"
 BRAN:
         POPW Y
 	LDW Y,(Y)
@@ -1031,53 +968,46 @@ OPTIMIZE = 1
 ; le opcode de RET.
 ; Voir modification au code de ";"
 .else 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       EXIT    ( -- )
 ;       Terminate a colon definition.
-        .word      LINK
-LINK = .
-        .byte      4
-        .ascii     "EXIT"
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;       _HEADER EXIT,4,"EXIT"
 EXIT:
         POPW Y
         RET
 .endif 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       !       ( w a -- )
 ;       Pop  data stack to memory.
-        .word      LINK
-LINK = .
-        .byte      1
-        .ascii     "!"
-STORE:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER STORE,1,"!"
         LDW Y,X
         LDW Y,(Y)    ;Y=a
-        LDW YTEMP,Y
-        LDW Y,X
-        LDW Y,(2,Y)
-        LDW [YTEMP],Y ;store w at a
+        PUSHW X
+        LDW X,(2,X) ; x=w 
+        LDW (Y),X 
+        POPW X  
         ADDW X,#4 ; DDROP 
         RET     
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       @       ( a -- w )
 ;       Push memory location to stack.
-        .word      LINK
-LINK	= 	.
-        .byte    1
-        .ascii	"@"
-AT:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER AT,1,"@"
         LDW Y,X     ;Y = a
         LDW Y,(Y)   ; address 
         LDW Y,(Y)   ; value 
         LDW (X),Y ;w = @Y
         RET     
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       C!      ( c b -- )
 ;       Pop  data stack to byte memory.
-        .word      LINK
-LINK	= .
-        .byte      2
-        .ascii     "C!"
-CSTOR:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER CSTOR,2,"C!"
         LDW Y,X
 	LDW Y,(Y)    ;Y=b
         LD A,(3,X)    ;D = c
@@ -1085,13 +1015,11 @@ CSTOR:
 	ADDW X,#4 ; DDROP 
         RET     
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       C@      ( b -- c )
 ;       Push byte in memory to  stack.
-        .word      LINK
-LINK	= 	.
-        .byte      2
-        .ascii     "C@"
-CAT:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER CAT,2,"C@"
         LDW Y,X     ;Y=b
         LDW Y,(Y)
         LD A,(Y)
@@ -1099,156 +1027,132 @@ CAT:
         CLR (X)
         RET     
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       RP@     ( -- a )
 ;       Push current RP to data stack.
-        .word      LINK
-LINK	= .
-        .byte      3
-        .ascii     "RP@"
-RPAT:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER RPAT,3,"RP@"
         LDW Y,SP    ;save return addr
         SUBW X,#2
         LDW (X),Y
         RET     
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       RP!     ( a -- )
 ;       Set  return stack pointer.
-        .word      LINK
-LINK	= 	. 
-	.byte      COMPO+3
-        .ascii     "RP!"
-RPSTO:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER RPSTO,COMPO+3,"RP!"
         POPW Y
         LDW YTEMP,Y
         LDW Y,X
         LDW Y,(Y)
         LDW SP,Y
-        ADDW x,#CELLL ; a was not dropped, Picatout 2020-05-24
+        ADDW X,#CELLL ; a was not dropped, Picatout 2020-05-24
         JP [YTEMP]
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       R>      ( -- w )
 ;       Pop return stack to data stack.
-        .word      LINK
-LINK	= 	. 
-	.byte      COMPO+2
-        .ascii     "R>"
-RFROM:
-        POPW Y    ;save return addr
-        LDW YTEMP,Y
-        POPW Y
-        SUBW X,#2
-        LDW (X),Y
-        JP [YTEMP]
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER RFROM,2,"R>"
+        SUBW X,#CELLL 
+        LDW Y,(3,SP)
+        LDW (X),Y 
+        POPW Y 
+        ADDW SP,#2 
+        JP (Y)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       R@      ( -- w )
 ;       Copy top of return stack to stack.
-        .word      LINK
-LINK	= 	. 
-        .byte      2
-        .ascii     "R@"
-RAT:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER RAT,2,"R@"
         ldw y,(3,sp)
         subw x,#CELLL 
         ldw (x),y 
         ret 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       >R      ( w -- )
 ;       Push data stack to return stack.
-        .word      LINK
-LINK	= 	. 
-	.byte      COMPO+2
-        .ascii     ">R"
-TOR:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER TOR,COMPO+2,">R"
         POPW Y    ;save return addr
         LDW YTEMP,Y
         LDW Y,X
-        LDW Y,(Y)
-        PUSHW Y    ;restore return addr
+        LDW Y,(Y)  ; W
+        PUSHW Y    ;W >R 
         ADDW X,#2
         JP [YTEMP]
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       SP@     ( -- a )
 ;       Push current stack pointer.
-        .word      LINK
-LINK	= 	. 
-        .byte      3
-        .ascii     "SP@"
-SPAT:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER SPAT,3,"SP@"
 	LDW Y,X
         SUBW X,#2
 	LDW (X),Y
         RET     
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       SP!     ( a -- )
 ;       Set  data stack pointer.
-        .word      LINK
-LINK	= 	. 
-        .byte      3
-        .ascii     "SP!"
-SPSTO:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER SPSTO,3,"SP!"
         LDW     X,(X)     ;X = a
         RET     
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       DROP    ( w -- )
 ;       Discard top stack item.
-        .word      LINK
-LINK	= 	. 
-        .byte      4
-        .ascii     "DROP"
-DROP:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER DROP,4,"DROP"
         ADDW X,#2     
         RET     
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       DUP     ( w -- w w )
 ;       Duplicate  top stack item.
-        .word      LINK
-LINK	= 	. 
-        .byte      3
-        .ascii     "DUP"
-DUPP:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER DUPP,3,"DUP"
 	LDW Y,X
         SUBW X,#2
 	LDW Y,(Y)
 	LDW (X),Y
         RET     
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       SWAP    ( w1 w2 -- w2 w1 )
 ;       Exchange top two stack items.
-        .word      LINK
-LINK	= 	. 
-        .byte      4
-        .ascii     "SWAP"
-SWAPP:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER SWAPP,4,"SWAP"
         LDW Y,X
         LDW Y,(Y)
-        LDW YTEMP,Y
+        PUSHW Y  
         LDW Y,X
         LDW Y,(2,Y)
         LDW (X),Y
-        LDW Y,YTEMP
+        POPW Y 
         LDW (2,X),Y
         RET     
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       OVER    ( w1 w2 -- w1 w2 w1 )
 ;       Copy second stack item to top.
-        .word      LINK
-LINK	= . 
-        .byte      4
-        .ascii     "OVER"
-OVER:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER OVER,4,"OVER"
         SUBW X,#2
         LDW Y,X
         LDW Y,(4,Y)
         LDW (X),Y
         RET     
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       0<      ( n -- t )
 ;       Return true if n is negative.
-        .word      LINK
-LINK	= . 
-        .byte      2
-        .ascii     "0<"
-ZLESS:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER ZLESS,2,"0<"
         LD A,#0xFF
         LDW Y,X
         LDW Y,(Y)
@@ -1273,14 +1177,11 @@ ZEQU1:
         LD (1,X),A         
         RET 
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       AND     ( w w -- w )
 ;       Bitwise AND.
-        .word      LINK
-LINK	= . 
-        .byte      3
-        .ascii     "AND"
-ANDD:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER ANDD,3,"AND"
         LD  A,(X)    ;D=w
         AND A,(2,X)
         LD (2,X),A
@@ -1290,13 +1191,11 @@ ANDD:
         ADDW X,#2
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       OR      ( w w -- w )
 ;       Bitwise inclusive OR.
-        .word      LINK
-LINK = . 
-        .byte      2
-        .ascii     "OR"
-ORR:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER ORR,2,"OR"
         LD A,(X)    ;D=w
         OR A,(2,X)
         LD (2,X),A
@@ -1306,13 +1205,11 @@ ORR:
         ADDW X,#2
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       XOR     ( w w -- w )
 ;       Bitwise exclusive OR.
-        .word      LINK
-LINK	= . 
-        .byte      3
-        .ascii     "XOR"
-XORR:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER XORR,3,"XOR"
         LD A,(X)    ;D=w
         XOR A,(2,X)
         LD (2,X),A
@@ -1322,14 +1219,12 @@ XORR:
         ADDW X,#2
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       UM+     ( u u -- udsum )
 ;       Add two unsigned single
 ;       and return a double sum.
-        .word      LINK
-LINK	= . 
-        .byte      3
-        .ascii     "UM+"
-UPLUS:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER UPLUS,3,"UM+"
         LD A,#1
         LDW Y,X
         LDW Y,(2,Y)
@@ -1346,12 +1241,12 @@ UPL1:   LD     (1,X),A
 
 ;; System and user variables
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       doVAR   ( -- a )
-;       Code for VARIABLE and CREATE.
-        .word      LINK
-LINK	= . 
-	.byte      COMPO+5
-        .ascii     "DOVAR"
+;       run time code 
+;       for VARIABLE and CREATE.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;       HEADER DOVAR,COMPO+5,"DOVAR"
 DOVAR:
 	SUBW X,#2
         POPW Y    ;get return addr (pfa)
@@ -1359,179 +1254,158 @@ DOVAR:
         LDW (X),Y    ;push on stack
         RET     ;go to RET of EXEC
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       BASE    ( -- a )
 ;       Radix base for numeric I/O.
-        .word      LINK        
-LINK = . 
-        .byte      4
-        .ascii     "BASE"
-BASE:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER BASE,4,"BASE"
 	LDW Y,#UBASE 
 	SUBW X,#2
         LDW (X),Y
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       tmp     ( -- a )
 ;       A temporary storage.
-        .word      LINK
-        
-LINK = . 
-	.byte      3
-        .ascii     "TMP"
-TEMP:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER TEMP,3,"TMP"
 	LDW Y,#UTMP
 	SUBW X,#2
         LDW (X),Y
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       >IN     ( -- a )
 ;        Hold parsing pointer.
-        .word      LINK
-LINK = . 
-        .byte      3
-        .ascii    ">IN"
-INN:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER INN,3,">IN"
 	LDW Y,#UINN 
 	SUBW X,#2
         LDW (X),Y
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       #TIB    ( -- a )
-;       Count in terminal input buffer.
-        .word      LINK
-LINK = . 
-        .byte      4
-        .ascii     "#TIB"
-NTIB:
+;       Count in terminal input 
+;       buffer.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER NTIB,4,"#TIB"
 	LDW Y,#UCTIB 
 	SUBW X,#2
         LDW (X),Y
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       TBUF ( -- a )
-;       address of 128 bytes transaction buffer 
-        .word LINK 
-        LINK=.
-        .byte 4 
-        .ascii "TBUF"
-TBUF:
+;       address of 128 bytes 
+;       transaction buffer
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER TBUF,4,"TBUF"
         ldw y,#ROWBUFF
         subw x,#CELLL
         ldw (x),y 
         ret 
 
 ; systeme variable 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; compilation destination 
 ; TFLASH ( -- A )
-        .word LINK 
-        LINK=.
-        .byte 6 
-        .ascii "TFLASH"         
-TFLASH:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER TFLASH,6,"TFLASH"
         subw x,#CELLL 
         ldw y,#UTFLASH
         ldw (x),y 
         ret 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       "EVAL   ( -- a )
 ;       Execution vector of EVAL.
-        .word      LINK
-LINK = . 
-        .byte      5
-        .ascii     "'EVAL"
-TEVAL:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER TEVAL,5,"'EVAL"
 	LDW Y,#UINTER 
 	SUBW X,#2
         LDW (X),Y
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       HLD     ( -- a )
-;       Hold a pointer of output string.
-        .word      LINK
-LINK = . 
-        .byte      3
-        .ascii     "HLD"
-HLD:
+;       Hold a pointer of output
+;        string.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER HLD,3,"HLD"
 	LDW Y,#UHLD 
 	SUBW X,#2
         LDW (X),Y
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       CONTEXT ( -- a )
 ;       Start vocabulary search.
-        .word      LINK
-LINK = . 
-        .byte      7
-        .ascii     "CONTEXT"
-CNTXT:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER CNTXT,7,"CONTEXT"
 	LDW Y,#UCNTXT
 	SUBW X,#2
         LDW (X),Y
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       VP      ( -- a )
 ;       Point to top of variables
-        .word      LINK
-LINK = . 
-        .byte      2
-        .ascii     "VP"
-VPP:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER VPP,2,"VP"
 	LDW Y,#UVP 
 	SUBW X,#2
         LDW (X),Y
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       CP    ( -- a )
 ;       Pointer to top of FLASH 
-        .word LINK 
-        LINK=.
-        .byte 2 
-        .ascii "CP"
-CPP: 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER CPP,2,"CP"
         ldw y,#UCP 
         subw x,#CELLL 
         ldw (x),y 
         ret                
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       LAST    ( -- a )
-;       Point to last name in dictionary.
-        .word      LINK
-LINK = . 
-        .byte      4
-        .ascii     "LAST"
-LAST:
+;       Point to last name in 
+;       dictionary.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER LAST,4,"LAST"
 	LDW Y,#ULAST 
 	SUBW X,#2
         LDW (X),Y
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; address of system variable URLAST 
 ;       RAMLAST ( -- a )
 ; RAM dictionary context 
-        .word LINK 
-        LINK=. 
-        .byte 7  
-        .ascii "RAMLAST" 
-RAMLAST: 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER RAMLAST,7,"RAMLAST"
         ldw y,#URLAST 
         subw x,#CELLL 
         ldw (x),y 
         ret 
 
-; OFFSET ( -- a )
-; address of system variable OFFSET 
-        .word LINK 
-        LINK=.
-        .byte 6
-        .ascii "OFFSET" 
-OFFSET: 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;       OFFSET ( -- a )
+;       address of system 
+;       variable OFFSET 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER OFFSET,6,"OFFSET"
         subw x,#CELLL
         ldw y,#UOFFSET 
         ldw (x),y 
         ret 
 
-; adjust jump address adding OFFSET
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; adjust jump address 
+;  adding OFFSET
 ; ADR-ADJ ( a -- a+offset )
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ADRADJ: 
         call OFFSET 
         call AT 
@@ -1540,13 +1414,11 @@ ADRADJ:
 
 ;; Common functions
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       ?DUP    ( w -- w w | 0 )
 ;       Dup tos if its is not zero.
-        .word      LINK
-LINK = . 
-        .byte      4
-        .ascii     "?DUP"
-QDUP:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER QDUP,4,"?DUP"
         LDW Y,X
 	LDW Y,(Y)
         JREQ     QDUP1
@@ -1554,13 +1426,11 @@ QDUP:
         LDW (X),Y
 QDUP1:  RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       ROT     ( w1 w2 w3 -- w2 w3 w1 )
 ;       Rot 3rd item to top.
-        .word      LINK
-LINK = . 
-        .byte      3
-        .ascii     "ROT"
-ROT:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER ROT,3,"ROT"
         ldw y,x 
         ldw y,(y)
         pushw y 
@@ -1574,7 +1444,7 @@ ROT:
         ldw (2,x),y
         ret 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    <ROT ( n1 n2 n3 -- n3 n1 n2 )
 ;    rotate left 3 top elements 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1592,23 +1462,19 @@ ROT:
     LDW (4,X),Y ; = n3 
     RET 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       2DROP   ( w w -- )
 ;       Discard two items on stack.
-        .word      LINK
-LINK = . 
-        .byte      5
-        .ascii     "2DROP"
-DDROP:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER DDROP,5,"2DROP"
         ADDW X,#4
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       2DUP    ( w1 w2 -- w1 w2 w1 w2 )
 ;       Duplicate top two items.
-        .word      LINK
-LINK = . 
-        .byte      4
-        .ascii     "2DUP"
-DDUP:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER DDUP,4,"2DUP"
         SUBW X,#4
         LDW Y,X
         LDW Y,(6,Y)
@@ -1618,13 +1484,11 @@ DDUP:
         LDW (X),Y
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       +       ( w w -- sum )
 ;       Add top two items.
-        .word      LINK
-LINK = . 
-        .byte      1
-        .ascii     "+"
-PLUS:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER PLUS,1,"+"
         LDW Y,X
         LDW Y,(Y)
         LDW YTEMP,Y
@@ -1635,39 +1499,33 @@ PLUS:
         LDW (X),Y
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       NOT     ( w -- w )
 ;       One's complement of tos.
-        .word      LINK
-LINK = . 
-        .byte      3
-        .ascii     "NOT"
-INVER:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER INVER,3,"NOT"
         LDW Y,X
         LDW Y,(Y)
         CPLW Y
         LDW (X),Y
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       NEGATE  ( n -- -n )
 ;       Two's complement of tos.
-        .word      LINK
-LINK = . 
-        .byte      6
-        .ascii     "NEGATE"
-NEGAT:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER NEGAT,6,"NEGATE"
         LDW Y,X
         LDW Y,(Y)
         NEGW Y
         LDW (X),Y
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       DNEGATE ( d -- -d )
 ;       Two's complement of top double.
-        .word      LINK
-LINK = . 
-        .byte      7
-        .ascii     "DNEGATE"
-DNEGA:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER DNEGA,7,"DNEGATE"
         LDW Y,X
 	LDW Y,(Y)
         CPLW Y     
@@ -1684,13 +1542,11 @@ DN1:    LDW (X),Y
         RET
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       S>D ( n -- d )
 ; convert single integer to double 
-        .word LINK 
-        LINK=. 
-        .byte 3 
-        .ascii "S>D"
-STOD: 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER STOD,3,"S>D"
         subw x,#CELLL 
         clrw y 
         ldw (x),y 
@@ -1701,16 +1557,11 @@ STOD:
         ldw (x),y 
 1$:     ret 
 
-
-
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       -       ( n1 n2 -- n1-n2 )
 ;       Subtraction.
-        .word      LINK
-LINK = . 
-        .byte      1
-        .ascii     "-"
-SUBB:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER SUBB,1,"-"
         LDW Y,X
         LDW Y,(Y)
         LDW YTEMP,Y
@@ -1721,13 +1572,11 @@ SUBB:
         LDW (X),Y
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       ABS     ( n -- n )
 ;       Return  absolute value of n.
-        .word      LINK
-LINK = . 
-        .byte      3
-        .ascii     "ABS"
-ABSS:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER ABSS,3,"ABS"
         LDW Y,X
 	LDW Y,(Y)
         JRPL     AB1     ;negate:
@@ -1735,13 +1584,11 @@ ABSS:
         LDW (X),Y
 AB1:    RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       =       ( w w -- t )
 ;       Return true if top two are =al.
-        .word      LINK
-LINK = . 
-        .byte      1
-        .ascii     "="
-EQUAL:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER EQUAL,1,"="
         LD A,#0xFF  ;true
         LDW Y,X    ;D = n2
         LDW Y,(Y)
@@ -1756,13 +1603,11 @@ EQ1:    LD (X),A
         LD (1,X),A
 	RET     
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       U<      ( u u -- t )
 ;       Unsigned compare of top two items.
-        .word      LINK
-LINK = . 
-        .byte      2
-        .ascii     "U<"
-ULESS:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER ULESS,2,"U<"
         LD A,#0xFF  ;true
         LDW Y,X    ;D = n2
         LDW Y,(Y)
@@ -1777,13 +1622,11 @@ ULES1:  LD (X),A
         LD (1,X),A
 	RET     
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       <       ( n1 n2 -- t )
 ;       Signed compare of top two items.
-        .word      LINK
-LINK = . 
-        .byte      1
-        .ascii     "<"
-LESS:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER LESS,1,"<"
         LD A,#0xFF  ;true
         LDW Y,X    ;D = n2
         LDW Y,(Y)
@@ -1824,11 +1667,7 @@ UGREAT1:
 ;  signed compare n1 n2 
 ;  true if n1 > n2 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        .word   LINK 
-        LINK = . 
-        .byte 1
-        .ascii ">"
-GREAT:
+        _HEADER GREAT,1,">"
         LD A,#0xFF ;
         LDW Y,X 
         LDW Y,(Y)
@@ -1844,14 +1683,11 @@ GREAT1:
         LD (1,X),A 
         RET 
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       MAX     ( n n -- n )
 ;       Return greater of two top items.
-        .word      LINK
-LINK = . 
-        .byte      3
-        .ascii     "MAX"
-MAX:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER MAX,3,"MAX"
         LDW Y,X    ;D = n2
         LDW Y,(2,Y)
         LDW YTEMP,Y
@@ -1863,13 +1699,11 @@ MAX:
 MAX1:   ADDW X,#2
 	RET     
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       MIN     ( n n -- n )
 ;       Return smaller of top two items.
-        .word      LINK
-LINK = . 
-        .byte      3
-        .ascii     "MIN"
-MIN:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER MIN,3,"MIN"
         LDW Y,X    ;D = n2
         LDW Y,(2,Y)
         LDW YTEMP,Y
@@ -1881,14 +1715,12 @@ MIN:
 MIN1:	ADDW X,#2
 	RET     
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       WITHIN  ( u ul uh -- t )
 ;       Return true if u is within
 ;       range of ul and uh. ( ul <= u < uh )
-        .word      LINK
-LINK = . 
-        .byte      6
-        .ascii     "WITHIN"
-WITHI:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER WITHI,6,"WITHIN"
         CALL     OVER
         CALL     SUBB
         CALL     TOR
@@ -1898,17 +1730,15 @@ WITHI:
 
 ;; Divide
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       UM/MOD  ( udl udh un -- ur uq )
 ;       Unsigned divide of a double by a
 ;       single. Return mod and quotient.
-        .word      LINK
-LINK = . 
-        .byte      6
-        .ascii     "UM/MOD"
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER UMMOD,6,"UM/MOD"
 ; 2021-02-22
 ; changed algortihm for Jeeek one 
 ; ref: https://github.com/TG9541/stm8ef/pull/406        
-UMMOD:
         LDW     Y,X             ; stack pointer to Y
         LDW     X,(X)           ; un
         LDW     YTEMP,X         ; save un
@@ -1951,16 +1781,12 @@ MMSMb:
         RET
 
 
-;----------------------------------------------	
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	
 ;       M/MOD   ( d n -- r q )
 ;       Signed floored divide of double by
 ;       single. Return mod and quotient.
-;----------------------------------------------	
-        .word      LINK
-LINK = . 
-        .byte      5
-        .ascii     "M/MOD"
-MSMOD:  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER MSMOD,5,"M/MOD"
         CALL	DUPP
         CALL	ZLESS
         CALL	DUPP
@@ -1988,48 +1814,43 @@ MMOD2:	CALL	RFROM
         CALL	SWAPP
 MMOD3:	RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       /MOD    ( n n -- r q )
-;       Signed divide. Return mod and quotient.
-        .word      LINK
-LINK = . 
-        .byte      4
-        .ascii     "/MOD"
-SLMOD:
+;       Signed divide. Return mod 
+;       and quotient.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER SLMOD,4,"/MOD"
         CALL	OVER
         CALL	ZLESS
         CALL	SWAPP
         JP	MSMOD
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       MOD     ( n n -- r )
 ;       Signed divide. Return mod only.
-        .word      LINK
-LINK = . 
-        .byte      3
-        .ascii     "MOD"
-MODD:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER MODD,3,"MOD"
 	CALL	SLMOD
 	JP	DROP
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       /       ( n n -- q )
 ;       Signed divide. Return quotient only.
-        .word      LINK
-LINK = . 
-        .byte      1
-        .ascii     "/"
-SLASH:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER SLASH,1,"/"
         CALL	SLMOD
         CALL	SWAPP
         JP	DROP
 
 ;; Multiply
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       UM*     ( u u -- ud )
-;       Unsigned multiply. Return double product.
-        .word      LINK
-LINK = . 
-        .byte      3
-        .ascii     "UM*"
-UMSTA:	; stack have 4 bytes u1=a,b u2=c,d
+;       Unsigned multiply. Return 
+;       double product.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER UMSTA,3,"UM*"
+; stack have 4 bytes u1=a,b u2=c,d
 ; take advantage of SP addressing modes
 ; these PRODx in RAM are not required
 ; the product is kept on stack as local variable 
@@ -2084,24 +1905,21 @@ UMSTA:	; stack have 4 bytes u1=a,b u2=c,d
         addw sp,#4 ; drop local variable 
         ret  
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       *       ( n n -- n )
-;       Signed multiply. Return single product.
-        .word      LINK
-LINK = . 
-        .byte      1
-        .ascii     "*"
-STAR:
+;       Signed multiply. Return 
+;       single product.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER STAR,1,"*"
 	CALL	UMSTA
 	JP	DROP
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       M*      ( n n -- d )
-;       Signed multiply. Return double product.
-        .word      LINK
-LINK = . 
-        .byte      2
-        .ascii     "M*"
-MSTAR:      
+;       Signed multiply. Return 
+;       double product.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER MSTAR,2,"M*"
         CALL	DDUP
         CALL	XORR
         CALL	ZLESS
@@ -2116,105 +1934,90 @@ MSTAR:
         CALL	DNEGA
 MSTA1:	RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       */MOD   ( n1 n2 n3 -- r q )
 ;       Multiply n1 and n2, then divide
 ;       by n3. Return mod and quotient.
-        .word      LINK
-LINK = . 
-        .byte      5
-        .ascii     "*/MOD"
-SSMOD:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER SSMOD,5,"*/MOD"
         CALL     TOR
         CALL     MSTAR
         CALL     RFROM
         JP     MSMOD
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       */      ( n1 n2 n3 -- q )
 ;       Multiply n1 by n2, then divide
 ;       by n3. Return quotient only.
-        .word      LINK
-LINK = . 
-        .byte      2
-        .ascii     "*/"
-STASL:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER STASL,2,"*/"
         CALL	SSMOD
         CALL	SWAPP
         JP	DROP
 
 ;; Miscellaneous
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       CELL+   ( a -- a )
 ;       Add cell size in byte to address.
-        .word      LINK
-LINK = . 
-        .byte       2
-        .ascii     "2+"
-CELLP:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER CELLP,2,"2+"
         LDW Y,X
 	LDW Y,(Y)
         ADDW Y,#CELLL 
         LDW (X),Y
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       CELL-   ( a -- a )
 ;       Subtract 2 from address.
-        .word      LINK
-LINK = . 
-        .byte       2
-        .ascii     "2-"
-CELLM:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER CELLM,2,"2-"
         LDW Y,X
 	LDW Y,(Y)
         SUBW Y,#CELLL
         LDW (X),Y
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       CELLS   ( n -- n )
 ;       Multiply tos by 2.
-        .word      LINK
-LINK = . 
-        .byte       2
-        .ascii     "2*"
-CELLS:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER CELLS,2,"2*"
         LDW Y,X
 	LDW Y,(Y)
         SLAW Y
         LDW (X),Y
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       1+      ( a -- a )
-;       Add cell size in byte to address.
-        .word      LINK
-LINK = . 
-        .byte      2
-        .ascii     "1+"
-ONEP:
+;       Add cell size in byte 
+;       to address.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER ONEP,2,"1+"
         LDW Y,X
 	LDW Y,(Y)
         INCW Y
         LDW (X),Y
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       1-      ( a -- a )
 ;       Subtract 2 from address.
-        .word      LINK
-LINK = . 
-        .byte      2
-        .ascii     "1-"
-ONEM:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER ONEM,2,"1-"
         LDW Y,X
 	LDW Y,(Y)
         DECW Y
         LDW (X),Y
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;  shift left n times 
 ; LSHIFT ( n1 n2 -- n1<<n2 )
-        .word LINK 
-        LINK=.
-        .byte 6 
-        .ascii "LSHIFT"
-LSHIFT:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER LSHIFT,6,"LSHIFT"
         ld a,(1,x)
         addw x,#CELLL 
         ldw y,x 
@@ -2229,13 +2032,11 @@ LSHIFT4:
         ldw (x),y 
         ret 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; shift right n times                 
 ; RSHIFT (n1 n2 -- n1>>n2 )
-        .word LINK 
-        LINK=.
-        .byte 6
-        .ascii "RSHIFT"
-RSHIFT:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER RSHIFT,6,"RSHIFT"
         ld a,(1,x)
         addw x,#CELLL 
         ldw y,x 
@@ -2250,75 +2051,62 @@ RSHIFT4:
         ldw (x),y 
         ret 
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       2/      ( n -- n )
 ;       divide  tos by 2.
-        .word      LINK
-LINK = . 
-        .byte      2
-        .ascii     "2/"
-TWOSL:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER TWOSL,2,"2/"
         LDW Y,X
 	LDW Y,(Y)
         SRAW Y
         LDW (X),Y
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       BL      ( -- 32 )
 ;       Return 32,  blank character.
-        .word      LINK
-LINK = . 
-        .byte      2
-        .ascii     "BL"
-BLANK:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER BLANK,2,"BL"
         SUBW X,#2
 	LDW Y,#32
         LDW (X),Y
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;         0     ( -- 0)
 ;         Return 0.
-        .word      LINK
-LINK = . 
-        .byte       1
-        .ascii     "0"
-ZERO:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER ZERO,1,"0"
         SUBW X,#2
 	CLRW Y
         LDW (X),Y
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;         1     ( -- 1)
 ;         Return 1.
-        .word      LINK
-LINK = . 
-        .byte       1
-        .ascii     "1"
-ONE:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER ONE,1,"1"
         SUBW X,#2
 	LDW Y,#1
         LDW (X),Y
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;         -1    ( -- -1)
-;         Return 32,  blank character.
-        .word      LINK
-LINK = . 
-        .byte       2
-        .ascii     "-1"
-MONE:
+;   Return -1
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER MONE,2,"-1"
         SUBW X,#2
 	LDW Y,#0xFFFF
         LDW (X),Y
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       >CHAR   ( c -- c )
 ;       Filter non-printing characters.
-        .word      LINK
-LINK = . 
-        .byte      5
-        .ascii     ">CHAR"
-TCHAR:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER TCHAR,5,">CHAR"
         ld a,(1,x)
         cp a,#32  
         jrmi 1$ 
@@ -2329,13 +2117,11 @@ TCHAR:
         ld (1,x),a 
         ret 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       DEPTH   ( -- n )
 ;       Return  depth of  data stack.
-        .word      LINK
-LINK = . 
-        .byte      5
-        .ascii     "DEPTH"
-DEPTH: 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER DEPTH,5,"DEPTH"
         LDW Y,SP0    ;save data stack ptr
 	LDW XTEMP,X
         SUBW Y,XTEMP     ;#bytes = SP0 - X
@@ -2344,13 +2130,11 @@ DEPTH:
         LDW (X),Y     ; if neg, underflow
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       PICK    ( ... +n -- ... w )
 ;       Copy  nth stack item to tos.
-        .word      LINK
-LINK = . 
-        .byte      4
-        .ascii     "PICK"
-PICK:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER PICK,4,"PICK"
         LDW Y,X   ;D = n1
         LDW Y,(Y)
 ; modified for standard compliance          
@@ -2365,13 +2149,12 @@ PICK:
 
 ;; Memory access
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       +!      ( n a -- )
-;       Add n to  contents at address a.
-        .word      LINK
-LINK = . 
-        .byte      2
-        .ascii     "+!"
-PSTOR:
+;       Add n to  contents at 
+;       address a.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER PSTOR,2,"+!"
         ldw y,x 
         ldw y,(y)
         ldw YTEMP,y  ; address
@@ -2385,55 +2168,47 @@ PSTOR:
         addw x,#4 ; DDROP 
         ret 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       2!      ( d a -- )
-;       Store  double integer to address a.
-        .word      LINK
-LINK = . 
-        .byte      2
-        .ascii     "2!"
-DSTOR:
-        ldw y,x 
-        ldw y,(y)
-        ldw YTEMP,y ; address 
-        addw x,#CELLL ; drop a 
-        ldw y,x 
-        ldw y,(y) ; hi word 
-        pushw x 
-        ldw x,(2,x) ; lo word 
-        ldw [YTEMP],y
-        ldw y,x 
-        ldw x,#2 
-        ldw ([YTEMP],x),y 
-        popw x 
-        addw x,#4 ; DDROP 
-        ret 
+;       Store  double integer 
+;       to address a.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER DSTOR,2,"2!"
+        LDW Y,X 
+        PUSHW X 
+        LDW X,(X) ; a 
+        LDW Y,(2,Y) ; dhi 
+        LDW (X),Y 
+        LDW Y,(1,SP)  
+        LDW Y,(4,Y) ; dlo 
+        LDW (2,X),Y  
+        POPW X 
+        ADDW X,#3*CELLL 
+        RET 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       2@      ( a -- d )
-;       Fetch double integer from address a.
-        .word      LINK
-LINK = . 
-        .byte      2
-        .ascii     "2@"
-DAT:
+;       Fetch double integer 
+;       from address a.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER DAT,2,"2@"
         ldw y,x 
+        subw x,#CELLL 
         ldw y,(y) ;address 
-        ldw YTEMP,y 
-        subw x,#CELLL ; space for udh 
-        ldw y,[YTEMP] ; udh 
+        pushw y  
+        ldw y,(y) ; dhi 
         ldw (x),y 
-        ldw y,#2
-        ldw y,([YTEMP],y) ; udl 
-        ldw (2,x),y
+        popw y 
+        ldw y,(2,y) ; dlo 
+        ldw (2,x),y 
         ret 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       COUNT   ( b -- b +n )
 ;       Return count byte of a string
 ;       and add 1 to byte address.
-        .word      LINK
-LINK = . 
-        .byte      5
-        .ascii     "COUNT"
-COUNT:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER COUNT,5,"COUNT"
         ldw y,x 
         ldw y,(y) ; address 
         ld a,(y)  ; count 
@@ -2444,50 +2219,43 @@ COUNT:
         clr (x)
         ret 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       HERE    ( -- a )
 ;       Return  top of  variables
-        .word      LINK
-LINK = . 
-        .byte      4
-        .ascii     "HERE"
-HERE:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER HERE,4,"HERE"
       	ldw y,#UVP 
         ldw y,(y)
         subw x,#CELLL 
         ldw (x),y 
         ret 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       PAD     ( -- a )
 ;       Return address of text buffer
 ;       above  code dictionary.
-        .word      LINK
-LINK = . 
-        .byte      3
-        .ascii     "PAD"
-PAD:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER PAD,3,"PAD"
         CALL     HERE
-        CALL     DOLIT
-        .word      80
+        _DOLIT   80
         JP     PLUS
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       TIB     ( -- a )
-;       Return address of terminal input buffer.
-        .word      LINK
-LINK = . 
-        .byte      3
-        .ascii     "TIB"
-TIB:
+;       Return address of 
+;       terminal input buffer.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER TIB,3,"TIB"
         CALL     NTIB
         CALL     CELLP
         JP     AT
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       @EXECUTE        ( a -- )
-;       Execute vector stored in address a.
-        .word      LINK
-LINK = . 
-        .byte      8
-        .ascii     "@EXECUTE"
-ATEXE:
+;       Execute vector stored in 
+;       address a.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER ATEXE,8,"@EXECUTE"
         CALL     AT
         CALL     QDUP    ;?address or zero
         CALL     QBRAN
@@ -2495,13 +2263,11 @@ ATEXE:
         CALL     EXECU   ;execute if non-zero
 EXE1:   RET     ;do nothing if zero
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       CMOVE   ( b1 b2 u -- )
 ;       Copy u bytes from b1 to b2.
-        .word      LINK
-LINK = . 
-        .byte      5
-        .ascii     "CMOVE"
-CMOVE:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER CMOVE,5,"CMOVE"
         CALL	TOR
         CALL	BRAN
         .word	CMOV2
@@ -2517,14 +2283,12 @@ CMOV2:	CALL	DONXT
         .word	CMOV1
         JP	DDROP
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       FILL    ( b u c -- )
 ;       Fill u bytes of character c
 ;       to area beginning at b.
-        .word       LINK
-LINK = . 
-        .byte       4
-        .ascii     "FILL"
-FILL:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER FILL,4,"FILL"
         ldw y,x 
         ld a,(1,y) ; c 
         addw x,#CELLL ; drop c 
@@ -2547,27 +2311,22 @@ FILL2:
         jrne FILL1  
         ret 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       ERASE   ( b u -- )
 ;       Erase u bytes beginning at b.
-        .word      LINK
-LINK = . 
-        .byte      5
-        .ascii     "ERASE"
-ERASE:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER ERASE,5,"ERASE"
         clrw y 
         subw x,#CELLL 
         ldw (x),y 
         jp FILL 
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       PACK0   ( b u a -- a )
 ;       Build a counted string with
 ;       u characters from b. Null fill.
-        .word      LINK
-LINK = . 
-        .byte      5
-        .ascii     "PACK0"
-PACKS:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER PACKS,5,"PACK0"
         CALL     DUPP
         CALL     TOR     ;strings only on cell boundary
         CALL     DDUP
@@ -2580,13 +2339,11 @@ PACKS:
 
 ;; Numeric output, single precision
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       DIGIT   ( u -- c )
 ;       Convert digit u to a character.
-        .word      LINK
-LINK = . 
-        .byte      5
-        .ascii     "DIGIT"
-DIGIT:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER DIGIT,5,"DIGIT"
         CALL	DOLIT
         .word	9
         CALL	OVER
@@ -2599,37 +2356,34 @@ DIGIT:
         .word	48	;'0'
         JP	PLUS
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       EXTRACT ( n base -- n c )
-;       Extract least significant digit from n.
-        .word      LINK
-LINK = . 
-        .byte      7
-        .ascii     "EXTRACT"
-EXTRC:
+;       Extract least significant 
+;       digit from n.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER EXTRC,7,"EXTRACT"
         CALL     ZERO
         CALL     SWAPP
         CALL     UMMOD
         CALL     SWAPP
         JP     DIGIT
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       <#      ( -- )
-;       Initiate  numeric output process.
-        .word      LINK
-LINK = . 
-        .byte      2
-        .ascii     "<#"
-BDIGS:
+;       Initiate  numeric 
+;       output process.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER BDIGS,2,"#<"
         CALL     PAD
         CALL     HLD
         JP     STORE
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       HOLD    ( c -- )
-;       Insert a character into output string.
-        .word      LINK
-LINK = . 
-        .byte      4
-        .ascii     "HOLD"
-HOLD:
+;       Insert a character 
+;       into output string.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER HOLD,4,"HOLD"
         CALL     HLD
         CALL     AT
         CALL     ONEM
@@ -2638,27 +2392,23 @@ HOLD:
         CALL     STORE
         JP     CSTOR
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       #       ( u -- u )
 ;       Extract one digit from u and
 ;       append digit to output string.
-        .word      LINK
-LINK = . 
-        .byte      1
-        .ascii     "#"
-DIG:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER DIG,1,"#"
         CALL     BASE
         CALL     AT
         CALL     EXTRC
         JP     HOLD
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       #S      ( u -- 0 )
 ;       Convert u until all digits
 ;       are added to output string.
-        .word      LINK
-LINK = . 
-        .byte      2
-        .ascii     "#S"
-DIGS:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER DIGS,2,"#S"
 DIGS1:  CALL     DIG
         CALL     DUPP
         CALL     QBRAN
@@ -2666,14 +2416,12 @@ DIGS1:  CALL     DIG
         JRA     DIGS1
 DIGS2:  RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       SIGN    ( n -- )
 ;       Add a minus sign to
 ;       numeric output string.
-        .word      LINK
-LINK = . 
-        .byte      4
-        .ascii     "SIGN"
-SIGN:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER SIGN,4,"SIGN"
         CALL     ZLESS
         CALL     QBRAN
         .word      SIGN1
@@ -2682,13 +2430,11 @@ SIGN:
         JP     HOLD
 SIGN1:  RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       #>      ( w -- b u )
 ;       Prepare output string.
-        .word      LINK
-LINK = . 
-        .byte      2
-        .ascii     "#>"
-EDIGS:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER EDIGS,2,"#>"
         CALL     DROP
         CALL     HLD
         CALL     AT
@@ -2696,14 +2442,12 @@ EDIGS:
         CALL     OVER
         JP     SUBB
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       str     ( w -- b u )
 ;       Convert a signed integer
 ;       to a numeric string.
-        .word      LINK
-LINK = . 
-        .byte      3
-        .ascii     "STR"
-STR:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER STR,3,"STR"
         CALL     DUPP
         CALL     TOR
         CALL     ABSS
@@ -2713,27 +2457,23 @@ STR:
         CALL     SIGN
         JP     EDIGS
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       HEX     ( -- )
 ;       Use radix 16 as base for
 ;       numeric conversions.
-        .word      LINK
-LINK = . 
-        .byte      3
-        .ascii     "HEX"
-HEX:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER HEX,3,"HEX"
         CALL     DOLIT
         .word      16
         CALL     BASE
         JP     STORE
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       DECIMAL ( -- )
 ;       Use radix 10 as base
 ;       for numeric conversions.
-        .word      LINK
-LINK = . 
-        .byte      7
-        .ascii     "DECIMAL"
-DECIM:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER DECIM,7,"DECIMAL"
         CALL     DOLIT
         .word      10
         CALL     BASE
@@ -2741,14 +2481,12 @@ DECIM:
 
 ;; Numeric input, single precision
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       DIGIT?  ( c base -- u t )
 ;       Convert a character to its numeric
 ;       value. A flag indicates success.
-        .word      LINK
-LINK = . 
-        .byte       6
-        .ascii     "DIGIT?"
-DIGTQ:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER DIGTQ,6,"DIGIT?"
         CALL     TOR
         CALL     DOLIT
         .word     48	; "0"
@@ -2773,14 +2511,12 @@ DGTQ1:  CALL     DUPP
 
 .if  WANT_DOUBLE
 .else 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       NUMBER? ( a -- n T | a F )
 ;       Convert a number string to
 ;       integer. Push a flag on tos.
-        .word      LINK
-LINK = . 
-        .byte      7
-        .ascii     "NUMBER?"
-NUMBQ:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER NUMBQ,7,"NUMBER?"
         CALL     BASE
         CALL     AT
         CALL     TOR
@@ -2856,14 +2592,12 @@ NUMQ6:  CALL     RFROM
 
 ;; Basic I/O
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       KEY     ( -- c )
 ;       Wait for and return an
 ;       input character.
-        .word      LINK
-LINK = . 
-        .byte      3
-        .ascii     "KEY"
-KEY:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER KEY,3,"KEY"
         btjf UART_SR,#UART_SR_RXNE,. 
         ld a,UART_DR 
         subw x,#CELLL 
@@ -2871,14 +2605,12 @@ KEY:
         clr (x)
         ret 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       NUF?    ( -- t )
 ;       Return false if no input,
 ;       else pause and if CR return true.
-        .word      LINK
-LINK = . 
-        .byte      4
-        .ascii     "NUF?"
-NUFQ:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER NUFQ,4,"NUF?"
         CALL     QKEY
         CALL     DUPP
         CALL     QBRAN
@@ -2890,24 +2622,20 @@ NUFQ:
         JP     EQUAL
 NUFQ1:  RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       SPACE   ( -- )
 ;       Send  blank character to
 ;       output device.
-        .word      LINK
-LINK = . 
-        .byte      5
-        .ascii     "SPACE"
-SPACE:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER SPACE,5,"SPACE"
         CALL     BLANK
         JP     EMIT
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       SPACES  ( +n -- )
 ;       Send n spaces to output device.
-        .word      LINK
-LINK = . 
-        .byte      6
-        .ascii     "SPACES"
-SPACS:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER SPACS,6,"SPACES"
         CALL     ZERO
         CALL     MAX
         CALL     TOR
@@ -2917,45 +2645,35 @@ CHAR2:  CALL     DONXT
         .word    CHAR1
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       TYPE    ( b u -- )
 ;       Output u characters from b.
-        .word      LINK
-LINK = . 
-        .byte      4
-        .ascii     "TYPE"
-TYPES:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER TYPES,4,"TYPE"
         CALL     TOR
         JRA     TYPE2
-TYPE1:  CALL     DUPP
-        CALL     CAT
+TYPE1:  CALL     COUNT 
         CALL     EMIT
-        CALL     ONEP
-TYPE2:  CALL     DONXT
-        .word      TYPE1
+TYPE2:  _DONXT  TYPE1
         JP     DROP
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       CR      ( -- )
 ;       Output a carriage return
 ;       and a line feed.
-        .word      LINK
-LINK = . 
-        .byte      2
-        .ascii     "CR"
-CR:
-        CALL     DOLIT
-        .word      CRR
-        CALL     EMIT
-        CALL     DOLIT
-        .word      LF
-        JP     EMIT
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER CR,2,"CR"
+        _DOLIT  CRR 
+        CALL    EMIT
+        _DOLIT  LF
+        JP      EMIT
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       do$     ( -- a )
 ;       Return  address of a compiled
 ;       string.
-        .word      LINK
-LINK = . 
-	.byte      COMPO+3
-        .ascii     "DO$"
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;       _HEADER DOSTR,COMPO+3,"DO$"
 DOSTR:
         CALL     RFROM
         CALL     RAT
@@ -2967,28 +2685,27 @@ DOSTR:
         CALL     TOR
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       $"|     ( -- a )
 ;       Run time routine compiled by $".
 ;       Return address of a compiled string.
-        .word      LINK
-LINK = . 
-	.byte      COMPO+3
-        .byte     '$','"','|'
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;       _HEADER STRQP,COMPO+3,"$\"|"
 STRQP:
         CALL     DOSTR
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       ."|     ( -- )
 ;       Run time routine of ." .
 ;       Output a compiled string.
-        .word      LINK
-LINK = . 
-	.byte      COMPO+3
-        .byte     '.','"','|'
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;       _HEADER DOTQP,COMPO+3,".\"|"
 DOTQP:
         CALL     DOSTR
         CALL     COUNT
         JP     TYPES
+
 
 ;       .R      ( n +n -- )
 ;       Display an integer in a field

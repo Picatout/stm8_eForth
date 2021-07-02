@@ -4,12 +4,28 @@ AUTHOR: Jacques Deschênes
 DESCRIPTION: project log.
 -->
 
+rendu à **.R**.
+
 #### 2021-07-01
+
+* Modifié code de **!**. 
+
+* Modifié code de **R&gt;**.
+
+* Modifié code de **SWAP**. 
+
+* Modifié code de **2!**.
+
+* Modifié code de **2@**. 
+
+* Enlevé **DO$**. **$"|**, **."|** du dictionnaire, utilisé seulement par le compilateur.
+
+* Éditer le fichier [stm8_ef.asm](stm8_ef.asm) pour utiliser la macro _HEADER en remplacement des champs détaillés. 
 
 * Renommé **@EXPONENT** en **F&gt;ME**.
 
 * Renommé **!EXPONENT** en **ME&gt;F**. 
- 
+
 * révision et test.
 
 
