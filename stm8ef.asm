@@ -2706,15 +2706,12 @@ DOTQP:
         CALL     COUNT
         JP     TYPES
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       .R      ( n +n -- )
 ;       Display an integer in a field
 ;       of n columns, right justified.
-        .word      LINK
-LINK = . 
-        .byte      2
-        .ascii     ".R"
-DOTR:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER DOTR,2,".R"
         CALL     TOR
         CALL     STR
         CALL     RFROM
@@ -2723,14 +2720,12 @@ DOTR:
         CALL     SPACS
         JP     TYPES
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       U.R     ( u +n -- )
 ;       Display an unsigned integer
 ;       in n column, right justified.
-        .word      LINK
-LINK = . 
-        .byte      3
-        .ascii     "U.R"
-UDOTR:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER UDOTR,3,"U.R"
         CALL     TOR
         CALL     BDIGS
         CALL     DIGS
@@ -2741,14 +2736,12 @@ UDOTR:
         CALL     SPACS
         JP     TYPES
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       U.      ( u -- )
 ;       Display an unsigned integer
 ;       in free format.
-        .word      LINK
-LINK = . 
-        .byte      2
-        .ascii     "U."
-UDOT:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER UDOT,2,"U."
         CALL     BDIGS
         CALL     DIGS
         CALL     EDIGS
@@ -2770,15 +2763,12 @@ UDOT:
         CALL STORE 
         RET 
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       .       ( w -- )
 ;       Display an integer in free
 ;       format, preceeded by a space.
-        .word      LINK
-LINK = . 
-        .byte      1
-        .ascii     "."
-DOT:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER DOT,1,"."
         CALL     BASE
         CALL     AT
         CALL     DOLIT
@@ -2791,27 +2781,22 @@ DOT1:   CALL     STR
         CALL     SPACE
         JP     TYPES
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       ?       ( a -- )
 ;       Display contents in memory cell.
-        .word      LINK
-        
-LINK = . 
-        .byte      1
-        .ascii     "?"
-QUEST:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER QUEST,1,"?"
         CALL     AT
         JP     DOT
 
 ;; Parsing
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       parse   ( b u c -- b u delta ; <string> )
 ;       Scan string delimited by c.
 ;       Return found string and its offset.
-        .word      LINK
-LINK = . 
-        .byte      5
-        .ascii     "parse"
-PARS:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER PARS,5,"PARS$"
         CALL     TEMP
         CALL     STORE
         CALL     OVER
@@ -2880,14 +2865,12 @@ PARS8:  CALL     OVER
         CALL     RFROM
         JP     SUBB
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       PARSE   ( c -- b u ; <string> )
 ;       Scan input stream and return
 ;       counted string delimited by c.
-        .word      LINK
-LINK = . 
-        .byte      5
-        .ascii     "PARSE"
-PARSE:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER PARSE,5,"PARSE"
         CALL     TOR
         CALL     TIB
         CALL     INN
@@ -2903,39 +2886,33 @@ PARSE:
         CALL     INN
         JP     PSTOR
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       .(      ( -- )
 ;       Output following string up to next ) .
-        .word      LINK
-LINK = . 
-	.byte      IMEDD+2
-        .ascii     ".("
-DOTPR:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER DOTPR,IMEDD+2,".("
         CALL     DOLIT
         .word     41	; ")"
         CALL     PARSE
         JP     TYPES
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       (       ( -- )
 ;       Ignore following string up to next ).
 ;       A comment.
-        .word      LINK
-LINK = . 
-	.byte      IMEDD+1
-        .ascii     "("
-PAREN:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER PAREN,IMEDD+1,"("
         CALL     DOLIT
         .word     41	; ")"
         CALL     PARSE
         JP     DDROP
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       \       ( -- )
 ;       Ignore following text till
 ;       end of line.
-        .word      LINK
-LINK = . 
-	.byte      IMEDD+1
-        .ascii     "\"
-BKSLA:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER BKSLA,IMEDD+1,"\\"
         ldw y,#UCTIB ; #TIB  
         ldw y,(y)
         pushw y ; count in TIB 
@@ -2945,14 +2922,12 @@ BKSLA:
         ldw [YTEMP],y
         ret 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       WORD    ( c -- a ; <string> )
 ;       Parse a word from input stream
 ;       and copy it to code dictionary.
-        .word      LINK
-LINK = . 
-        .byte      4
-        .ascii     "WORD"
-WORDD:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER WORDD,4,"WORD"
         CALL     PARSE
         CALL     HERE
         CALL     CELLP
@@ -2991,41 +2966,35 @@ UPPER2:
         RET 
 .ENDIF 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       TOKEN   ( -- a ; <string> )
 ;       Parse a word from input stream
 ;       and copy it to name dictionary.
-        .word      LINK
-LINK = . 
-        .byte      5
-        .ascii     "TOKEN"
-TOKEN:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER TOKEN,5,"TOKEN"
         CALL     BLANK
         JP     WORDD
 
 ;; Dictionary search
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       NAME>   ( na -- ca )
 ;       Return a code address given
 ;       a name address.
-        .word      LINK
-LINK = . 
-        .byte      5
-        .ascii     "NAME>"
-NAMET:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER NAMET,5,"NAME>"
         CALL     COUNT
         CALL     DOLIT
         .word      31
         CALL     ANDD
         JP     PLUS
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       SAME?   ( a a u -- a a f \ -0+ )
 ;       Compare u cells in two
 ;       strings. Return 0 if identical.
-        .word      LINK
-LINK = . 
-        .byte       5
-        .ascii     "SAME?"
-SAMEQ:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER SAMEQ,5,"SAME?"
         CALL     ONEM
         CALL     TOR
         JRA     SAME2
@@ -3047,14 +3016,12 @@ SAME2:  CALL     DONXT
         .word      SAME1
         JP     ZERO
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       find    ( a va -- ca na | a F )
 ;       Search vocabulary for string.
 ;       Return ca and na if succeeded.
-        .word      LINK
-LINK = . 
-        .byte      4
-        .ascii     "FIND"
-FIND:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER FIND,4,"FIND"
         CALL     SWAPP
         CALL     DUPP
         CALL     CAT
@@ -3107,25 +3074,21 @@ FIND5:  CALL     RFROM
         CALL     NAMET
         JP     SWAPP
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       NAME?   ( a -- ca na | a F )
 ;       Search vocabularies for a string.
-        .word      LINK
-LINK = . 
-        .byte      5
-        .ascii     "NAME?"
-NAMEQ:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER NAMEQ,5,"NAME?"
         CALL   CNTXT
         JP     FIND
 
 ;; Terminal response
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       ^H      ( bot eot cur -- bot eot cur )
 ;       Backup cursor by one character.
-        .word      LINK
-LINK = . 
-        .byte      2
-        .ascii     "^H"
-BKSP:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER BKSP,2,"^H"
         CALL     TOR
         CALL     OVER
         CALL     RFROM
@@ -3145,28 +3108,24 @@ BKSP:
         JP     EMIT
 BACK1:  RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       TAP    ( bot eot cur c -- bot eot cur )
 ;       Accept and echo key stroke
 ;       and bump cursor.
-        .word      LINK
-LINK = . 
-        .byte      3
-        .ascii     "TAP"
-TAP:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER TAP,3,"TAP"
         CALL     DUPP
         CALL     EMIT
         CALL     OVER
         CALL     CSTOR
         JP     ONEP
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       kTAP    ( bot eot cur c -- bot eot cur )
 ;       Process a key stroke,
 ;       CR,LF or backspace.
-        .word      LINK
-LINK = . 
-        .byte      4
-        .ascii     "KTAP"
-KTAP:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER KTAP,4,"KTAP"
         CALL     DUPP
         CALL     DOLIT
 .if EOL_CR
@@ -3190,14 +3149,12 @@ KTAP2:  CALL     DROP
         CALL     DROP
         JP     DUPP
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       accept  ( b u -- b u )
 ;       Accept characters to input
 ;       buffer. Return with actual count.
-        .word      LINK
-LINK = . 
-        .byte      6
-        .ascii     "ACCEPT"
-ACCEP:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER ACCEP,6,"ACCEPT"
         CALL     OVER
         CALL     PLUS
         CALL     OVER
@@ -3221,15 +3178,12 @@ ACCP4:  CALL     DROP
         CALL     OVER
         JP     SUBB
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       QUERY   ( -- )
 ;       Accept input stream to
 ;       terminal input buffer.
-        .word      LINK
-        
-LINK = . 
-        .byte      5
-        .ascii     "QUERY"
-QUERY:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER QUERY,5,"QUERY"
         CALL     TIB
         CALL     DOLIT
         .word      80
@@ -3241,26 +3195,21 @@ QUERY:
         CALL     INN
         JP     STORE
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       ABORT   ( -- )
 ;       Reset data stack and
 ;       jump to QUIT.
-        .word      LINK
-LINK = . 
-        .byte      5
-        .ascii     "ABORT"
-ABORT:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER ABORT,5,"ABORT"
         CALL     PRESE
         JP     QUIT
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       abort"  ( f -- )
 ;       Run time routine of ABORT".
 ;       Abort with a message.
-        .word      LINK
-LINK = . 
-	.byte      COMPO+6
-        .ascii     "ABORT"
-        .byte      '"'
-ABORQ:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER ABORQ,COMPO+6,'ABORT"'
         CALL     QBRAN
         .word      ABOR2   ;text flag
         CALL     DOSTR
@@ -3277,14 +3226,12 @@ ABOR2:  CALL     DOSTR
 
 ;; The text interpreter
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       $INTERPRET      ( a -- )
 ;       Interpret a word. If failed,
 ;       try to convert it to an integer.
-        .word      LINK
-LINK = . 
-        .byte      10
-        .ascii     "$INTERPRET"
-INTER:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER INTER,10,"$INTERPRET"
         CALL     NAMEQ
         CALL     QDUP    ;?defined
         CALL     QBRAN
@@ -3302,25 +3249,21 @@ INTE1:  CALL     NUMBQ   ;convert a number
         .word    ABOR1
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       [       ( -- )
 ;       Start  text interpreter.
-        .word      LINK
-LINK = . 
-	.byte      IMEDD+1
-        .ascii     "["
-LBRAC:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER LBRAC,IMEDD+1,"["
         CALL   DOLIT
         .word  INTER
         CALL   TEVAL
         JP     STORE
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       .OK     ( -- )
 ;       Display 'ok' while interpreting.
-        .word      LINK
-LINK = . 
-        .byte      3
-        .ascii     ".OK"
-DOTOK:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER DOTOK,3,".OK"
         CALL     DOLIT
         .word      INTER
         CALL     TEVAL
@@ -3333,13 +3276,11 @@ DOTOK:
         .ascii     " ok"
 DOTO1:  JP     CR
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       ?STACK  ( -- )
 ;       Abort if stack underflows.
-        .word      LINK
-LINK = . 
-        .byte      6
-        .ascii     "?STACK"
-QSTAC: 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER QSTAC,6,"?STACK"
         CALL     DEPTH
         CALL     ZLESS   ;check only for underflow
         CALL     ABORQ
@@ -3347,13 +3288,11 @@ QSTAC:
         .ascii     " underflow "
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       EVAL    ( -- )
 ;       Interpret  input stream.
-        .word      LINK
-LINK = . 
-        .byte      4
-        .ascii     "EVAL"
-EVAL:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER EVAL,4,"EVAL"
 EVAL1:  CALL     TOKEN
         CALL     DUPP
         CALL     CAT     ;?input stream empty
@@ -3367,14 +3306,12 @@ EVAL1:  CALL     TOKEN
 EVAL2:  CALL     DROP
         JP       DOTOK
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       PRESET  ( -- )
 ;       Reset data stack pointer and
 ;       terminal input buffer.
-        .word      LINK
-LINK = . 
-        .byte      6
-        .ascii     "PRESET"
-PRESE:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER PRESE,6,"PRESET"
         CALL     DOLIT
         .word      SPP
         CALL     SPSTO
@@ -3384,14 +3321,12 @@ PRESE:
         CALL     CELLP
         JP     STORE
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       QUIT    ( -- )
 ;       Reset return stack pointer
 ;       and start text interpreter.
-        .word      LINK
-LINK = . 
-        .byte      4
-        .ascii     "QUIT"
-QUIT:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER QUIT,4,"QUIT"
         CALL     DOLIT
         .word      RPP
         CALL     RPSTO   ;reset return stack pointer
@@ -3402,35 +3337,34 @@ QUIT2:  CALL     QUERY   ;get input
 
 ;; The compiler
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       '       ( -- ca )
 ;       Search vocabularies for
 ;       next word in input stream.
-        .word      LINK
-LINK = . 
-        .byte      1
-        .ascii     "'"
-TICK:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER TICK,1,"'"
         CALL     TOKEN
         CALL     NAMEQ   ;?defined
         CALL     QBRAN
         .word      ABOR1
         RET     ;yes, push code address
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       ALLOT   ( n -- )
 ;       Allocate n bytes to RAM 
-        .word      LINK
-        LINK = . 
-        .byte      5
-        .ascii     "ALLOT"
-ALLOT:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER ALLOT,5,"ALLOT"
         CALL     VPP
 ; must update APP_VP each time VP is modidied
         call PSTOR 
         jp UPDATVP 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       ,       ( w -- )
 ;         Compile an integer into
 ;         variable space.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;        _HEADER COMMA,1,'\,'
         .word      LINK
 LINK = . 
         .byte      1
@@ -3443,10 +3377,13 @@ COMMA:
         CALL     STORE
         JP     STORE
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       C,      ( c -- )
 ;       Compile a byte into
 ;       variables space.
-       .word      LINK
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;        _HEADER CCOMMA,2,"C,"
+      .word      LINK
 LINK = . 
         .byte      2
         .ascii     "C,"
@@ -3458,25 +3395,21 @@ CCOMMA:
         CALL     STORE
         JP     CSTOR
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       [COMPILE]       ( -- ; <string> )
 ;       Compile next immediate
 ;       word into code dictionary.
-        .word      LINK
-LINK = . 
-	.byte      IMEDD+9
-        .ascii     "[COMPILE]"
-BCOMP:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER BCOMP,IMEDD+9,"[COMPILE]"
         CALL     TICK
         JP     JSRC
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       COMPILE ( -- )
 ;       Compile next jsr in
 ;       colon list to code dictionary.
-        .word      LINK
-LINK = . 
-	.byte      COMPO+7
-        .ascii     "COMPILE"
-COMPI:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER COMPI,COMPO+7,"COMPILE"
         CALL     RFROM
         CALL     DUPP
         CALL     AT
@@ -3487,21 +3420,22 @@ COMPI:
         addw x,#CELLL 
         jp (y)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       LITERAL ( w -- )
 ;       Compile tos to dictionary
 ;       as an integer literal.
-        .word      LINK
-LINK = . 
-	.byte      IMEDD+7
-        .ascii     "LITERAL"
-LITER:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER LITER,COMPO+IMEDD+7,"LITERAL"
         CALL     COMPI
         .word DOLIT 
         JP     COMMA
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       $,"     ( -- )
 ;       Compile a literal string
 ;       up to next " .
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;        _HEADER STRCQ,3,'$,"'
         .word      LINK
 LINK = . 
         .byte      3
@@ -3519,110 +3453,106 @@ STRCQ:
 
 ;; Structures
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       FOR     ( -- a )
 ;       Start a FOR-NEXT loop
 ;       structure in a colon definition.
-        .word      LINK
-LINK = . 
-	.byte      IMEDD+3
-        .ascii     "FOR"
-FOR:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER FOR,IMEDD+3,"FOR"
         CALL     COMPI
         .word TOR 
         JP     HERE
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       NEXT    ( a -- )
 ;       Terminate a FOR-NEXT loop.
-        .word      LINK
-LINK = . 
-	.byte      IMEDD+4
-        .ascii     "NEXT"
-NEXT:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER NEXT,IMEDD+4,"NEXT"
         CALL     COMPI
         .word DONXT 
         call ADRADJ
         JP     COMMA
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       I ( -- n )
-;       stack FOR-NEXT COUNTER 
-        .word LINK 
-        LINK=.
-        .byte 1 
-        .ascii "I"
-IFETCH: 
+;       stack COUNTER
+;       of innermost FOR-NEXT  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER IFETCH,1,"I"
         subw x,#CELLL 
         ldw y,(3,sp)
         ldw (x),y 
         ret 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;       J ( -- n )
+;   stack COUNTER
+;   of second level FOR-NEXT  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER JFETCH,1,"J"
+        SUBW X,#CELLL 
+        LDW Y,(5,SP)
+        LDW (X),Y 
+        RET 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       BEGIN   ( -- a )
 ;       Start an infinite or
 ;       indefinite loop structure.
-        .word      LINK
-LINK = . 
-	.byte      IMEDD+5
-        .ascii     "BEGIN"
-BEGIN:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER BEGIN,IMEDD+5,"BEGIN"
         JP     HERE
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       UNTIL   ( a -- )
 ;       Terminate a BEGIN-UNTIL
 ;       indefinite loop structure.
-        .word      LINK
-LINK = . 
-	.byte      IMEDD+5
-        .ascii     "UNTIL"
-UNTIL:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER UNTIL,IMEDD+5,"UNTIL"
         CALL     COMPI
         .word    QBRAN 
         call ADRADJ
         JP     COMMA
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       AGAIN   ( a -- )
 ;       Terminate a BEGIN-AGAIN
 ;       infinite loop structure.
-        .word      LINK
-LINK = . 
-	.byte      IMEDD+5
-        .ascii     "AGAIN"
-AGAIN:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER AGAIN,IMEDD+5,"AGAIN"
         CALL     COMPI
         .word BRAN
         call ADRADJ 
         JP     COMMA
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       IF      ( -- A )
 ;       Begin a conditional branch.
-        .word      LINK
-LINK = . 
-	.byte      IMEDD+2
-        .ascii     "IF"
-IFF:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER IFF,IMEDD+2,"IF"
         CALL     COMPI
         .word QBRAN
         CALL     HERE
         CALL     ZERO
         JP     COMMA
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       THEN        ( A -- )
-;       Terminate a conditional branch structure.
-        .word      LINK
-LINK = . 
-	.byte      IMEDD+4
-        .ascii     "THEN"
-THENN:
+;       Terminate a conditional 
+;       branch structure.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER THENN,IMEDD+4,"THEN"
         CALL     HERE
         call ADRADJ 
         CALL     SWAPP
         JP     STORE
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       ELSE        ( A -- A )
-;       Start the false clause in an IF-ELSE-THEN structure.
-        .word      LINK
-LINK = . 
-	.byte      IMEDD+4
-        .ascii     "ELSE"
-ELSEE:
+;       Start the false clause in 
+;       an IF-ELSE-THEN structure.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER ELSEE,IMEDD+4,"ELSE"
         CALL     COMPI
         .word BRAN
         CALL     HERE
@@ -3634,26 +3564,24 @@ ELSEE:
         CALL     SWAPP
         JP     STORE
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       AHEAD       ( -- A )
-;       Compile a forward branch instruction.
-        .word      LINK
-LINK = . 
-	.byte      IMEDD+5
-        .ascii     "AHEAD"
-AHEAD:
+;       Compile a forward branch
+;       instruction.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER AHEAD,IMEDD+5,"AHEAD"
         CALL     COMPI
         .word BRAN
         CALL     HERE
         CALL     ZERO
         JP     COMMA
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       WHILE       ( a -- A a )
-;       Conditional branch out of a BEGIN-WHILE-REPEAT loop.
-        .word      LINK
-LINK = . 
-	.byte      IMEDD+5
-        .ascii     "WHILE"
-WHILE:
+;       Conditional branch out of a 
+;       BEGIN-WHILE-REPEAT loop.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER WHILE,IMEDD+5,"WHILE"
         CALL     COMPI
         .word QBRAN
         CALL     HERE
@@ -3661,13 +3589,12 @@ WHILE:
         CALL     COMMA
         JP     SWAPP
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       REPEAT      ( A a -- )
-;       Terminate a BEGIN-WHILE-REPEAT indefinite loop.
-        .word      LINK
-LINK = . 
-        .byte      IMEDD+6
-        .ascii     "REPEAT"
-REPEA:
+;       Terminate a BEGIN-WHILE-REPEAT 
+;       indefinite loop.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER REPEA,IMEDD+6,"REPEAT"
         CALL     COMPI
         .word BRAN
         call ADRADJ 
@@ -3677,62 +3604,53 @@ REPEA:
         CALL     SWAPP
         JP     STORE
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       AFT         ( a -- a A )
-;       Jump to THEN in a FOR-AFT-THEN-NEXT loop the first time through.
-        .word      LINK
-LINK = . 
-	.byte      IMEDD+3
-        .ascii     "AFT"
-AFT:
+;       Jump to THEN in a FOR-AFT-THEN-NEXT 
+;       loop the first time through.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER AFT,IMEDD+3,"AFT"
         CALL     DROP
         CALL     AHEAD
         CALL     HERE
         JP     SWAPP
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       ABORT"      ( -- ; <string> )
 ;       Conditional abort with an error message.
-        .word      LINK
-LINK = . 
-	.byte      IMEDD+6
-        .ascii     "ABORT"
-        .byte      '"'
-ABRTQ:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER ABRTQ,IMEDD+6,'ABORT"'
         CALL     COMPI
         .word ABORQ
         JP     STRCQ
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       $"     ( -- ; <string> )
 ;       Compile an inline string literal.
-        .word      LINK
-LINK = . 
-	.byte      IMEDD+2
-        .byte     '$','"'
-STRQ:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER STRQ,IMEDD+2,'$"'
         CALL     COMPI
         .word STRQP 
         JP     STRCQ
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       ."          ( -- ; <string> )
-;       Compile an inline string literal to be typed out at run time.
-        .word      LINK
-LINK = . 
-	.byte      IMEDD+2
-        .byte     '.','"'
-DOTQ:
+;       Compile an inline string literal 
+;       to be typed out at run time.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER DOTQ,IMEDD+2,'."'
         CALL     COMPI
         .word DOTQP 
         JP     STRCQ
 
 ;; Name compiler
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       ?UNIQUE ( a -- a )
 ;       Display a warning message
 ;       if word already exists.
-        .word      LINK
-LINK = . 
-        .byte      7
-        .ascii     "?UNIQUE"
-UNIQU:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER UNIQU,7,"?UNIQUE"
         CALL     DUPP
         CALL     NAMEQ   ;?name exists
         CALL     QBRAN
@@ -3745,10 +3663,13 @@ UNIQU:
         CALL     TYPES   ;just in case
 UNIQ1:  JP     DROP
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       $,n     ( na -- )
 ;       Build a new dictionary name
 ;       using string at na.
 ; compile dans l'espace des variables 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;        _HEADER SNAME,3,"$,n"
         .word      LINK
 LINK = . 
         .byte      3
@@ -3780,14 +3701,12 @@ PNAM1:  CALL     STRQP
 
 ;; FORTH compiler
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       $COMPILE        ( a -- )
 ;       Compile next word to
 ;       dictionary as a token or literal.
-        .word      LINK
-LINK = . 
-        .byte      8
-        .ascii     "$COMPILE"
-SCOMP:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER SCOMP,8,"$COMPILE"
         CALL     NAMEQ
         CALL     QDUP    ;?defined
         CALL     QBRAN
@@ -3809,20 +3728,21 @@ SCOM2:  CALL     NUMBQ   ;try to convert to number
         _QBRAN DLITER  
         JP     LITER
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       OVERT   ( -- )
 ;       Link a new word into vocabulary.
-        .word      LINK
-LINK = . 
-        .byte      5
-        .ascii     "OVERT"
-OVERT:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER OVERT,5,"OVERT"
         CALL     LAST
         CALL     AT
         CALL     CNTXT
         JP     STORE
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       ;       ( -- )
 ;       Terminate a colon definition.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;        _HEADER SEMIS,IMEDD+COMPO+1,";"
         .word      LINK
 LINK = . 
 	.byte      IMEDD+COMPO+1
@@ -3845,10 +3765,12 @@ SEMIS:
         CALL UPDATPTR
         RET 
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       Terminate an ISR definition 
 ;       retourn ca of ISR as double
 ;       I; ( -- ud )
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;       _HEADER ISEMI,2+IMEDD+COMPO,"I;"
         .word LINK 
         LINK=.
         .byte 2+IMEDD+COMPO 
@@ -3877,22 +3799,22 @@ ISEMI:
         jp ZERO
         ret           
         
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       ]       ( -- )
 ;       Start compiling words in
 ;       input stream.
-        .word      LINK
-LINK = . 
-        .byte      1
-        .ascii     "]"
-RBRAC:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER RBRAC,1,"]"
         CALL   DOLIT
         .word  SCOMP
         CALL   TEVAL
         JP     STORE
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       CALL,    ( ca -- )
 ;       Compile a subroutine call.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;        _HEADER JSRC,5,"CALL,"
         .word      LINK
 LINK = . 
         .byte      5
@@ -3924,38 +3846,34 @@ INITOFS:
 1$:     call OFFSET 
         jp STORE  
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       :       ( -- ; <string> )
 ;       Start a new colon definition
 ;       using next word as its name.
-        .word      LINK
-LINK = . 
-        .byte      1
-        .ascii     ":"
-COLON:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER COLON,1,":"
         call INITOFS       
         CALL   TOKEN
         CALL   SNAME
         JP     RBRAC
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       I:  ( -- )
-;       Start interrupt service routine definition
-;       those definition have no name.
-        .word LINK
-        LINK=.
-        .byte 2 
-        .ascii "I:" 
-ICOLON:
+;       Start interrupt service 
+;       routine definition
+;       those definition have 
+;       no name.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER ICOLON,2,"I:"
         call INITOFS 
         jp RBRAC  
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       IMMEDIATE       ( -- )
 ;       Make last compiled word
 ;       an immediate word.
-        .word      LINK
-LINK = . 
-        .byte      9
-        .ascii     "IMMEDIATE"
-IMMED:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER IMMED,9,"IMMEDIATE"
         CALL     DOLIT
         .word     0x8000	;  IMEDD*256
         CALL     LAST
@@ -3968,14 +3886,12 @@ IMMED:
 
 ;; Defining words
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       CREATE  ( -- ; <string> )
 ;       Compile a new array
 ;       without allocating space.
-        .word      LINK
-LINK = . 
-        .byte      6
-        .ascii     "CREATE"
-CREAT:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER CREAT,6,"CREATE"
         CALL     TOKEN
         CALL     SNAME
         CALL     OVERT        
@@ -3983,14 +3899,12 @@ CREAT:
         .word DOVAR 
         RET
 
-;       VARIABLE        ( -- ; <string> )
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;       VARIABLE  ( -- ; <string> )
 ;       Compile a new variable
 ;       initialized to 0.
-        .word      LINK
-LINK = . 
-        .byte      8
-        .ascii     "VARIABLE"
-VARIA:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER VARIA,8,"VARIABLE"
 ; indirect variable so that VARIABLE definition can be compiled in FLASH 
         CALL HERE
         CALL DUPP 
@@ -4016,15 +3930,12 @@ SET_RAMLAST:
         CALL RAMLAST 
         jp STORE  
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       CONSTANT  ( n -- ; <string> )
 ;       Compile a new constant 
 ;       n CONSTANT name 
-        .word LINK 
-        LINK=. 
-        .byte 8 
-        .ascii "CONSTANT" 
-CONSTANT:          
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER CONSTANT,8,"CONSTANT"
         CALL TOKEN
         CALL SNAME 
         CALL OVERT 
@@ -4038,12 +3949,12 @@ CONSTANT:
         CALL UPDATPTR  
 1$:     RET          
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; CONSTANT runtime semantic 
 ; doCONST  ( -- n )
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;       _HEADER DOCONST,7,"DOCONST"
 ;        .word LINK 
-;        LINK=.
-;        .byte 7
-;        .ascii "DOCONST"
 DOCONST:
         subw x,#CELLL
         popw y 
@@ -4079,6 +3990,7 @@ DCONST:
 ; stack double constant 
 ; DO-DCONST ( -- d )
 ;-----------------------------------
+;       _HEADER DO_DCONST,9,"DO-DCONST"
 ;        .word LINK 
 ;        LINK=.
 ;        .byte 9 
@@ -4095,15 +4007,12 @@ DO_DCONST:
     ret 
 
 ;; Tools
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       _TYPE   ( b u -- )
 ;       Display a string. Filter
 ;       non-printing characters.
-        .word      LINK
-LINK = . 
-        .byte      5
-        .ascii     "_TYPE"
-UTYPE:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER UTYPE,5,"_TYPE"
         CALL     TOR     ;start count down loop
         JRA     UTYP2   ;skip first pass
 UTYP1:  CALL     DUPP
@@ -4115,14 +4024,12 @@ UTYP2:  CALL     DONXT
         .word      UTYP1   ;loop till done
         JP     DROP
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       dm+     ( a u -- a )
 ;       Dump u bytes from ,
 ;       leaving a+u on  stack.
-        .word      LINK
-LINK = . 
-        .byte      3
-        .ascii     "dm+"
-DUMPP:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER DUMPP,3,"DM+"
         CALL     OVER
         CALL     DOLIT
         .word      4
@@ -4140,14 +4047,12 @@ PDUM2:  CALL     DONXT
         .word      PDUM1   ;loop till done
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       DUMP    ( a u -- )
 ;       Dump u bytes from a,
 ;       in a formatted manner.
-        .word      LINK
-LINK = . 
-        .byte      4
-        .ascii     "DUMP"
-DUMP:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER DUMP,4,"DUMP"
         CALL     BASE
         CALL     AT
         CALL     TOR
@@ -4194,14 +4099,12 @@ DOTS2:  CALL     DONXT
         .ascii     " <sp "
         RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       >NAME   ( ca -- na | F )
 ;       Convert code address
 ;       to a name address.
-        .word      LINK
-LINK = . 
-        .byte      5
-        .ascii     ">NAME"
-TNAME:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER TNAME,5,">NAME"
         CALL     CNTXT   ;vocabulary link
 TNAM2:  CALL     AT
         CALL     DUPP    ;?last word in a vocabulary
@@ -4219,13 +4122,11 @@ TNAM3:  CALL     SWAPP
 TNAM4:  CALL     DDROP
         JP     ZERO
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       .ID     ( na -- )
 ;        Display  name at address.
-        .word      LINK
-LINK = . 
-        .byte      3
-        .ascii     ".ID"
-DOTID:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER DOTID,3,".ID"
         CALL     QDUP    ;if zero no name
         CALL     QBRAN
         .word      DOTI1
@@ -4241,14 +4142,12 @@ DOTI1:  CALL     DOTQP
 
 WANT_SEE=0
 .if WANT_SEE 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       SEE     ( -- ; <string> )
 ;       A simple decompiler.
 ;       Updated for byte machines.
-        .word      LINK
-LINK = . 
-        .byte      3
-        .ascii     "SEE"
-SEE:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER SEE,3,"SEE"
         CALL     TICK    ;starting address
         CALL     CR
         CALL     ONEM
@@ -4275,13 +4174,11 @@ SEE4:   CALL     NUFQ    ;user control
         JP     DROP
 .endif ; WANT_SEE 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       WORDS   ( -- )
 ;       Display names in vocabulary.
-        .word      LINK
-LINK = . 
-        .byte      5
-        .ascii     "WORDS"
-WORDS:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER WORDS,5,"WORDS"
         CALL     CR
         CALL     CNTXT   ;only in context
 WORS1:  CALL     AT
@@ -4299,13 +4196,11 @@ WORS2:  RET
         
 ;; Hardware reset
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       hi      ( -- )
 ;       Display sign-on message.
-        .word      LINK
-LINK = . 
-        .byte      2
-        .ascii     "hi"
-HI:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER HI,2,"HI"
         CALL     CR
         CALL     DOTQP   ;initialize I/O
         .byte      15
@@ -4330,13 +4225,11 @@ HI:
 
 WANT_DEBUG=0
 .if WANT_DEBUG 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       DEBUG      ( -- )
 ;       Display sign-on message.
-;        .word      LINK
-LINK = . 
-        .byte      5
-        .ascii     "DEBUG"
-DEBUG:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER DEBUG,5,"DEBUG"
 	CALL DOLIT
 	.word 0x65
 	CALL EMIT
@@ -4461,24 +4354,19 @@ DEBUG4:
 	RET
 .endif ; WANT_DEBUG 
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       'BOOT   ( -- a )
 ;       The application startup vector.
-        .word      LINK
-LINK = . 
-        .byte      5
-        .ascii     "'BOOT"
-TBOOT:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER TBOOT,5,"'BOOT"
         CALL     DOVAR
         .word    APP_RUN      ;application to boot
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       COLD    ( -- )
 ;       The hilevel cold start s=ence.
-        .word      LINK
-        LINK = . 
-        .byte      4
-        .ascii     "COLD"
-COLD:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER COLD,4,"COLD"
 .if WANT_DEBUG
         CALL DEBUG
 .endif ; WANT_DEBUG

@@ -4,7 +4,12 @@ AUTHOR: Jacques Deschênes
 DESCRIPTION: project log.
 -->
 
-rendu à **.R**.
+
+#### 2021-07-02
+
+* Continué travail de réédition de stm8ef.asm.
+
+* Ajout du mot **J** 
 
 #### 2021-07-01
 
