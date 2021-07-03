@@ -26,7 +26,7 @@ Comme il s'agit de 2 MCU STM8 l'adaptation vers le stm8s208 ne devrait pas néce
 
 ## 2021-07-01 
 
-Je travaille sur la version 4.0 qui ajoute quelques mots au fichier de base [stm8_ef.asm](stm8_ef.asm) et 2 librairies. [double.asm](double.asm) pour les entiers 32 bits ainsi que [float.asm](float.asm) qui est une librairie arithmétique en virgule flottante 32 bits. 
+Je travaille sur la version 4.0 qui ajoute quelques mots au fichier de base [stm8ef.asm](stm8ef.asm) et 2 librairies. [double.asm](double.asm) pour les entiers 32 bits ainsi que [float.asm](float.asm) qui est une librairie arithmétique en virgule flottante 32 bits. 
 
 ## 2020-01-31
 

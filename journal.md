@@ -7,7 +7,7 @@ DESCRIPTION: project log.
 
 #### 2021-07-02
 
-* Continué travail de réédition de stm8ef.asm.
+* Continué travail de réédition de stm8ef.asm. (complété).
 
 * Ajout du mot **J** 
 
