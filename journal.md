@@ -4,6 +4,30 @@ AUTHOR: Jacques Deschênes
 DESCRIPTION: project log.
 -->
 
+#### 2021-07-03
+
+* Ajout de **F&gt;**, **F&lt;**, **F=**, **F0=** , **F0&lt;** 
+
+* Modifié format des floats. 
+
+* Modifié  **SFN**, **SFZ** , **SFV** , **F&gt;ME**, **ME&gt;F**. 
+
+* Renommé  **2&lt;ROT** **&lt;2ROT** dans [double.asm](double.asm).
+
+* Supprimé **2NEGATE** du fichier [double.asm](double.asm) était en doublon avec **DNEGATE**  du fichier [stm8ef.asm](stm8ef.asm). 
+
+* Ajout des mots suivant pour l'accès aux variables locales sur rstack.
+
+    * **LOCAL**  pour réservé de l'espace pour les variables locales. 
+    
+    * **NRDROP** Pour libérer de l'espace occupé par les variables locales sur rstack. 
+
+    * **NR!**  pour déposer une valeur dans une variable locale. 
+
+    * **NR@**  pour lire la valeur d'une variable locale. 
+
+
+* Enlevé du dictionnaire les mots **$,n**, **$,"** 
 
 #### 2021-07-02
 

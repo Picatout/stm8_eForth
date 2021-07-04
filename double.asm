@@ -168,43 +168,6 @@ NUMQ8:
     RET 
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;    D0= ( d -- 0|-1 )
-;    check if double is 0 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER DZEQUAL,3,"D0="
-    CALL ORR 
-    LD A,#0xFF
-    LDW Y,X
-    LDW Y,(Y)
-    CPW Y,#0 
-    JREQ  ZEQ1
-    CLR A   ;false
-ZEQ1:
-    LD     (X),A
-    LD (1,X),A
-	RET     
-    
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;  2NEGATE ( d -- d )
-;  negate double (2's complement)
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER DNEGAT,7,"2NEGATE"
-    CALL INVER
-    CALL SWAPP 
-    CALL INVER 
-    LDW  Y,X 
-    LDW Y,(Y)
-    ADDW Y,#1 
-    LDW (X),Y 
-    JRNC DNEG1 
-    LDW Y,X 
-    LDW Y,(2,Y)
-    ADDW Y,#1
-    LDW (2,X),Y 
-DNEG1:
-    CALL SWAPP 
-    RET      
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   DABS ( d -- d )
@@ -415,10 +378,10 @@ DCLZ8:
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   2<ROT ( d1 d2 d3 -- d3 d1 d2 )
+;   <2ROT ( d1 d2 d3 -- d3 d1 d2 )
 ;   rotate left doubles 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER NDROT,5,"2<ROT"
+    _HEADER NDROT,5,"<2ROT"
 ; save d3 in temp 
     LDW Y,X 
     LDW Y,(Y)
@@ -480,6 +443,23 @@ DCLZ8:
     LDW (6,X),Y 
     RET 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;    D0= ( d -- 0|-1 )
+;    check if double is 0 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER DZEQUAL,3,"D0="
+    CALL ORR 
+    LD A,#0xFF
+    LDW Y,X
+    LDW Y,(Y)
+    CPW Y,#0 
+    JREQ  ZEQ1
+    CLR A   ;false
+ZEQ1:
+    LD     (X),A
+    LD (1,X),A
+	RET     
+    
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   D= ( d1 d2 -- f )
 ;   d1==d2?

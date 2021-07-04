@@ -25,25 +25,14 @@
 ;
 ; Creation date: 2021-06-15 
 ;
-; NOTE: I used a different format 
-;       for float number. This 
-;       enable comparison of floats 
-;       as they were integer hence 
-;       there no need for F>,F<,etc 
-;
 ;  This file is part of stm8_eforth 
 ;  project and same licence apply.
 ;************************************
 
 ;*************************************************
 ;  FLOAT format double for storage 
-;  bits 22:0  mantissa absolute value 
-;  bits  30:23  exponent with 127 offset added  
-;  bit 31  mantissa sign 
-;  float value: if bit 31 is 1 negate mantissa
-;                else keep mantissas as bits 22:0
-;                as is
-;                eponent: 10^^(exp-127) 
+;  bits 23:0  signed mantissa
+;  bits  31:24  signed exponent
 ;***********************************************  
 
     .module FLOAT 
@@ -136,18 +125,21 @@
 ;    set FPSW zero flag 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER SFZ,3,"SFZ"
-    CALL DDUP 
     CALL FER 
     _DOLIT 0xfffe 
     CALL ANDD 
     CALL TOR    
-    _DOLIT 0x807F 
-    CALL ANDD 
-    CALL DZEQUAL 
-    _DOLIT 1 
-    CALL ANDD 
+    LDW Y,X 
+    LDW Y,(Y)
+    JRNE SFZ1  
+    LDW Y,X 
+    LDW Y,(2,Y)
+    JRNE SFZ1
+    LDW Y,(1,SP)
+    ADDW Y,#1
+    LDW (1,SP),Y 
+SFZ1:
     CALL RFROM 
-    CALL ORR 
     CALL FPSW 
     CALL STORE 
     RET 
@@ -158,33 +150,28 @@
 ;   set FPSW negative flag 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER SFN,3,"SFN"
-    CALL DUPP  
     CALL FER 
     _DOLIT 0xFFFD 
     CALL ANDD  
     CALL TOR 
-    _DOLIT 0x8000
-    CALL ANDD
-    LDW Y,X 
-    LDW Y,(Y)
-    RCF 
-    RLCW Y 
-    RLCW Y 
-    RLCW Y 
-    LDW (X),Y 
+    LD A,(1,X) 
+    JRPL SFN1 
+    LDW Y,(1,SP)  ; R@ -> Y 
+    ADDW Y,#2     ; set negative flag 
+    LDW (1,SP),Y  ; Y -> R! 
+SFN1:
     CALL RFROM 
-    CALL ORR 
-    CALL FPSW
+    CALL FPSW 
     CALL STORE 
     RET 
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   SFV ( -- )
 ;   set overflow flag 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER SFV,3,"SFV"
-    CALL FPSW 
-    CALL AT 
+    CALL FER 
     _DOLIT 4 
     CALL ORR 
     CALL FPSW 
@@ -201,22 +188,29 @@
     CALL FRESET
     CALL SFN
     CALL SFZ 
-    CALL DUPP
-    _DOLIT 0X7F80 
-    CALL ANDD 
-    _DOLIT 7 
-    CALL RSHIFT
-    _DOLIT 127 
-    CALL SUBB
-    CALL TOR 
-    _DOLIT 0x7F
-    CALL ANDD  ; mantissa as double  
-    CALL FNE 
-    _QBRAN POSMANT 
-    CALL DNEGAT 
-POSMANT:
-    CALL RFROM 
+    LDW Y,X 
+    LDW Y,(Y)
+    PUSHW Y 
+    CLR A  
+    SWAPW Y 
+    JRPL ATEXP1 
+    CPL A 
+ATEXP1: ; sign extend mantissa 
+    SWAPW Y 
+    LD YH,A 
+    LDW (X),Y 
+    SUBW X,#CELLL 
+    POPW Y 
+    CLR A 
+    TNZW Y 
+    JRPL ATEXP2 
+    CPL A 
+ATEXP2:
+    SWAPW Y 
+    LD YH,A 
+    LDW (X),Y 
     RET 
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    ME>F ( m e -- f# )
@@ -226,37 +220,28 @@ POSMANT:
     CALL DUPP 
     CALL ABSS 
     _DOLIT 127 
-    CALL UGREAT
+    CALL GREAT
     _QBRAN STEXP1
-    CALL SFV  
+    CALL SFV
 STEXP1:
-    _DOLIT 127 
-    CALL PLUS 
-    _DOLIT 0XFF 
-    CALL ANDD 
-    _DOLIT 7 
-    CALL LSHIFT 
-    CALL TOR   ; R: e 
-    CALL DUPP 
-    _DOLIT 0X8000 
-    CALL ANDD 
+    LDW Y,X 
+    LDW Y,(Y)
+    CLR A 
+    LD YH,A
+    SWAPW Y 
+    PUSHW Y  
+    ADDW X,#CELLL ; e >R 
+    CALL DUPP
+    CALL ABSS 
+    _DOLIT 127  
+    CALL GREAT 
     _QBRAN STEXP2 
-    _DOLIT 0X8000 
+    CALL SFV
+STEXP2: 
+    CLR A 
+    LD (X),A 
     CALL RFROM 
     CALL ORR
-    CALL TOR
-    CALL DNEGAT  
-STEXP2:
-    CALL DUPP 
-    _DOLIT 0X7F
-    CALL UGREAT 
-    _QBRAN STEXP3 
-    CALL SFV 
-STEXP3:
-    _DOLIT 0X7F 
-    CALL ANDD 
-    CALL RFROM 
-    CALL ORR 
     CALL SFZ 
     CALL SFN 
     RET 
@@ -279,7 +264,7 @@ EDOT0:
     CALL TOR   
     CALL FNE 
     _QBRAN EDOT1
-    CALL DNEGAT
+    CALL DNEGA
 EDOT1:
     CALL SPACE 
     CALL BDIGS     
@@ -344,7 +329,7 @@ FDOT1:
     CALL    TOR 
     CALL    FNE 
     _QBRAN  FDOT0 
-    CALL    DNEGAT 
+    CALL    DNEGA 
 FDOT0: 
     CALL    BDIGS
     CALL    RAT  
@@ -532,6 +517,75 @@ FLOAT_ERROR:
     CALL RFROM 
     CALL STEXP 
     RET 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  F-ALIGN ( f#1 f#2 -- m1 m2 e )
+;  align to same exponent 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER FALIGN,7,"F-ALIGN"
+    CALL ATEXP 
+    CALL TOR    ; e2 >R
+    CALL DSWAP 
+    CALL ATEXP  
+    CALL TOR 
+    CALL DSWAP  ; m1 m2  R: e2 e1    
+FALGN1:
+    CALL JFETCH   ; E2 
+    CALL IFETCH   ; E1 
+    CALL EQUAL 
+    _TBRAN FALGN8 
+    CALL JFETCH 
+    CALL IFETCH  
+    CALL LESS ; E2<E1 
+    _TBRAN FALGN4 
+; E2>E1 
+    _DOLIT 10 
+    CALL DSSTAR ; m2*10  
+    CALL JFETCH 
+    CALL ONEM  ; e2-1 
+    _DOLIT 1 
+    CALL NRSTO  ; update J 
+    _BRAN FALGN1
+FALGN4: ; E2<E1 
+    CALL DSWAP 
+    _DOLIT 10 
+    CALL DSSTAR ; m1*10 
+    CALL DSWAP
+    CALL IFETCH 
+    CALL ONEM   ; e1-1 
+    _DOLIT 0 
+    CALL NRSTO  ; update I   
+    _BRAN FALGN1     
+FALGN8:
+    CALL DRFROM 
+    CALL DROP 
+    RET 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   F+ ( f#1 f#2 -- f#1+f#2 )
+;   float addition 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER FPLUS,2,"F+"
+    CALL FALIGN 
+    CALL TOR 
+    CALL DPLUS  
+    CALL RFROM 
+    CALL STEXP 
+    RET 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  F- ( f#1 f#2 -- f#1-f#2 )
+;  substraction 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER FSUB,2,"F-"
+    CALL FALIGN 
+    CALL TOR 
+    CALL DSUB 
+    CALL RFROM 
+    CALL STEXP 
+    RET 
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   SCALE>M ( ud1 -- e ud2 )
@@ -795,7 +849,7 @@ DTOF1:
     CALL SCALETOM 
     CALL RFROM
     _QBRAN DTOF2 
-    CALL DNEGAT 
+    CALL DNEGA 
 DTOF2: 
     CALL ROT 
     CALL STEXP 
@@ -857,3 +911,46 @@ FTOD8:
     CALL DNEGA
 FTOD9:          
     RET 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;
+;   F0< ( f# -- f )
+;   true if f#<0
+;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER FZLESS,3,"F0<"
+    CALL ATEXP 
+    CALL DROP 
+    CALL SWAPP 
+    CALL DROP 
+    CALL ZLESS 
+    RET
+
+;;;;;;;;;;;;;;;;;;;;;;;;
+;   F< ( f#1 f#2 -- f )
+; true if f#1 < f#1 
+;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER FLESS,2,"F<"
+    CALL FSUB  
+    JP FZLESS
+
+;;;;;;;;;;;;;;;;;;;;;;;;;
+;   F> ( f#1 f#2 -- f )
+;   true fi f#1>f#2
+;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER FGREAT,2,"F>"
+    CALL DSWAP 
+    JP FLESS 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;
+;   F= ( f#1 f#2 -- f ) 
+;   true fi f#1==f#2 
+;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER FEQUAL,2,"F="
+    JP DEQUAL 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   F0= ( f# -- f )
+;   true fi f# is 0.0 
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER FZEQUAL,3,"F0="
+    JP DZEQUAL    

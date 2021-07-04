@@ -950,13 +950,11 @@ BRAN:
 	LDW Y,(Y)
         JP     (Y)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       EXECUTE ( ca -- )
 ;       Execute  word at ca.
-        .word      LINK
-LINK	= 	.
-        .byte       7
-        .ascii     "EXECUTE"
-EXECU:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER EXECU,7,"EXECUTE"
         LDW Y,X
 	ADDW X,#2
 	LDW  Y,(Y)
@@ -1071,6 +1069,87 @@ EXIT:
         subw x,#CELLL 
         ldw (x),y 
         ret 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;       LOCAL ( n -- )
+;       reserve n slots on return stack
+;       for local variables 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER LOCAL,5,"LOCAL"
+        POPW Y  
+        LDW YTEMP,Y ; RETURN ADDRESS 
+        CLRW Y 
+        LD A,(1,X)
+        LD YL,A 
+        LD A,#CELLL 
+        MUL Y,A 
+        LDw XTEMP,Y
+        LDW Y,SP 
+        SUBW Y,XTEMP
+        LDW SP,Y 
+        ADDW X,#CELLL 
+        JP [YTEMP]
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;       NRDROP ( n -- )
+;       drop n elements from rstack
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER NRDROP,6,"NRDROP" 
+        POPW Y 
+        LDW YTEMP,Y ; RETOURN ADDRESS 
+        CLRW Y 
+        LD A,(1,X)
+        LD YL,A  
+        LD A,#CELLL 
+        MUL Y,A 
+        LDW XTEMP,Y 
+        LDW Y,SP 
+        ADDW Y,XTEMP 
+        LDW SP,Y  
+        ADDW X,#CELLL 
+        JP [YTEMP]
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;      NR@ ( n -- w)
+;      fetch nth element ofr return stack 
+;      n==0 is same as R@ 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER NRAT,3,"NR@"
+        CLRW Y 
+        LD A,(1,X)
+        LD YL,A 
+        LD A,#CELLL 
+        MUL Y,A 
+        LDW YTEMP,Y 
+        LDW Y,SP 
+        ADDW Y,#3 
+        ADDW Y,YTEMP 
+        LDW Y,(Y)
+        LDW (X),Y 
+        RET 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;       NR! ( w n --  )
+;       store w on nth position of 
+;       return stack 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER NRSTO,3,"NR!"
+        LDW Y,SP
+        ADDW Y,#3 
+        LDW YTEMP,Y 
+        CLRW Y 
+        LD A,(1,X)
+        LD YL,A 
+        LD A,#CELLL 
+        MUL Y,A 
+        ADDW Y,YTEMP
+        PUSHW X 
+        LDW X,(2,X)
+        LDW (Y),X
+        POPW X 
+        ADDW X,#2*CELLL 
+        RET 
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       >R      ( w -- )
@@ -1528,14 +1607,14 @@ QDUP1:  RET
         _HEADER DNEGA,7,"DNEGATE"
         LDW Y,X
 	LDW Y,(Y)
-        CPLW Y     
-	LDW YTEMP,Y
+        CPLW Y
+        PUSHW Y      ; Y >R 
         LDW Y,X
         LDW Y,(2,Y)
         CPLW Y
         addw y,#1
         LDW (2,X),Y
-        LDW Y,YTEMP
+        POPW Y       ; R> Y  
         JRNC DN1 
         INCW Y
 DN1:    LDW (X),Y
@@ -3364,12 +3443,7 @@ QUIT2:  CALL     QUERY   ;get input
 ;         Compile an integer into
 ;         variable space.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;        _HEADER COMMA,1,'\,'
-        .word      LINK
-LINK = . 
-        .byte      1
-        .ascii     ","
-COMMA:
+        _HEADER COMMA,1,^/"\,"/
         CALL     HERE
         CALL     DUPP
         CALL     CELLP   ;cell boundary
@@ -3382,12 +3456,7 @@ COMMA:
 ;       Compile a byte into
 ;       variables space.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;        _HEADER CCOMMA,2,"C,"
-      .word      LINK
-LINK = . 
-        .byte      2
-        .ascii     "C,"
-CCOMMA:
+        _HEADER CCOMMA,2,^/"C,"/
         CALL     HERE
         CALL     DUPP
         CALL     ONEP
@@ -3435,11 +3504,7 @@ CCOMMA:
 ;       Compile a literal string
 ;       up to next " .
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;        _HEADER STRCQ,3,'$,"'
-        .word      LINK
-LINK = . 
-        .byte      3
-        .byte     '$',',','"'
+;        _HEADER STRCQ,3,^/'$,"'/
 STRCQ:
         CALL     DOLIT
         .word     34	; "
@@ -3487,7 +3552,7 @@ STRCQ:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       J ( -- n )
 ;   stack COUNTER
-;   of second level FOR-NEXT  
+;   of outer FOR-NEXT  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER JFETCH,1,"J"
         SUBW X,#CELLL 
@@ -3669,12 +3734,8 @@ UNIQ1:  JP     DROP
 ;       using string at na.
 ; compile dans l'espace des variables 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;        _HEADER SNAME,3,"$,n"
-        .word      LINK
-LINK = . 
-        .byte      3
-        .ascii     "$,n"
-SNAME:
+;        _HEADER SNAME,3,^/"$,n"/
+SNAME: 
         CALL     DUPP
         CALL     CAT     ;?null input
         CALL     QBRAN
@@ -3742,12 +3803,7 @@ SCOM2:  CALL     NUMBQ   ;try to convert to number
 ;       ;       ( -- )
 ;       Terminate a colon definition.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;        _HEADER SEMIS,IMEDD+COMPO+1,";"
-        .word      LINK
-LINK = . 
-	.byte      IMEDD+COMPO+1
-        .ascii     ";"
-SEMIS:
+        _HEADER SEMIS,IMEDD+COMPO+1,^/";"/
 .if OPTIMIZE ; more compact and faster
         call DOLIT 
         .word 0x81   ; opcode for RET 
@@ -3770,12 +3826,7 @@ SEMIS:
 ;       retourn ca of ISR as double
 ;       I; ( -- ud )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;       _HEADER ISEMI,2+IMEDD+COMPO,"I;"
-        .word LINK 
-        LINK=.
-        .byte 2+IMEDD+COMPO 
-        .ascii "I;" 
-ISEMI:
+       _HEADER ISEMI,2+IMEDD+COMPO,^/"I;"/
         subw x,#CELLL  
         ldw y,#IRET_CODE 
         ldw (x),y 
@@ -3814,12 +3865,7 @@ ISEMI:
 ;       CALL,    ( ca -- )
 ;       Compile a subroutine call.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;        _HEADER JSRC,5,"CALL,"
-        .word      LINK
-LINK = . 
-        .byte      5
-        .ascii     "CALL,"
-JSRC:
+        _HEADER JSRC,5,^/"CALL,"/
         CALL     DOLIT
         .word     CALLL     ;CALL
         CALL     CCOMMA
@@ -3954,7 +4000,6 @@ SET_RAMLAST:
 ; doCONST  ( -- n )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       _HEADER DOCONST,7,"DOCONST"
-;        .word LINK 
 DOCONST:
         subw x,#CELLL
         popw y 
@@ -3966,11 +4011,7 @@ DOCONST:
 ; create double constant 
 ; 2CONSTANT ( d -- ; <string> )
 ;----------------------------------
-    .word LINK 
-    LINK=.
-    .byte 9 
-    .ascii "2CONSTANT"
-DCONST:
+        _HEADER DCONST,9,"2CONSTANT"
         CALL TOKEN
         CALL SNAME 
         CALL OVERT 
@@ -3991,10 +4032,6 @@ DCONST:
 ; DO-DCONST ( -- d )
 ;-----------------------------------
 ;       _HEADER DO_DCONST,9,"DO-DCONST"
-;        .word LINK 
-;        LINK=.
-;        .byte 9 
-;        .ascii "DO-DCONST"
 DO_DCONST:
     popw y 
     ldw YTEMP,y 
@@ -4078,13 +4115,11 @@ DUMP3:  CALL     DROP
         CALL     BASE
         JP     STORE   ;restore radix
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       .S      ( ... -- ... )
 ;        Display  contents of stack.
-        .word      LINK
-LINK = . 
-        .byte      2
-        .ascii     ".S"
-DOTS:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER DOTS,2,".S"
         CALL     CR
         CALL     DEPTH   ;stack depth
         CALL     TOR     ;start count down loop
