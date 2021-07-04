@@ -508,7 +508,7 @@ DGREAT4:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER DLESS,2,"D<"
     CALL DSUB
-    _DOLIT 0 
+    CALL ZERO
     CALL NROT  
     CALL DZLESS 
     _QBRAN DLESS4
@@ -807,32 +807,9 @@ DDSTAR3:
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   DD/MOD  ( d1 d2 -- dr dq )
-;   double division dq=d1/d2
-;   dr remainder double 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER DDSLMOD,6,"DD/MOD"  
-    _DOLIT 0 
-    CALL TOR   ; R: sign 
-    LDW Y,X     
-    LDW Y,(Y)
-    JRPL DSLA1
-    CALL DNEGA  ; ud2 
-    CALL RFROM 
-    CALL INVER 
-    CALL TOR  ; sign inverted 
-DSLA1:
-    _DOLIT 2 
-    CALL PICK 
-    CALL ZLESS 
-    _QBRAN DSLA2
-    CALL DSWAP 
-    CALL DNEGA  ; ud1 
-    CALL DSWAP  ; ud1 ud2 ( divident divisor )     
-    CALL RFROM 
-    CALL INVER 
-    CALL TOR   ;  sign inverted again 
-DSLA2:
+;  UD/MOD ( ud1 ud2 -- dr udq )
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER UDSLMOD,6,"UD/MOD"
 ; unsigned double division 
     CALL ZERO 
     CALL ZERO
@@ -846,21 +823,21 @@ DSLA2:
     CALL SUBB
     CALL DUPP   
     CALL ZLESS 
-    _TBRAN DSLA7 ; quotient is null 
+    _TBRAN UDSLA7 ; quotient is null 
     CALL DUPP 
     CALL TOR    ; loop counter 
     CALL DUPP 
     CALL TOR    ; need to copies 
     CALL QDUP 
-    _QBRAN DSLA3
+    _QBRAN UDSLA3
     CALL DLSHIFT ; align divisor with dividend 
-DSLA3: ; division loop -- dividend divisor  
+UDSLA3: ; division loop -- dividend divisor  
     CLRW Y 
     PUSHW Y  
     CALL DOVER 
     CALL DOVER 
     CALL DLESS 
-    _TBRAN DSLA4 
+    _TBRAN UDSLA4 
     POPW Y 
     ADDW Y,#1 
     PUSHW Y    ; quotiend least bit 
@@ -868,7 +845,7 @@ DSLA3: ; division loop -- dividend divisor
     CALL DTOR  
     CALL DSUB  ; dividend-divisor 
     CALL DRFROM  ; dividend- divisor  
-DSLA4: ; shift quotient and add 1 bit 
+UDSLA4: ; shift quotient and add 1 bit 
     POPW Y 
     LDW YTEMP,Y 
     LDW Y,(7,SP) ; quotient low 
@@ -883,29 +860,58 @@ DSLA4: ; shift quotient and add 1 bit
     LDW (7,SP),Y 
     LDW Y,(1,SP) ; loop counter 
     TNZW Y 
-    JREQ DSLA8
+    JREQ UDSLA8
     SUBW Y,#1  
     LDW (1,SP),Y  
 ; shift dividend left 1 bit      
     CALL DSWAP 
     CALL D2STAR 
     CALL DSWAP 
-    JRA DSLA3 
-DSLA7:
+    JRA UDSLA3 
+UDSLA7:
     ADDW X,#2 ; drop shift count  
-DSLA8:
+UDSLA8:
     ADDW X,#4 ; drop divisor
-    CALL RFROM
-    CALL DROP   ; loop counter 
+    CALL ONE 
+    CALL NRDROP ; drop loop counter
     CALL RFROM   ; shift count
     CALL DRSHIFT 
     ; quotient replace dividend 
     CALL DRFROM  ; quotient 
+    RET 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   DD/MOD  ( d1 d2 -- dr dq )
+;   double division dq=d1/d2
+;   dr remainder double 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER DDSLMOD,6,"DD/MOD"  
+    CALL DSIGN 
+    CALL TOR   ; R: divisor sign 
+    CALL DSWAP 
+    CALL DSIGN ; dividend sign 
+    CALL RFROM 
+    CALL XORR  ; quotient sign
+    CALL TOR   ; 
+    CALL DABS  ; d2 ud1 R: sign 
+    CALL DSWAP  ; ud1 d2 
+    CALL DABS  ; ud1 ud2 
+    CALL UDSLMOD ; ud1/ud2 -- dr dq  
     POPW Y ; sign 
     TNZW Y 
-    JREQ DSLA9 
+    JRPL DSLA9 
     CALL DNEGA ; remainder quotient 
 DSLA9: 
+    RET 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   D/  ( d1 d2 -- dq )
+;   division double by double 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER DSLASH,2,"D/"
+    CALL DDSLMOD
+    CALL DSWAP
+    CALL DDROP 
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

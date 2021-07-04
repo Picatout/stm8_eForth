@@ -4,6 +4,17 @@ AUTHOR: Jacques Deschênes
 DESCRIPTION: project log.
 -->
 
+#### 2021-07-04
+
+* Remplacé les LITERAL 0|1  par des CALL ZERO|ONE . 
+
+* Modifié  **F/** dans [float.asm](float.asm) pour tiré avantage des mots **NR@** et **NR!**. 
+
+* Déboguer **F/**. 
+
+* Factorité **DD/MOD** pour extraire **UD/MOD**. 
+
+
 #### 2021-07-03
 
 * Ajout de **F&gt;**, **F&lt;**, **F=**, **F0=** , **F0&lt;** 

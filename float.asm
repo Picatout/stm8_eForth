@@ -64,7 +64,7 @@
 ;   reset FPSW variable 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 
     _HEADER FRESET,6,"FRESET"
-    _DOLIT 0 
+    CALL ZERO  
     CALL FPSW 
     CALL STORE 
     RET 
@@ -94,7 +94,7 @@
     _HEADER FZE,3,"FZE"
     CALL FPSW
     CALL AT  
-    _DOLIT 1
+    CALL ONE 
     CALL ANDD 
     RET 
 
@@ -483,7 +483,7 @@ FLOAT_ERROR:
     CALL SWAPP 
     CALL PLUS  
     CALL SPSTO 
-    _DOLIT 0 
+    CALL ZERO 
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -492,7 +492,7 @@ FLOAT_ERROR:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER LSCALE,6,"LSCALE"
     CALL ATEXP 
-    _DOLIT 1 
+    CALL ONE 
     CALL SUBB 
     CALL TOR
     _DOLIT 10 
@@ -507,7 +507,7 @@ FLOAT_ERROR:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER RSCALE,6,"RSCALE"
     CALL ATEXP 
-    _DOLIT 1 
+    CALL ONE 
     CALL PLUS 
     CALL TOR 
     _DOLIT 10 
@@ -543,7 +543,7 @@ FALGN1:
     CALL DSSTAR ; m2*10  
     CALL JFETCH 
     CALL ONEM  ; e2-1 
-    _DOLIT 1 
+    CALL ONE 
     CALL NRSTO  ; update J 
     _BRAN FALGN1
 FALGN4: ; E2<E1 
@@ -553,7 +553,7 @@ FALGN4: ; E2<E1
     CALL DSWAP
     CALL IFETCH 
     CALL ONEM   ; e1-1 
-    _DOLIT 0 
+    CALL ZERO 
     CALL NRSTO  ; update I   
     _BRAN FALGN1     
 FALGN8:
@@ -586,6 +586,14 @@ FALGN8:
     CALL STEXP 
     RET 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; /mod10  ( ud -- ud/10 r )
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+UMOD10:
+    _DOLIT 10 
+    CALL DSLMOD
+    CALL ROT  
+    RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   SCALE>M ( ud1 -- e ud2 )
@@ -603,10 +611,8 @@ SCAL1:
     _DOLIT 0X7F 
     CALL UGREAT 
     _QBRAN SCAL2  
-    _DOLIT 10 
-    CALL DSLMOD 
-    CALL ROT  
-    CALL DROP
+    CALL UMOD10 
+    CALL DROP 
     CALL ROT 
     CALL ONEP 
     CALL NROT  
@@ -778,27 +784,63 @@ MMSTA7:
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  while remainder d1/10==0 
+;  do d1/10 e+1
+;   ( d1 -- d1/10 e )
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+FACTOR10:
+    CALL ZERO 
+    CALL TOR 
+FACT0:
+    CALL DDUP 
+    CALL UMOD10  
+    _TBRAN FACT1
+    CALL DSWAP 
+    CALL DDROP 
+    CALL RFROM 
+    CALL ONEP   
+    CALL TOR  
+    _BRAN FACT0
+FACT1:
+    CALL DDROP 
+    CALL RFROM 
+    RET 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;  F/ ( f#1 f#2 -- f#3 )
 ;  float division
 ;  f#3 = f#1/f#2
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FSLASH,2,"F/"
-    CALL ATEXP  ; f#1 m2 e2  
+    CALL ATEXP  ; f#1 m2 e2 
     CALL TOR    ; f#1 m2   R: e2 
+    CALL DSIGN  ; f#1 m2 m2sign 
+    CALL TOR    ; F#1 m2 R: e2 m2s 
+    CALL DABS   ; F#1 um2 
     CALL DSWAP  ; m2 f#1 
     CALL ATEXP  ; m2 m1 e1 
-    CALL RFROM  ; m2 m1 e1 e2
+    CALL ONE 
+    CALL NRAT   ; m2 m2 e1 e2 
     CALL PLUS   ; m2 m1 e 
-    CALL TOR    ; m2 m1 R: e 
-    CALL DSWAP  ; m1 m2 R: e
-    CALL DDUP  ; m1 m2 m2 R: e
-    CALL DTOR  ; m1 m2 R: e m2 ( keep divisor need later ) 
-    CALL DDSLMOD ; remainder m1/m2 R: e m2 
+    CALL ONE 
+    CALL NRSTO  ; m2 m1 R: e m2s 
+    CALL DSIGN  ; m2 m1 m1sign 
+    CALL RFROM   
+    CALL XORR   ; m2 m1 quot_sign R: e 
+    CALL RFROM   
+CALL DOTS 
+    CALL DTOR   ; m2 m1 R: qs e  
+    CALL DABS   ; um2 um1 R: qs e  
+    CALL DSWAP  ; m1 m2 R: qs e
+    CALL DDUP  ; m1 m2 m2 R: qs e
+    CALL DTOR  ; m1 m2 R: qs e m2 ( keep divisor need later ) 
+    CALL UDSLMOD ; remainder m1/m2 R: e m2 
+FSLASH1: 
     CALL DOVER ; if remainder null done 
     CALL DZEQUAL 
     _TBRAN FSLASH8 
 ; get fractional digits from remainder until mantissa saturate
-FSLASH1: ; remainder mantissa R: e divisor 
+; remainder mantissa R: e divisor 
 ; check for mantissa saturation 
     CALL DDUP 
     _DOLIT 0XCCCC 
@@ -815,26 +857,33 @@ FSLASH1: ; remainder mantissa R: e divisor
     CALL ZERO 
     CALL DSTAR 
 ; divide remainder by m2     
-    CALL DRAT 
-    CALL DDSLMOD 
-    CALL DSWAP ; mantissa frac_digit remainder R: e divisor  
-    CALL DTOR  ; mantissa frac_digit R: e divisor remainder 
+    CALL DRAT  ; mantissa remainder divisor R: e divisor 
+    CALL UDSLMOD ; mantissa dr dq R: qs e divisor 
+    CALL DSWAP ; mantissa frac_digit remainder R: qs e divisor  
+    CALL DTOR  ; mantissa frac_digit R: qs e divisor remainder 
     CALL DPLUS ; mantissa+frac_digit 
-    CALL DRFROM ; mantissa remainder 
-    CALL DRFROM ; mantissa remainder divisor 
-    CALL RFROM  ; mantissa remainder divisor e 
-    CALL ONEM   ; decrement exponent 
-    CALL TOR    ; mantissa remainder divisor R: e 
-    CALL DTOR   ; mantissa remainder R: e divisor 
+    CALL DRFROM ; mantissa remainder R: qs e divisor  
     CALL DSWAP  ; remainder mantissa  
+; decrement e 
+    _DOLIT 2    ; e slot on rstack 
+    CALL NRAT   ;  2 NR@ -- e 
+    CALL ONEP   ; increment exponent 
+    _DOLIT 2 
+    CALL NRSTO  ; e 2 NR! , update e on rstack     
     _BRAN FSLASH1
-FSLASH8: ; remainder mantissa R: e divisor 
+FSLASH8: ; remainder mantissa R: qs e divisor 
     CALL DSWAP  
     CALL DDROP  ; drop remainder     
     CALL DRFROM
     CALL DDROP  ; drop divisor 
+    CALL JFETCH    ; quotient sign 
+    _QBRAN FSLASH9 
+    CALL DNEGA  
+FSLASH9:
     CALL RFROM  ; exponent 
     CALL STEXP 
+    CALL RFROM 
+    CALL DROP ; drop qs 
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
