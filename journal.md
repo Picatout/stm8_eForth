@@ -4,7 +4,17 @@ AUTHOR: Jacques Deschênes
 DESCRIPTION: project log.
 -->
 
+#### 2021-07-05 
+
+* Travail sur [double-test.f](double-test.f)
+
+* Corrigé bogue dans **D>**. 
+
+* Suppression du mot **DCMP** 
+
 #### 2021-07-04
+
+* Déboguer **F0=**. 
 
 * Remplacé les LITERAL 0|1  par des CALL ZERO|ONE . 
 
@@ -14,6 +24,7 @@ DESCRIPTION: project log.
 
 * Factorité **DD/MOD** pour extraire **UD/MOD**. 
 
+* Ajout de **D/**. 
 
 #### 2021-07-03
 

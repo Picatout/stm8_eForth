@@ -488,7 +488,7 @@ FLOAT_ERROR:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;  LSCALE ( f# -- f# )
-;  m *=fbase , e -= 1
+;  m *=10 , e -= 1
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER LSCALE,6,"LSCALE"
     CALL ATEXP 
@@ -503,7 +503,7 @@ FLOAT_ERROR:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;  RSCALE ( f# -- f# )
-;  m /=fbase , e+=1 
+;  m /=10 , e+=1 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER RSCALE,6,"RSCALE"
     CALL ATEXP 
@@ -587,7 +587,9 @@ FALGN8:
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; /mod10  ( ud -- ud/10 r )
+; /mod10  ( m -- m/10 r )
+; divide mantissa by 10 
+; return quotient and remainder 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 UMOD10:
     _DOLIT 10 
@@ -784,29 +786,6 @@ MMSTA7:
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;  while remainder d1/10==0 
-;  do d1/10 e+1
-;   ( d1 -- d1/10 e )
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-FACTOR10:
-    CALL ZERO 
-    CALL TOR 
-FACT0:
-    CALL DDUP 
-    CALL UMOD10  
-    _TBRAN FACT1
-    CALL DSWAP 
-    CALL DDROP 
-    CALL RFROM 
-    CALL ONEP   
-    CALL TOR  
-    _BRAN FACT0
-FACT1:
-    CALL DDROP 
-    CALL RFROM 
-    RET 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;  F/ ( f#1 f#2 -- f#3 )
 ;  float division
 ;  f#3 = f#1/f#2
@@ -819,16 +798,15 @@ FACT1:
     CALL DABS   ; F#1 um2 
     CALL DSWAP  ; m2 f#1 
     CALL ATEXP  ; m2 m1 e1 
-    CALL ONE 
-    CALL NRAT   ; m2 m2 e1 e2 
+    CALL ONE    ; e2 slot on rstack  
+    CALL NRAT   ; m2 m1 e1 e2 
     CALL PLUS   ; m2 m1 e 
-    CALL ONE 
+    CALL ONE    ; e slot on rstack 
     CALL NRSTO  ; m2 m1 R: e m2s 
     CALL DSIGN  ; m2 m1 m1sign 
-    CALL RFROM   
+    CALL RFROM  ; m2 m1 m1s m2s  
     CALL XORR   ; m2 m1 quot_sign R: e 
     CALL RFROM   
-CALL DOTS 
     CALL DTOR   ; m2 m1 R: qs e  
     CALL DABS   ; um2 um1 R: qs e  
     CALL DSWAP  ; m1 m2 R: qs e
@@ -864,7 +842,7 @@ FSLASH1:
     CALL DPLUS ; mantissa+frac_digit 
     CALL DRFROM ; mantissa remainder R: qs e divisor  
     CALL DSWAP  ; remainder mantissa  
-; decrement e 
+; increment e 
     _DOLIT 2    ; e slot on rstack 
     CALL NRAT   ;  2 NR@ -- e 
     CALL ONEP   ; increment exponent 
@@ -1002,4 +980,7 @@ FTOD9:
 ;   true fi f# is 0.0 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FZEQUAL,3,"F0="
-    JP DZEQUAL    
+    CALL ATEXP 
+    CALL DROP 
+    JP DZEQUAL  
+

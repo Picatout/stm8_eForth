@@ -198,12 +198,12 @@ DSIGN1:
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   D/MOD ( d s - r qd )
+;   DS/MOD ( ud us - ur qud )
 ;   unsigned divide double by single 
 ;   return double quotient 
 ;   and single remainder 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER DSLMOD,5,"D/MOD"
+    _HEADER DSLMOD,6,"DS/MOD"
         LDW     Y,X             ; stack pointer to Y
         LDW     X,(X)           ; un
         LDW     YTEMP,X         ; save un
@@ -486,21 +486,8 @@ DEQU4:
 ;   d1>d2?
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER DGREAT,2,"D>"
-    LD A,#0XFF 
-    LDW Y,X 
-    LDW Y,(4,Y)  ; d1 hi 
-    CPW Y,(X)    ; d2 hi 
-    JRSGT DGREAT4 
-    LDW Y,X 
-    LDW Y,(6,Y)
-    CPW Y,(2,X)
-    JRUGT DGREAT4 
-    LD A,#0
-DGREAT4:
-    ADDW X,#6
-    LD (X),A 
-    LD (1,X),A 
-    RET
+    CALL DSWAP 
+    JP DLESS 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   D< ( d1 d2 -- f )
@@ -533,41 +520,6 @@ DZLESS1:
     RET 
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;  DCMP ( d1 d2 -- d1 d2 -1|0|1 )
-; compare 2 doubles 
-; keep the doubles 
-; return flag: 
-;    -1 if d1<d2 
-;     0 if d1==d2
-;     1 if d1>d2 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER DCMP,4,"DCMP"
-    LDW Y,X 
-    LDW Y,(4,Y)
-    CPW Y,(X) 
-    JREQ DCMP2 
-    JRSLT DCMP_SMALL 
-    JRA  DCMP_GREAT 
-DCMP2:    
-    LDW Y,X 
-    LDW Y,(6,Y)
-    CPW Y,(2,X)
-    JREQ DCMP_EQUAL  
-    JRULT DCMP_SMALL 
-    JRA DCMP_GREAT
-DCMP_EQUAL:
-    CLRW Y 
-    JRA DCMP4 
-DCMP_SMALL:
-    LDW Y,#-1 
-    JRA DCMP4 
-DCMP_GREAT:
-    LDW Y,#1
-DCMP4:
-    SUBW X,#2 
-    LDW (X),Y 
-    RET
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   2>R ( d -- R: d )
@@ -881,11 +833,11 @@ UDSLA8:
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   DD/MOD  ( d1 d2 -- dr dq )
+;   D/MOD  ( d1 d2 -- dr dq )
 ;   double division dq=d1/d2
 ;   dr remainder double 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER DDSLMOD,6,"DD/MOD"  
+    _HEADER DDSLMOD,5,"D/MOD"  
     CALL DSIGN 
     CALL TOR   ; R: divisor sign 
     CALL DSWAP 
