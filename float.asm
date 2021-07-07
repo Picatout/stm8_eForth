@@ -88,36 +88,42 @@
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;    FZE  ( -- z )
+;    FZE  ( -- 0|-1 )
 ;    return FPSW zero flag 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FZE,3,"FZE"
     CALL FPSW
     CALL AT  
     CALL ONE 
-    CALL ANDD 
+    CALL ANDD
+    CALL NEGAT  
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;    FNE ( -- n )
+;    FNE ( -- 0|-1 )
 ;    return FPSW negative flag 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FNE,3,"FNE"
     CALL FPSW 
     CALL AT 
     _DOLIT 2 
-    CALL ANDD 
+    CALL ANDD
+    CALL TWOSL
+    CALL NEGAT   
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   FOV (A -- v )
+;   FOV (  -- 0|-1 )
 ;   return FPSW overflow flag 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FOV,3,"FOV"
     CALL FPSW
     CALL AT  
     _DOLIT 4 
-    CALL ANDD 
+    CALL ANDD
+    _DOLIT 2 
+    CALL RSHIFT 
+    CALL NEGAT  
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -129,17 +135,14 @@
     _DOLIT 0xfffe 
     CALL ANDD 
     CALL TOR    
-    LDW Y,X 
-    LDW Y,(Y)
-    JRNE SFZ1  
-    LDW Y,X 
-    LDW Y,(2,Y)
-    JRNE SFZ1
-    LDW Y,(1,SP)
-    ADDW Y,#1
-    LDW (1,SP),Y 
-SFZ1:
+    CALL DDUP 
+    _DOLIT 0xFF  
+    CALL ANDD
+    CALL DZEQUAL 
+    _DOLIT 1 
+    CALL ANDD 
     CALL RFROM 
+    CALL ORR 
     CALL FPSW 
     CALL STORE 
     RET 
@@ -154,13 +157,13 @@ SFZ1:
     _DOLIT 0xFFFD 
     CALL ANDD  
     CALL TOR 
-    LD A,(1,X) 
-    JRPL SFN1 
-    LDW Y,(1,SP)  ; R@ -> Y 
-    ADDW Y,#2     ; set negative flag 
-    LDW (1,SP),Y  ; Y -> R! 
-SFN1:
+    CALL DUPP 
+    _DOLIT 0X80 
+    CALL ANDD 
+    _DOLIT 6 
+    CALL RSHIFT 
     CALL RFROM 
+    CALL ORR 
     CALL FPSW 
     CALL STORE 
     RET 
@@ -229,17 +232,19 @@ STEXP1:
     CLR A 
     LD YH,A
     SWAPW Y 
-    PUSHW Y  
-    ADDW X,#CELLL ; e >R 
-    CALL DUPP
-    CALL ABSS 
-    _DOLIT 127  
+    PUSHW Y  ; e >r 
+    ADDW X,#CELLL 
+    CALL DDUP 
+    CALL DABS
+    CALL SWAPP 
+    CALL DROP  
+    _DOLIT 127 
     CALL GREAT 
     _QBRAN STEXP2 
-    CALL SFV
+    CALL SFV 
 STEXP2: 
     CLR A 
-    LD (X),A 
+    LD (X),A     
     CALL RFROM 
     CALL ORR
     CALL SFZ 
@@ -262,10 +267,7 @@ STEXP2:
     CALL ATEXP ; m e 
 EDOT0:
     CALL TOR   
-    CALL FNE 
-    _QBRAN EDOT1
-    CALL DNEGA
-EDOT1:
+    CALL DABS 
     CALL SPACE 
     CALL BDIGS     
 EDOT2: 
@@ -289,8 +291,8 @@ EDOT3:
     _QBRAN EDOT4 
     _DOLIT '-'
     CALL HOLD 
-    CALL DROP 
 EDOT4:       
+    CALL DROP 
     CALL EDIGS 
     CALL TYPES
     CALL RFROM 
@@ -472,6 +474,8 @@ FLOATQ4:
     CALL STEXP 
     CALL ROT 
     CALL DROP 
+    CALL SFN 
+    CALL SFZ 
     _DOLIT -3 
     RET       
 FLOAT_ERROR0: 
@@ -569,8 +573,11 @@ FALGN8:
     _HEADER FPLUS,2,"F+"
     CALL FALIGN 
     CALL TOR 
-    CALL DPLUS  
-    CALL RFROM 
+    CALL DPLUS
+    CALL SCALETOM
+    CALL ROT   
+    CALL RFROM
+    CALL PLUS  
     CALL STEXP 
     RET 
 
@@ -581,8 +588,18 @@ FALGN8:
     _HEADER FSUB,2,"F-"
     CALL FALIGN 
     CALL TOR 
-    CALL DSUB 
+    CALL DSUB
+    CALL DSIGN 
+    CALL TOR 
+    CALL DABS 
+    CALL SCALETOM 
     CALL RFROM 
+    _QBRAN FSUB1 
+    CALL DNEGA 
+FSUB1:
+    CALL ROT 
+    CALL RFROM
+    CALL PLUS  
     CALL STEXP 
     RET 
 
@@ -977,10 +994,39 @@ FTOD9:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   F0= ( f# -- f )
-;   true fi f# is 0.0 
+;   true if f# is 0.0 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FZEQUAL,3,"F0="
     CALL ATEXP 
     CALL DROP 
     JP DZEQUAL  
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  FNEGATE ( f#1 -- f#2 )
+;  f#2 is negation of f#1 
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER FNEGA,7,"FNEGATE"
+    CALL ATEXP 
+    CALL TOR 
+    CALL DNEGA
+    CALL RFROM 
+    CALL STEXP 
+    CALL SFN 
+    RET 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  FABS ( f#1 -- abs(f#1) )
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER FABS,4,"FABS"
+    CALL ATEXP 
+    CALL TOR 
+    CALL DUPP 
+    _DOLIT 0X80 
+    CALL ANDD 
+    _QBRAN FABS1
+    CALL DNEGA 
+FABS1: 
+    CALL RFROM 
+    CALL STEXP 
+    CALL SFN 
+    RET 

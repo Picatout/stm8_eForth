@@ -4,6 +4,20 @@ AUTHOR: Jacques Deschênes
 DESCRIPTION: project log.
 -->
 
+#### 2021-07-06 
+
+* Travail sur [float-test.f](float-test.f) 
+
+* Ajour du mot **FNEGATE** et **FABS** dans [float.asm](float.asm)
+
+* Modifié **FZE**, **FNE** et **FOV** pour qu'ils retourne **0||-1**.
+
+* Corrigé **SFZ** et **SFN**, **ME&gt;F**.
+
+* Corrigé bogue dans **E.**. 
+
+* Corrigé bogue dans **F+** et **F-**. 
+
 #### 2021-07-05 
 
 * Travail sur [double-test.f](double-test.f)
