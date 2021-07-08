@@ -522,47 +522,147 @@ FLOAT_ERROR:
     CALL STEXP 
     RET 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  SCALEUP ( ud u1 u2 -- ud*10 u1 u2 )
+;  while (ud<=0xcccccccc && u1<u2 ){
+;        ud*10;
+;        u2--;
+;  }  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+SCALEUP:
+    CALL DDUP
+    CALL LESS  
+    _QBRAN SCALEUP3
+    CALL DTOR   ; R: u1 u2  
+    CALL DDUP 
+    _DOLIT 0XCCCC 
+    _DOLIT 0XCCC 
+    CALL DGREAT  
+    _TBRAN SCALEUP2 
+    _DOLIT 10 
+    CALL UDSSTAR 
+    CALL DRFROM 
+    CALL ONEM
+    JRA SCALEUP
+SCALEUP2:
+    CALL DRFROM
+SCALEUP3: 
+    RET 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; SCALEDOWN ( ud u1 u2 -- ud u1 u2 )
+;  whhile (ud && u1>u2 ){ 
+;     ud/10;
+;     u2++;
+;  } 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+SCALEDOWN: 
+    CALL DDUP 
+    CALL GREAT 
+    _QBRAN SCALDN3 
+    CALL DTOR 
+    CALL DDUP 
+    CALL DZEQUAL 
+    _TBRAN SCALDN2  
+    _DOLIT 10 
+    CALL UDSLMOD 
+    CALL ROT  
+    CALL DROP
+    CALL DRFROM 
+    CALL ONEP  
+    JRA SCALEDOWN 
+SCALDN2:
+    CALL DRFROM 
+SCALDN3:
+    RET 
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;  F-ALIGN ( f#1 f#2 -- m1 m2 e )
 ;  align to same exponent 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FALIGN,7,"F-ALIGN"
     CALL ATEXP 
-    CALL TOR    ; e2 >R
+    CALL TOR   ; f#1 m2 R: e2 
+    CALL DSWAP  ; m2 f#1 R: e2 
+    CALL ATEXP   ; m2 m1 e1 R: e2 
+    CALL TOR   ; m2 m1 R: e2 e1 
+    CALL DSIGN  ; m2 m1 m1s  
+    CALL TOR    ; m2 m1 
+    CALL DABS   ; m2 um1 
+    CALL DSWAP  ; um1 m2 
+    CALL DSIGN  ; um1 m2 m2s 
+    CALL TOR    ; um1 m2 R: e1 e1 m1s m2s 
+    CALL DABS ; um1 um2 R: e2 e1 m1s m2s 
+    CALL DRFROM 
+    CALL DRFROM 
     CALL DSWAP 
-    CALL ATEXP  
-    CALL TOR 
-    CALL DSWAP  ; m1 m2  R: e2 e1    
-FALGN1:
+    CALL DTOR  
+    CALL DTOR ; um1 um2 R: m1s m2s e2 e1 
+; if e2==e1 not scaling 
     CALL JFETCH   ; E2 
     CALL IFETCH   ; E1 
     CALL EQUAL 
     _TBRAN FALGN8 
-    CALL JFETCH 
+    CALL JFETCH  
     CALL IFETCH  
     CALL LESS ; E2<E1 
     _TBRAN FALGN4 
 ; E2>E1 
-    _DOLIT 10 
-    CALL DSSTAR ; m2*10  
-    CALL JFETCH 
-    CALL ONEM  ; e2-1 
-    CALL ONE 
-    CALL NRSTO  ; update J 
-    _BRAN FALGN1
+    CALL DRFROM   ; um1 um2 e2 e1 
+    CALL SWAPP    ; um1 um2 e1 e2 
+CALL DOTS 
+    CALL SCALEUP ; scale up um2 until e1==e2 
+CALL DOTS 
+    CALL SWAPP 
+    CALL DTOR 
+    CALL DRAT 
+    CALL EQUAL 
+    _TBRAN FALGN8 
+    CALL DSWAP   ; um2 um1 
+    CALL DRFROM  ;`um2 um1 e2 e1 
+CALL DOTS 
+    CALL SCALEDOWN ; um1 while e2>e1 
+CALL DOTS 
+    CALL DDUP 
+    CALL GREAT 
+    _TBRAN FALGN3 ; e2>e1 keep e2 
+    CALL SWAPP   ; else keep e1
+FALGN3:
+    CALL DTOR 
+    CALL DSWAP  ; um1 um2 
+    JRA FALGN8  
 FALGN4: ; E2<E1 
     CALL DSWAP 
-    _DOLIT 10 
-    CALL DSSTAR ; m1*10 
+    CALL DRFROM ; um2 um1 e2 e1  
+    CALL SCALEUP ; um1 until e2==e1 
+    CALL DTOR 
     CALL DSWAP
-    CALL IFETCH 
-    CALL ONEM   ; e1-1 
-    CALL ZERO 
-    CALL NRSTO  ; update I   
-    _BRAN FALGN1     
-FALGN8:
-    CALL DRFROM 
-    CALL DROP 
+    CALL DRAT 
+    CALL EQUAL 
+    _TBRAN FALGN8 
+    CALL DRFROM    ; um1 um2 e2 e1 
+    CALL SWAPP     ; um1 um2 e1 e2 
+    CALL SCALEDOWN ; um2 until e1==e2 
+    CALL DTOR 
+FALGN8: 
+    CALL DRFROM  ; um1 um2 e2 e1 
+    CALL DROP   ;  um1 um2 e1 
+    CALL DRFROM  ; um1 um2 e1 m1s m2s 
+    CALL ROT     ; um1 um2 m1s m2s e1 
+    CALL TOR     ; um1 um2 m1s m2s R: e
+    CALL SWAPP 
+    CALL TOR     ; um1 um2 m2s R: e m1s 
+    _QBRAN FALGN9 
+    CALL DNEGA
+FALGN9:
+    CALL DSWAP 
+    CALL RFROM 
+    _QBRAN FALGN10 
+    CALL DNEGA 
+FALGN10:
+    CALL DSWAP  ; m1 m2 R: e1 
+    CALL RFROM  ; m1 m2 e 
     RET 
 
 

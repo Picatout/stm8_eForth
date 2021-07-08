@@ -4,6 +4,21 @@ AUTHOR: Jacques Deschênes
 DESCRIPTION: project log.
 -->
 
+#### 2021-07-08
+
+* Travail sur F-ALIGN.   
+
+
+#### 2021-07-07
+
+* Travail sur F-ALIGN.   
+
+* Ajout des constante booléennes **TRUE** et **FALSE** dans [stm8ef.asm](stm8ef.asm).
+
+* Modifié  __DS*__ pour factoriser __UDS*__. 
+
+*  Retravaillé **F-ALIGN** pour réduire le risque de débordement en répartissant l'alignement entre les 2 mantisses. La mantisse dont l'exposant est le plus grand est d'abord augmentée jusqu'à ce que l'écart des exposants soit comblé ou que le maximum supporté par un entier double positif soit atteint avant qu'une autre multiplication par 10 produise un débordement. Cette valeur en hexadécmal est **0xCCCCCCCD**.  Si ce n'est pas suffisant pour combler l'écart entre les 2 exposants. La plus petite mantissse est divisée par 10 jusqu'à ce que l'écart soit comblé ou que la mantisse atteigne zéro. L'algorithme est donc le suivant:
+
 #### 2021-07-06 
 
 * Travail sur [float-test.f](float-test.f) 

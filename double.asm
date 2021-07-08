@@ -293,31 +293,35 @@ DDOT1:
     RET 
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  UDS* ( ud u -- ud*u )
+;  uint32*uint16 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER UDSSTAR,4,"UDS*"
+    CALL TOR 
+    CALL SWAPP 
+    CALL RAT 
+    CALL UMSTA ; udlo*u 
+    CALL ROT 
+    CALL RFROM 
+    CALL UMSTA ; udhi*u 
+    CALL DROP  ; drop overflow 
+    CALL PLUS  ; udlo*u+(uhi*u<<16)
+    RET 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; multiply double by single 
 ; return double 
-;  ( d s -- d )
+;  ( d u -- d )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER DSSTAR,3,"DS*"
 ;DSSTAR:
     CALL TOR
-    CALL DUPP 
-    CALL ZLESS
-    CALL DUPP 
-    CALL TOR 
-    _QBRAN DSSTAR1 
-    CALL DNEGA 
-DSSTAR1:
+    CALL DSIGN 
+    CALL NROT 
+    CALL DABS
     CALL RFROM 
-    CALL NROT       
-    CALL SWAPP 
-    CALL RAT 
-    CALL UMSTA
-    CALL ROT 
-    CALL RFROM 
-    CALL UMSTA 
-    CALL DROP ; DROP OVERFLOW 
-    CALL PLUS 
+    CALL UDSSTAR  
     CALL ROT 
     _QBRAN DSSTAR3 
     CALL DNEGA 
