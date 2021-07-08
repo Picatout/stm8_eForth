@@ -24,6 +24,22 @@ Comme il s'agit de 2 MCU STM8 l'adaptation vers le stm8s208 ne devrait pas néce
 
 # Historique 
 
+## 2021-07-08 
+
+Pour envoyer un fichier source forth à la carte il faut utilisé l'outil  [tools/SendFile](SendFile) dans le dossier **tools**. Par exemple ma carte nucleo créé le port **ttyACM0**.
+
+* Pour tester la librairie [double.asm](double) il faut utiliser le fichier [double-tet.f](double-test.f)
+```
+tools/SendFile -s/dev/ttyACM0 double-test.f 
+```
+Envoie le fichier à la carte NUCLEO qui le compile. le mot **ALL-TEST** exécute tous les tests du fichier.
+
+* Pour tester la librairie [float.asm](float) il faut utiliser le fichier [float-test.f](float-test.f)
+```
+tools/SendFile -s/dev/ttyACM0 float-test.f
+```
+Le mot **ALL-TEST** encore un fois exécute tous les test. 
+
 ## 2021-07-01 
 
 Je travaille sur la version 4.0 qui ajoute quelques mots au fichier de base [stm8ef.asm](stm8ef.asm) et 2 librairies. [double.asm](double.asm) pour les entiers 32 bits ainsi que [float.asm](float.asm) qui est une librairie arithmétique en virgule flottante 32 bits. 
