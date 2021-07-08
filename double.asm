@@ -25,6 +25,28 @@
 
     .module DOUBLE 
 
+    DVER_MAJOR=1 
+    DVER_MINOR=0 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  DBL-VER ( -- )
+;  print library version 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER DBLVER,7,"DBL-VER"
+    CALL CR 
+    CALL DOTQP 
+    .byte  24 
+    .ascii "double integer library, "
+    CALL PRT_LICENCE
+    CALL DOTQP 
+    .byte 33 
+    .ascii "Jacques Deschenes, Copyright 2021"
+    CALL CR 
+    _DOLIT DVER_MAJOR 
+    _DOLIT DVER_MINOR  
+    JP PRINT_VERSION  
+
+
 ; check for negative sign 
 ; ajust pointer and cntr 
 nsign: ; a cntr -- a cntr f 

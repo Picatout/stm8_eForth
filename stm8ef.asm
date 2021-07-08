@@ -4246,18 +4246,48 @@ WORS2:  RET
         
 ;; Hardware reset
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  PRT_LICENCE 
+;  print GPLV2 licence 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+PRT_LICENCE:
+        CALL DOTQP 
+        .byte  15 
+        .ascii "LICENCE GPLV3\r\n"
+        RET 
+        
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;    PRINT_VERSION ( c1 c2 -- )
+;    c2 minor 
+;    c1 major 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+PRINT_VERSION:
+     CALL DOTQP 
+     .byte 9
+     .ascii " version "
+     CALL BDIGS 
+     CALL DIGS 
+     CALL DIGS 
+     _DOLIT '.' 
+     CALL HOLD 
+     CALL DROP 
+     CALL DIGS 
+     CALL EDIGS 
+     CALL TYPES 
+     RET 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       hi      ( -- )
 ;       Display sign-on message.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER HI,2,"HI"
         CALL     CR
-        CALL     DOTQP   ;initialize I/O
-        .byte      15
-        .ascii     "stm8eForth v"
-	.byte      VER+'0'
-        .byte      '.' 
-	.byte      EXT+'0' ;version
+        CALL     DOTQP   
+        .byte      10
+        .ascii     "stm8eForth"
+	_DOLIT VER 
+        _DOLIT EXT 
+        CALL PRINT_VERSION 
         CALL    DOTQP
 .if NUCLEO          
         .byte 18

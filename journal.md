@@ -6,6 +6,10 @@ DESCRIPTION: project log.
 
 #### 2021-07-08
 
+* Ajout de **DBL-VER** dans [double.asm](double.asm).
+
+* Ajout de **FLOAT-VER** dans [float.asm](float.asm).
+
 * Travail sur **F-ALIGN**.   
 
 * Corrigé bogue dans **UD/MOD** 

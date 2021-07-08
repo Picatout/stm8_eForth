@@ -46,6 +46,28 @@
 
     MAX_MANTISSA = 0x7FFFFF 
 
+    FLOAT_MAJOR=1 
+    FLOAT_MINOR=0 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   FLOAT-VER ( -- )
+;   print library version 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER FVER,9,"FLOAT-VER"
+    CALL CR 
+    CALL DOTQP 
+    .byte  17 
+    .ascii "float32 library, "
+    CALL PRT_LICENCE 
+    CALL DOTQP 
+    .byte 33 
+    .ascii "Jacques Deschenes, Copyright 2021"
+    CALL CR 
+    _DOLIT FLOAT_MAJOR     
+    _DOLIT FLOAT_MINOR 
+    JP PRINT_VERSION 
+
+
 ;-------------------------
 ;    FPSW ( -- a )
 ;    floating state variable
