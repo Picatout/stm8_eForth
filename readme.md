@@ -26,9 +26,9 @@ Comme il s'agit de 2 MCU STM8 l'adaptation vers le stm8s208 ne devrait pas néce
 
 ## 2021-07-08 
 
-Pour envoyer un fichier source forth à la carte il faut utilisé l'outil  [tools/SendFile](SendFile) dans le dossier **tools**. Par exemple ma carte nucleo créé le port **ttyACM0**.
+Pour envoyer un fichier source forth à la carte il faut utiliser l'outil  [tools/SendFile](SendFile) dans le dossier **tools**. Par exemple ma carte nucleo créé le port **ttyACM0**.
 
-* Pour tester la librairie [double.asm](double) il faut utiliser le fichier [double-tet.f](double-test.f)
+* Pour tester la librairie [double.asm](double) il faut utiliser le fichier [double-test.f](double-test.f)
 ```
 tools/SendFile -s/dev/ttyACM0 double-test.f 
 ```
