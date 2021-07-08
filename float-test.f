@@ -68,10 +68,42 @@
     ." 6.02214e23 15.7e25 f+ f." 
     6.02214e23 15.7e25 f+ f. cr 
     ." 12.04428e23 15.7e25 f- f." 
-    12.04428e23 15.7e25 f- f. cr 
+    12.04428e23 15.7e25 f- f. cr
+    ." -6.02214e23 1.567e27 f+ f."
+     -6.02214e23 1.567e27 f+ f. cr 
+    ." -6.022e23 fnegate f." 
+    -6.022e23 fnegate f. cr 
+    ." 42.234 fnegate f."
+    42.234 fnegate f. cr 
+    ." -1e6 fabs f."
+    -1e6 fabs f. cr
 ;
 
-; compare 
+: compare 
     cr 
-    
-;    
+    ." -6.2e10 f0< ." 
+    -6.2e10 f0< . cr 
+    ." 6.2 f0= ."
+    6.2 f0= . cr 
+    ." 0.0 f0= ."
+    0.0 f0= . cr 
+    ." 6.223 6.22 f> ." 
+    6.223 6.22 f> . cr 
+    ." -6.223 -6.22 f> ."
+     -6.223 -6.22 f> . cr 
+    ." 1.5e2 3.2e1 f< ."
+    1.5e2 3.2e1 f< . cr 
+    ." 153.2 160.3 f< ."
+    153.2 160.3 f< . cr 
+    ." 15.32e2 1532. f= ."
+    15.32e2 1532. f= . cr 
+;   
+
+: all-test 
+    flags-test
+    convert 
+    display 
+    scale
+    math 
+    compare 
+;

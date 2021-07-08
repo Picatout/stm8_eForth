@@ -564,10 +564,9 @@ SCALEDOWN:
     CALL DDUP 
     CALL DZEQUAL 
     _TBRAN SCALDN2  
-    _DOLIT 10 
-    CALL UDSLMOD 
-    CALL ROT  
-    CALL DROP
+    _DOLIT 10
+    CALL ZERO  
+    CALL DSLASH 
     CALL DRFROM 
     CALL ONEP  
     JRA SCALEDOWN 
@@ -583,88 +582,77 @@ SCALDN3:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FALIGN,7,"F-ALIGN"
     CALL ATEXP 
-    CALL TOR   ; f#1 m2 R: e2 
-    CALL DSWAP  ; m2 f#1 R: e2 
-    CALL ATEXP   ; m2 m1 e1 R: e2 
-    CALL TOR   ; m2 m1 R: e2 e1 
-    CALL DSIGN  ; m2 m1 m1s  
-    CALL TOR    ; m2 m1 
-    CALL DABS   ; m2 um1 
-    CALL DSWAP  ; um1 m2 
-    CALL DSIGN  ; um1 m2 m2s 
-    CALL TOR    ; um1 m2 R: e1 e1 m1s m2s 
-    CALL DABS ; um1 um2 R: e2 e1 m1s m2s 
-    CALL DRFROM 
-    CALL DRFROM 
+    CALL TOR 
     CALL DSWAP 
-    CALL DTOR  
-    CALL DTOR ; um1 um2 R: m1s m2s e2 e1 
-; if e2==e1 not scaling 
-    CALL JFETCH   ; E2 
-    CALL IFETCH   ; E1 
+    CALL ATEXP 
+    CALL TOR    ; m2 m1 R: e2 e1 
+    CALL DSWAP 
+    CALL DRAT 
     CALL EQUAL 
-    _TBRAN FALGN8 
-    CALL JFETCH  
-    CALL IFETCH  
-    CALL LESS ; E2<E1 
-    _TBRAN FALGN4 
-; E2>E1 
-    CALL DRFROM   ; um1 um2 e2 e1 
-    CALL SWAPP    ; um1 um2 e1 e2 
-CALL DOTS 
-    CALL SCALEUP ; scale up um2 until e1==e2 
-CALL DOTS 
+    _TBRAN FALGN8
+; scaleup the largest float 
+; but limit mantissa <=0xccccccc
+; to avoid mantissa overflow     
+    CALL DRAT ; m1 m2 e2 e1 
+    CALL GREAT 
+    _QBRAN FALGN4 ; e2<e1 
+; e2>e1 then scale up m2   
+    CALL DRFROM 
+    CALL SWAPP 
+    CALL SCALEUP 
     CALL SWAPP 
     CALL DTOR 
+    JRA FALGN6
+FALGN4: ; e2<e1 then scaleup m1 
+    CALL DSWAP 
+    CALL DRFROM 
+    CALL SCALEUP 
+    CALL DTOR
+    CALL DSWAP 
+; check again for e2==e1 
+; if scaleup was not enough 
+; to equalize exponent then
+; scaledown smallest float     
+FALGN6: 
     CALL DRAT 
     CALL EQUAL 
     _TBRAN FALGN8 
-    CALL DSWAP   ; um2 um1 
-    CALL DRFROM  ;`um2 um1 e2 e1 
-CALL DOTS 
-    CALL SCALEDOWN ; um1 while e2>e1 
-CALL DOTS 
+; e2!=e1 need to scale down smallest 
+    CALL DRAT 
+    CALL GREAT 
+    _QBRAN FALGN7 ; e2<e1 
+; e2>e1 scaledown m1 
+    CALL DSWAP 
+    CALL DRFROM 
+    CALL SCALEDOWN
+    CALL SWAPP 
+    CALL DTOR 
+    JRA FALGN71  
+FALGN7: ; e2<e1 scaledown m2 
+    CALL DRFROM 
+    CALL SWAPP 
+    CALL SCALEDOWN 
+    CALL SWAPP 
+    CALL DTOR 
+; after scaledown if e2!=e1 
+; this imply that one of mantissa 
+; as been nullified by scalling 
+; hence keep largest exponent 
+FALGN71:
+    CALL DRAT 
+    CALL EQUAL
+    _TBRAN FALGN8 
+    CALL DRFROM 
     CALL DDUP 
     CALL GREAT 
-    _TBRAN FALGN3 ; e2>e1 keep e2 
-    CALL SWAPP   ; else keep e1
-FALGN3:
-    CALL DTOR 
-    CALL DSWAP  ; um1 um2 
-    JRA FALGN8  
-FALGN4: ; E2<E1 
-    CALL DSWAP 
-    CALL DRFROM ; um2 um1 e2 e1  
-    CALL SCALEUP ; um1 until e2==e1 
-    CALL DTOR 
-    CALL DSWAP
-    CALL DRAT 
-    CALL EQUAL 
-    _TBRAN FALGN8 
-    CALL DRFROM    ; um1 um2 e2 e1 
-    CALL SWAPP     ; um1 um2 e1 e2 
-    CALL SCALEDOWN ; um2 until e1==e2 
-    CALL DTOR 
-FALGN8: 
-    CALL DRFROM  ; um1 um2 e2 e1 
-    CALL DROP   ;  um1 um2 e1 
-    CALL DRFROM  ; um1 um2 e1 m1s m2s 
-    CALL ROT     ; um1 um2 m1s m2s e1 
-    CALL TOR     ; um1 um2 m1s m2s R: e
-    CALL SWAPP 
-    CALL TOR     ; um1 um2 m2s R: e m1s 
-    _QBRAN FALGN9 
-    CALL DNEGA
-FALGN9:
-    CALL DSWAP 
-    CALL RFROM 
-    _QBRAN FALGN10 
-    CALL DNEGA 
-FALGN10:
-    CALL DSWAP  ; m1 m2 R: e1 
-    CALL RFROM  ; m1 m2 e 
+    _TBRAN FALGN72
+    CALL SWAPP     
+FALGN72:
+    CALL DTOR  ; now smallest e is at rtop.
+FALGN8:
+    CALL DRFROM 
+    CALL DROP 
     RET 
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   F+ ( f#1 f#2 -- f#1+f#2 )
@@ -674,7 +662,14 @@ FALGN10:
     CALL FALIGN 
     CALL TOR 
     CALL DPLUS
+    CALL DSIGN 
+    CALL TOR 
+    CALL DABS 
     CALL SCALETOM
+    CALL RFROM 
+    _QBRAN FPLUS1 
+    CALL DNEGA  
+FPLUS1: 
     CALL ROT   
     CALL RFROM
     CALL PLUS  
@@ -917,7 +912,7 @@ MMSTA7:
     CALL ATEXP  ; m2 m1 e1 
     CALL ONE    ; e2 slot on rstack  
     CALL NRAT   ; m2 m1 e1 e2 
-    CALL PLUS   ; m2 m1 e 
+    CALL SUBB   ; m2 m1 e 
     CALL ONE    ; e slot on rstack 
     CALL NRSTO  ; m2 m1 R: e m2s 
     CALL DSIGN  ; m2 m1 m1sign 

@@ -769,23 +769,20 @@ DDSTAR3:
 ; unsigned double division 
     CALL ZERO 
     CALL ZERO
-    CALL DTOR ; quotient  R: sign qlo qhi 
+    CALL DTOR ; quotient  R: qlo qhi 
     CALL DOVER 
     CALL DCLZ ; n2, dividend leading zeros  
     CALL TOR 
     CALL DDUP    
     CALL DCLZ  ; n1, divisor leading zeros
     CALL RFROM ; n1 n2 
-    CALL SUBB
-    CALL DUPP   
+    CALL SUBB  ; loop count 
+    CALL DUPP
+    CALL DTOR  ; ud1 ud2 R: qlo qhi cntr cntr 
+    CALL RAT    
     CALL ZLESS 
     _TBRAN UDSLA7 ; quotient is null 
-    CALL DUPP 
-    CALL TOR    ; loop counter 
-    CALL DUPP 
-    CALL TOR    ; need to copies 
-    CALL QDUP 
-    _QBRAN UDSLA3
+    CALL RAT 
     CALL DLSHIFT ; align divisor with dividend 
 UDSLA3: ; division loop -- dividend divisor  
     CLRW Y 
@@ -825,11 +822,13 @@ UDSLA4: ; shift quotient and add 1 bit
     CALL DSWAP 
     JRA UDSLA3 
 UDSLA7:
-    ADDW X,#2 ; drop shift count  
+    CALL ZERO 
+    _DOLIT 1 
+    CALL NRSTO ; R: 0 0 0 cntr    
 UDSLA8:
     ADDW X,#4 ; drop divisor
-    CALL ONE 
-    CALL NRDROP ; drop loop counter
+    CALL RFROM  
+    CALL DROP ; drop cntr 
     CALL RFROM   ; shift count
     CALL DRSHIFT 
     ; quotient replace dividend 
@@ -844,14 +843,14 @@ UDSLA8:
     _HEADER DDSLMOD,5,"D/MOD"  
     CALL DSIGN 
     CALL TOR   ; R: divisor sign 
+    CALL DABS 
     CALL DSWAP 
     CALL DSIGN ; dividend sign 
     CALL RFROM 
     CALL XORR  ; quotient sign
     CALL TOR   ; 
     CALL DABS  ; d2 ud1 R: sign 
-    CALL DSWAP  ; ud1 d2 
-    CALL DABS  ; ud1 ud2 
+    CALL DSWAP  ; ud1 ud2 
     CALL UDSLMOD ; ud1/ud2 -- dr dq  
     POPW Y ; sign 
     TNZW Y 

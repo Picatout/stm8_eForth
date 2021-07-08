@@ -6,8 +6,13 @@ DESCRIPTION: project log.
 
 #### 2021-07-08
 
-* Travail sur F-ALIGN.   
+* Travail sur **F-ALIGN**.   
 
+* Corrigé bogue dans **UD/MOD** 
+
+* Corrigé bogue dans **F/** 
+
+* Corrigé bogue dans **F+**
 
 #### 2021-07-07
 
