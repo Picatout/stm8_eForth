@@ -59,10 +59,7 @@
     .byte  17 
     .ascii "float32 library, "
     CALL PRT_LICENCE 
-    CALL DOTQP 
-    .byte 33 
-    .ascii "Jacques Deschenes, Copyright 2021"
-    CALL CR 
+    CALL COPYRIGHT 
     _DOLIT FLOAT_MAJOR     
     _DOLIT FLOAT_MINOR 
     JP PRINT_VERSION 

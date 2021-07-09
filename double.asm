@@ -38,10 +38,7 @@
     .byte  24 
     .ascii "double integer library, "
     CALL PRT_LICENCE
-    CALL DOTQP 
-    .byte 33 
-    .ascii "Jacques Deschenes, Copyright 2021"
-    CALL CR 
+    CALL COPYRIGHT  
     _DOLIT DVER_MAJOR 
     _DOLIT DVER_MINOR  
     JP PRINT_VERSION  
@@ -49,25 +46,30 @@
 
 ; check for negative sign 
 ; ajust pointer and cntr 
-nsign: ; a cntr -- a cntr f 
-    CALL ZERO 
-    CALL TOR  ; R: sign 
-    CALL TOR  ; R: sign cntr 
-    CALL DUPP 
-    CALL CAT 
-    _DOLIT '-'
-    CALL EQUAL 
-    _QBRAN nsign1 
-    CALL ONEP ; a+ 
-    CALL RFROM 
-    CALL ONEM ; cntr-
-    CALL RFROM ; sign 
-    CALL INVER ; -1
-    CALL TOR   ; R: sign 
-    CALL TOR   ; R: cntr 
-nsign1:
-    CALL RFROM 
-    CALL RFROM 
+nsign: ; addr cntr -- addr cntr f 
+    SUBW X,#CELLL ; a cntr f 
+    LDW Y,X 
+    LDW Y,(4,Y) ; addr 
+    LD A,(Y) ; char=*addr  
+    CP A,#'-' 
+    JREQ NEG_SIGN 
+    CLR A  
+    JRA STO_SIGN 
+NEG_SIGN:
+; increment addr 
+    LDW Y,X 
+    LDW Y,(4,Y)
+    ADDW Y,#1   ;addr+1 
+    LDW (4,X),Y 
+; decrement cntr 
+    LDW Y,X
+    LDW Y,(2,Y)
+    SUBW Y,#1   ;cntr-1 
+    LDW (2,X),Y 
+    LD A,#0XFF
+STO_SIGN:   
+    LD (X),A 
+    LD (1,X),A 
     RET 
 
 
@@ -196,9 +198,9 @@ NUMQ8:
 ;   absolute value of double
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER DABS,4,"DABS"
-    CALL DUPP 
-    CALL ZLESS 
-    _QBRAN DABS1 
+    LD A,(X) 
+    AND A,#0X80 
+    JREQ DABS1 
     CALL DNEGA 
 DABS1:
     RET 
@@ -331,11 +333,11 @@ DDOT1:
     CALL PLUS  ; udlo*u+(uhi*u<<16)
     RET 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; multiply double by single 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; multiply double by unsigned single 
 ; return double 
 ;  ( d u -- d )
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER DSSTAR,3,"DS*"
 ;DSSTAR:
     CALL TOR
@@ -389,7 +391,7 @@ DCLZ1: ; <16
     TNZW Y 
     JRMI DCLZ8
     JRA DCLZ1 
-DCLZ4:
+DCLZ4: ; >=16 
     LD A,#16 
     LDW Y,X 
     LDW Y,(2,Y)
@@ -474,18 +476,21 @@ DCLZ8:
 ;    check if double is 0 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER DZEQUAL,3,"D0="
-    CALL ORR 
-    LD A,#0xFF
-    LDW Y,X
+    CLR A  
+    LDW Y,X 
     LDW Y,(Y)
-    CPW Y,#0 
-    JREQ  ZEQ1
-    CLR A   ;false
+    JRNE ZEQ1 
+    LDW Y,X 
+    LDW Y,(2,Y)
+    JRNE ZEQ1 
+    LD A,#0xFF
 ZEQ1:
-    LD     (X),A
+    ADDW X,#CELLL 
+    LD (X),A
     LD (1,X),A
 	RET     
-    
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   D= ( d1 d2 -- f )
 ;   d1==d2?
@@ -540,7 +545,7 @@ DLESS4:
     JRPL DZLESS1 
     LD A,#0XFF 
 DZLESS1:
-    ADDW X,#2 
+    ADDW X,#CELLL 
     LD (X),A 
     LD (1,X),A    
     RET 
@@ -695,7 +700,8 @@ do2lit:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER DLSHIFT,7,"DLSHIFT"
     LD A,(1,X) ; shift count 
-    ADDW X,#2 
+    AND A,#31
+    ADDW X,#CELLL 
     LDW Y,X 
     LDW Y,(Y)
     LDW YTEMP,Y  ; d hi 
@@ -725,14 +731,14 @@ DLSHIFT2:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER DRSHIFT,7,"DRSHIFT"
     LD A,(1,X)
-    AND A,#0X1F 
+    AND A,#31
     ADDW X,#2 
 DRSHIFT1:
     TNZ A 
     JREQ DRSHIFT2 
     LDW Y,X 
     LDW Y,(Y)
-    SRAW Y 
+    SRLW Y 
     LDW (X),Y 
     LDW Y,X 
     LDW Y,(2,Y)
@@ -747,7 +753,6 @@ DRSHIFT2:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   D* ( d1 d2 -- d3 )
 ;   double product 
-;   
 ;   d3 = d1 * d2
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER DSTAR,2,"D*"

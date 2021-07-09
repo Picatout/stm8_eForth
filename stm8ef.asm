@@ -1617,7 +1617,7 @@ QDUP1:  RET
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       DNEGATE ( d -- -d )
-;       Two's complement of top double.
+;       Two's complement of double.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER DNEGA,7,"DNEGATE"
         LDW Y,X
@@ -1627,7 +1627,7 @@ QDUP1:  RET
         LDW Y,X
         LDW Y,(2,Y)
         CPLW Y
-        addw y,#1
+        ADDW Y,#1
         LDW (2,X),Y
         POPW Y       ; R> Y  
         JRNC DN1 
@@ -4246,6 +4246,17 @@ WORS2:  RET
         
 ;; Hardware reset
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  COPYRIGTH
+; print copyright notice 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+COPYRIGHT:
+    CALL DOTQP 
+    .byte 33 
+    .ascii "Jacques Deschenes, Copyright 2021"
+    JP CR 
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;  PRT_LICENCE 
 ;  print GPLV2 licence 
@@ -4255,7 +4266,7 @@ PRT_LICENCE:
         .byte  15 
         .ascii "LICENCE GPLV3\r\n"
         RET 
-        
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    PRINT_VERSION ( c1 c2 -- )
 ;    c2 minor 

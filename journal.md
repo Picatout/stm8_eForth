@@ -6,6 +6,11 @@ DESCRIPTION: project log.
 
 #### 2021-07-08
 
+* Travail d'optimisation dans [double.asm](double.asm).
+    * Recodé routine interne **nsign**. 
+    * Recodé **DABS**. 
+    * Recodé **D0=**. 
+    
 * Ajout de **DBL-VER** dans [double.asm](double.asm).
 
 * Ajout de **FLOAT-VER** dans [float.asm](float.asm).
