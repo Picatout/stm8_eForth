@@ -4,6 +4,23 @@ AUTHOR: Jacques Deschênes
 DESCRIPTION: project log.
 -->
 
+#### 2021-07-09
+
+* Travail d'optimisation dans [stm8ef.asm](stm8ef.asm).
+
+* Remplacer CALL DROP par la macro _DROP et CALL DDROP  par la macro _DDROP. Sauve 8 cycles par appel. 
+
+* Ajout de l'entête dictionnaire à **FALSE**  et recodage. 
+
+* Recodé **S&gt;D**. 
+
+* Recodé **-**.
+
+* Recodé **=**, **U&lt;** ,**&lt;**, **U&gt;**, **&gt;**, **MAX**, **MIN** 
+
+* Ajout de **U/MOD** dans [stm8ef.asm](stm8ef.asm) et recodé **UM/MOD**, **/MOD**. 
+
+
 #### 2021-07-08
 
 * Travail d'optimisation dans [double.asm](double.asm).

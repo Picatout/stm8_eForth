@@ -128,7 +128,7 @@ CTINIT:
     call WR_BYTE 
     CALL BRAN 
     .word 1$ 
-2$: CALL DDROP 
+2$: _DDROP 
     CALL LOCK 
     ret 
 
@@ -153,7 +153,7 @@ WTINIT:
     call WR_WORD 
     CALL BRAN 
     .word 1$ 
-2$: CALL DDROP 
+2$: _DDROP 
     CALL LOCK 
     ret 
 

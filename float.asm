@@ -256,7 +256,7 @@ STEXP1:
     CALL DDUP 
     CALL DABS
     CALL SWAPP 
-    CALL DROP  
+    _DROP  
     _DOLIT 127 
     CALL GREAT 
     _QBRAN STEXP2 
@@ -311,7 +311,7 @@ EDOT3:
     _DOLIT '-'
     CALL HOLD 
 EDOT4:       
-    CALL DROP 
+    _DROP 
     CALL EDIGS 
     CALL TYPES
     CALL RFROM 
@@ -416,15 +416,15 @@ parse_exponent: ; a cntr -- e -1 | 0
     CALL parse_digits
     _QBRAN PARSEXP_SUCCESS ; parsed to end of string 
 ; failed invalid character
-    CALL DDROP ; 0 a 
+    _DDROP ; 0 a 
 1$: 
     CALL RFROM ; sign||cntr  
 2$:
-    CALL DDROP  ; a cntr || a sign || 0 cntr   
+    _DDROP  ; a cntr || a sign || 0 cntr   
     CALL ZERO   ; return only 0 
     RET 
 PARSEXP_SUCCESS: 
-    CALL DDROP ; drop dhi a 
+    _DDROP ; drop dhi a 
     CALL RFROM ; es 
     _QBRAN 1$
     CALL NEGAT
@@ -472,7 +472,7 @@ FLOATQ0:
     _QBRAN 1$ ; end of string, no exponent
     _BRAN FLOATQ2
 1$: CALL SWAPP 
-    CALL DROP ; a
+    _DROP ; a
     _BRAN FLOATQ3        
 FLOATQ1: ; must push fd==0 on RSTACK 
     CALL RFROM ; cntr 
@@ -492,7 +492,7 @@ FLOATQ4:
     CALL ROT 
     CALL STEXP 
     CALL ROT 
-    CALL DROP 
+    _DROP 
     CALL SFN 
     CALL SFZ 
     _DOLIT -3 
@@ -536,7 +536,7 @@ FLOAT_ERROR:
     _DOLIT 10 
     CALL DSLMOD 
     CALL ROT 
-    CALL DROP 
+    _DROP 
     CALL RFROM 
     CALL STEXP 
     RET 
@@ -670,7 +670,7 @@ FALGN72:
     CALL DTOR  ; now smallest e is at rtop.
 FALGN8:
     CALL DRFROM 
-    CALL DROP 
+    _DROP 
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -745,7 +745,7 @@ SCAL1:
     CALL UGREAT 
     _QBRAN SCAL2  
     CALL UMOD10 
-    CALL DROP 
+    _DROP 
     CALL ROT 
     CALL ONEP 
     CALL NROT  
@@ -982,9 +982,9 @@ FSLASH1:
     _BRAN FSLASH1
 FSLASH8: ; remainder mantissa R: qs e divisor 
     CALL DSWAP  
-    CALL DDROP  ; drop remainder     
+    _DDROP  ; drop remainder     
     CALL DRFROM
-    CALL DDROP  ; drop divisor 
+    _DDROP  ; drop divisor 
     CALL JFETCH    ; quotient sign 
     _QBRAN FSLASH9 
     CALL DNEGA  
@@ -992,7 +992,7 @@ FSLASH9:
     CALL RFROM  ; exponent 
     CALL STEXP 
     CALL RFROM 
-    CALL DROP ; drop qs 
+    _DROP ; drop qs 
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1040,13 +1040,13 @@ FTOD1:
     _DOLIT 10 
     CALL DSLMOD 
     CALL ROT 
-    CALL DROP
+    _DROP
 FTOD2:      
     _DONXT FTOD1
     _BRAN FTOD8   
 FTOD3: 
     CALL RFROM 
-    CALL DROP 
+    _DROP 
     _BRAN FTOD8  
 ; positive exponent 
 FTOD4:
@@ -1077,9 +1077,9 @@ FTOD9:
 ;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FZLESS,3,"F0<"
     CALL ATEXP 
-    CALL DROP 
+    _DROP 
     CALL SWAPP 
-    CALL DROP 
+    _DROP 
     CALL ZLESS 
     RET
 
@@ -1112,7 +1112,7 @@ FTOD9:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FZEQUAL,3,"F0="
     CALL ATEXP 
-    CALL DROP 
+    _DROP 
     JP DZEQUAL  
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;

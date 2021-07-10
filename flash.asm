@@ -1087,13 +1087,13 @@ no_move:
 UPDATPTR:
 ;reset VP to previous position  
 	call EEPVP 
-	call DROP 
+	_DROP 
 	call AT
 	call VPP 
 	call STORE
 ;update CONTEXT and LAST 
 	call EEPCP 
-	call DROP
+	_DROP
 	call AT
 	call DOLIT 
 	.word 2 
@@ -1127,7 +1127,7 @@ IFMOVE:
 	call AT 
 	call DUPP ; ( udl udl -- )
 	call EEPVP 
-	call DROP
+	_DROP
 	call AT  ; ( udl udl a )
 	call TOR 
 	call FADDR

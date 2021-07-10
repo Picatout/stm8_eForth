@@ -31,11 +31,6 @@
     sub sp,#n 
     .endm 
     
-    ; free space on stack
-    .macro _drop n 
-    addw sp,#n 
-    .endm
-
     ; declare ARG_OFS for arguments 
     ; displacement on stack. This 
     ; value depend on local variables 
@@ -91,3 +86,14 @@
     CALL DONXT 
     .word target 
     .endm 
+
+    ; drop TOS 
+    .macro _DROP 
+    ADDW X,#CELLL  
+    .endm 
+  
+   ; drop a double 
+   .macro _DDROP 
+   ADDW X,#2*CELLL 
+   .endm 
+

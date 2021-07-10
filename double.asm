@@ -97,7 +97,7 @@ parse_digits:
     CALL RFROM ; dlo dhi a+ cntr 
     CALL ONEM 
     _BRAN 1$ ; dlo dhi a+ R: 
-4$: CALL DROP  ; dlo dhi a+ 
+4$: _DROP  ; dlo dhi a+ 
     CALL ONEM  ; unget char 
     CALL RFROM ; dlo dhi a+ cntr-
 5$:
@@ -159,18 +159,18 @@ NUMQ1:
     CALL QDUP 
     CALL ZEQUAL  
     _QBRAN NUMQ4 ; error not end of string  ( a dlo dhi a+ R: base d? sign )
-    CALL DROP  ; a dlo dhi 
+    _DROP  ; a dlo dhi 
     CALL RFROM  ; a dlo dhi sign 
     _QBRAN NUMQ3
     CALL DNEGA
 NUMQ3: 
     CALL ROT ; dlo dhi a  R: base d?
-    CALL DROP
+    _DROP
     _DOLIT -2  ; double return -2 flag 
     CALL RFROM ; dlo dhi d? R: base 
     _TBRAN NUMQ8 
     CALL SWAPP 
-    CALL DROP
+    _DROP
     CALL ONEP   ; single return -1 flag   
     _BRAN NUMQ8
 NUMQ4: ; not end of string error , ( a dlo dhi a+ cntr R: base d? sign )
@@ -329,7 +329,7 @@ DDOT1:
     CALL ROT 
     CALL RFROM 
     CALL UMSTA ; udhi*u 
-    CALL DROP  ; drop overflow 
+    _DROP  ; drop overflow 
     CALL PLUS  ; udlo*u+(uhi*u<<16)
     RET 
 
@@ -776,7 +776,7 @@ DRSHIFT2:
     CALL RFROM  ; ps ud1 ud1 ud2hi 
     CALL DSSTAR ; ps ud1 dprodhi 
 ; shift partial product 16 bits left 
-    CALL DROP   ; drop overflow 
+    _DROP   ; drop overflow 
     CALL ZERO   ; ps ud1 prodhi 
     CALL SWAPP  
     CALL DSWAP  ; ps dprodhi ud1 
@@ -855,7 +855,7 @@ UDSLA7:
 UDSLA8:
     ADDW X,#4 ; drop divisor
     CALL RFROM  
-    CALL DROP ; drop cntr 
+    _DROP ; drop cntr 
     CALL RFROM   ; shift count
     CALL DRSHIFT 
     ; quotient replace dividend 
@@ -893,7 +893,7 @@ DSLA9:
     _HEADER DSLASH,2,"D/"
     CALL DDSLMOD
     CALL DSWAP
-    CALL DDROP 
+    _DDROP 
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

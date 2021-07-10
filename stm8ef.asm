@@ -470,7 +470,7 @@ uart_init:
         call QDUP 
         call QBRAN 
         .word FORGET2
-        call DROP 
+        _DROP 
         subw x,#2*CELLL 
         clrw y 
         ldw (x),y 
@@ -601,6 +601,7 @@ FREEVAR4: ; not variable
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    RANDOM ( u1 -- u2 )
 ; Pseudo random number betwen 0 and u1-1
+;  XOR32 algorithm 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER RANDOM,6,"RANDOM"
 ;local variable 
@@ -948,7 +949,7 @@ TBRAN:
 BRAN:
         POPW Y
 	LDW Y,(Y)
-        JP     (Y)
+        JP  (Y)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       EXECUTE ( ca -- )
@@ -1078,7 +1079,6 @@ EXIT:
         _HEADER LOCAL,5,"LOCAL"
         POPW Y  
         LDW YTEMP,Y ; RETURN ADDRESS 
-        CLRW Y 
         LD A,(1,X)
         LD YL,A 
         LD A,#CELLL 
@@ -1096,8 +1096,7 @@ EXIT:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER NRDROP,6,"NRDROP" 
         POPW Y 
-        LDW YTEMP,Y ; RETOURN ADDRESS 
-        CLRW Y 
+        LDW YTEMP,Y ; RETURN ADDRESS 
         LD A,(1,X)
         LD YL,A  
         LD A,#CELLL 
@@ -1110,12 +1109,11 @@ EXIT:
         JP [YTEMP]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;      NR@ ( n -- w)
+;        ( n -- w)
 ;      fetch nth element ofr return stack 
 ;      n==0 is same as R@ 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER NRAT,3,"NR@"
-        CLRW Y 
         LD A,(1,X)
         LD YL,A 
         LD A,#CELLL 
@@ -1137,7 +1135,6 @@ EXIT:
         LDW Y,SP
         ADDW Y,#3 
         LDW YTEMP,Y 
-        CLRW Y 
         LD A,(1,X)
         LD YL,A 
         LD A,#CELLL 
@@ -1501,7 +1498,7 @@ ADRADJ:
         LDW Y,X
 	LDW Y,(Y)
         JREQ     QDUP1
-	SUBW X,#2
+	SUBW X,#CELLL 
         LDW (X),Y
 QDUP1:  RET
 
@@ -1530,14 +1527,14 @@ QDUP1:  RET
     _HEADER NROT,4,"<ROT"
     LDW Y,X 
     LDW Y,(Y)
-    LDW YTEMP,Y ; n3  
+    PUSHW Y ; n3 >R 
     LDW Y,X 
     LDW Y,(2,Y) ; Y = n2 
     LDW (X),Y   ; TOS = n2 
     LDW Y,X    
     LDW Y,(4,Y) ; Y = n1 
     LDW (2,X),Y ;   = n1 
-    LDW Y,YTEMP 
+    POPW Y  ; R> Y 
     LDW (4,X),Y ; = n3 
     RET 
 
@@ -1591,7 +1588,11 @@ QDUP1:  RET
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       FALSE ( -- 0 )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        JP ZERO 
+        _HEADER FALSE,5,"FALSE"
+        SUBW X,#CELLL 
+        CLR (X) 
+        CLR (1,X)
+        RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       NOT     ( w -- w )
@@ -1641,15 +1642,16 @@ DN1:    LDW (X),Y
 ; convert single integer to double 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER STOD,3,"S>D"
-        subw x,#CELLL 
-        clrw y 
-        ldw (x),y 
-        ldw y,x 
-        ldw y,(2,y)
-        jrpl 1$ 
-        ldw y,#-1
-        ldw (x),y 
-1$:     ret 
+        SUBW X,#CELLL 
+        CLR (X) 
+        CLR (1,X) 
+        LDW Y,X 
+        LDW Y,(2,Y)
+        JRPL 1$
+        LDW Y,#-1 
+        LDW (X),Y 
+1$:     RET 
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       -       ( n1 n2 -- n1-n2 )
@@ -1657,13 +1659,14 @@ DN1:    LDW (X),Y
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER SUBB,1,"-"
         LDW Y,X
-        LDW Y,(Y)
-        LDW YTEMP,Y
-        ADDW X,#2
+        LDW Y,(Y) ; n2 
+        PUSHW Y ; n2 >R 
+        ADDW X,#CELLL 
         LDW Y,X
-        LDW Y,(Y)
-        SUBW Y,YTEMP
+        LDW Y,(Y) ; n1 
+        SUBW Y,(1,SP) ; n1-n2 
         LDW (X),Y
+        ADDW SP,#2 ; drop n2 from rstack 
         RET
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1680,41 +1683,36 @@ AB1:    RET
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       =       ( w w -- t )
-;       Return true if top two are =al.
+;       Return true if top two are equal.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER EQUAL,1,"="
         LD A,#0xFF  ;true
-        LDW Y,X    ;D = n2
-        LDW Y,(Y)
-        LDW YTEMP,Y
-        ADDW X,#2
-        LDW Y,X
-        LDW Y,(Y)
-        CPW Y,YTEMP     ;if n2 <> n1
-        JREQ     EQ1
-        CLR A
+        LDW Y,X    
+        LDW Y,(Y)   ; n2 
+        ADDW X,#CELLL 
+        CPW Y,(X)   ; n1==n2
+        JREQ EQ1 
+        CLR A 
 EQ1:    LD (X),A
         LD (1,X),A
 	RET     
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;       U<      ( u u -- t )
+;       U<      ( u1 u2 -- f )
 ;       Unsigned compare of top two items.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER ULESS,2,"U<"
         LD A,#0xFF  ;true
-        LDW Y,X    ;D = n2
-        LDW Y,(Y)
-        LDW YTEMP,Y
-        ADDW X,#2
-        LDW Y,X
-        LDW Y,(Y)
-        CPW Y,YTEMP     ;if n2 <> n1
+        LDW Y,X    
+        LDW Y,(2,Y) ; u1 
+        CPW Y,(X)   ; cpw u1  u2 
         JRULT     ULES1
         CLR A
-ULES1:  LD (X),A
+ULES1:  ADDW X,#CELLL 
+        LD (X),A
         LD (1,X),A
 	RET     
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       <       ( n1 n2 -- t )
@@ -1722,16 +1720,13 @@ ULES1:  LD (X),A
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER LESS,1,"<"
         LD A,#0xFF  ;true
-        LDW Y,X    ;D = n2
-        LDW Y,(Y)
-        LDW YTEMP,Y
-        ADDW X,#2
-        LDW Y,X
-        LDW Y,(Y)
-        CPW Y,YTEMP     ;if n2 <> n1
+        LDW Y,X    
+        LDW Y,(2,Y)  ; n1 
+        CPW Y,(X)  ; n1 < n2 ? 
         JRSLT     LT1
         CLR A
-LT1:    LD (X),A
+LT1:    ADDW X,#CELLL 
+        LD (X),A
         LD (1,X),A
 	RET     
 
@@ -1739,21 +1734,18 @@ LT1:    LD (X),A
 ;   U> ( u1 u2 -- f )
 ;   f = true if u1>u2 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER UGREAT,2,"U>"
-    LD A,#0 
-    LDW Y,X 
-    LDW Y,(Y)
-    LDW YTEMP,Y 
-    ADDW X,#2 
-    LDW Y,X
-    LDW Y,(Y)
-    CPW Y,YTEMP 
-    JRULE UGREAT1 
-    LD A,#0xff  
+        _HEADER UGREAT,2,"U>"
+        LD A,#255  
+        LDW Y,X 
+        LDW Y,(2,Y)  ; u1 
+        CPW Y,(X)  ; u1 > u2 
+        JRUGT UGREAT1 
+        CLR A   
 UGREAT1:
-    LD (X),A 
-    LD (1,X),A 
-    RET 
+        ADDW X,#CELLL 
+        LD (X),A 
+        LD (1,X),A 
+        RET 
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1764,15 +1756,12 @@ UGREAT1:
         _HEADER GREAT,1,">"
         LD A,#0xFF ;
         LDW Y,X 
-        LDW Y,(Y)
-        LDW YTEMP,Y 
-        ADDW X,#2 
-        LDW Y,X 
-        LDW Y,(Y)
-        CPW  Y,YTEMP 
+        LDW Y,(2,Y)  ; n1 
+        CPW Y,(X) ; n1 > n2 ?  
         JRSGT GREAT1 
         CLR  A
 GREAT1:
+        ADDW X,#CELLL 
         LD (X),A 
         LD (1,X),A 
         RET 
@@ -1782,13 +1771,10 @@ GREAT1:
 ;       Return greater of two top items.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER MAX,3,"MAX"
-        LDW Y,X    ;D = n2
-        LDW Y,(2,Y)
-        LDW YTEMP,Y
-        LDW Y,X
-        LDW Y,(Y)
-        CPW Y,YTEMP     ;if n2 <> n1
-        JRSLT     MAX1
+        LDW Y,X    
+        LDW Y,(Y) ; n2 
+        CPW Y,(2,X)   
+        JRSLT  MAX1
         LDW (2,X),Y
 MAX1:   ADDW X,#2
 	RET     
@@ -1798,13 +1784,10 @@ MAX1:   ADDW X,#2
 ;       Return smaller of top two items.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER MIN,3,"MIN"
-        LDW Y,X    ;D = n2
-        LDW Y,(2,Y)
-        LDW YTEMP,Y
-        LDW Y,X
-        LDW Y,(Y)
-        CPW Y,YTEMP     ;if n2 <> n1
-        JRSGT     MIN1
+        LDW Y,X    
+        LDW Y,(Y)  ; n2 
+        CPW Y,(2,X) 
+        JRSGT MIN1
         LDW (2,X),Y
 MIN1:	ADDW X,#2
 	RET     
@@ -1829,50 +1812,98 @@ MIN1:	ADDW X,#2
 ;       Unsigned divide of a double by a
 ;       single. Return mod and quotient.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        _HEADER UMMOD,6,"UM/MOD"
-; 2021-02-22
-; changed algortihm for Jeeek one 
-; ref: https://github.com/TG9541/stm8ef/pull/406        
-        LDW     Y,X             ; stack pointer to Y
-        LDW     X,(X)           ; un
-        LDW     YTEMP,X         ; save un
-        LDW     X,Y
-        INCW    X               ; drop un
-        INCW    X
-        PUSHW   X               ; save stack pointer
-        LDW     X,(X)           ; X=udh
-        LDW     Y,(4,Y)         ; Y=udl (offset before drop)
-        CPW     X,YTEMP
-        JRULT   MMSM1           ; X is still on the R-stack
-        POPW    X               ; restore stack pointer
-        LDW     Y,#0xFFFF       ; overflow result:
-        LDW     (X),Y           ; quotient max. 16 bit value
-        CLRW    Y
-        LDW     (2,X),Y         ; remainder 0
+        _HEADER UMMOD,6,"UM/MOD" 
+        ;;;;;; local variables ;;;;
+        DP=7
+        DIV=5 
+        UDL=3 
+        UDH=1
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        LDW Y,X 
+        LDW Y,(2,Y) ; udh 
+        JRNE UMMOD1 
+; udh==0 use faster U/MOD         
+        LDW Y,X 
+        LDW Y,(Y)
+        LDW (2,X),Y  ; replace udh by un 
+        ADDW X,#CELLL ; drop un  
+        JP USLMOD 
+UMMOD1:
+        SUB SP,#4*CELLL ; local variables space 
+        LDW (UDH,SP),Y ; save udh 
+        LDW Y,X 
+        INCW X 
+        INCW X 
+        LDW (DP,SP),X ; save DP 
+        LDW Y,(Y) ; divisor 
+        LDW (DIV,SP),Y ; divisor 
+        EXGW X,Y 
+        CPW X,(UDH,SP) 
+        JRUGT UMMOD2
+; divisor < udh overflow          
+        LDW X,(DP,SP)
+        LDW Y,#-1 
+        LDW (X),Y 
+        CLRW Y 
+        LDW (2,X),Y
+        JRA UMMOD8 
+UMMOD2: ; shift left dividend until negative 
+        LDW X,(UDH,SP)
+        LDW Y,(UDL,SP) ; X:Y dividend 
+        LD A,#16
+UMMOD3:  
+        TNZ A 
+        JREQ UMMOD4 
+        TNZW X 
+        JRMI UMMOD4 
+        RCF 
+        RLCW Y 
+        RLCW X
+        DEC A 
+        JRA UMMOD3 
+UMMOD4:
+        LDW (UDL,SP),Y ; save least bits of remainder  
+        LDW Y,(DIV,SP) ; divisor 
+        DIVW X,Y  ; X=X/Y , Y=X%Y 
+        LDW (UDH,SP),X ; save quotient 
+        LDW X,(UDL,SP) ; Y:X remainder 
+; shift left remainder until A==0        
+        TNZ A 
+        JREQ UMMOD6 
+UMMOD5: 
+        RLCW X 
+        RLCW Y 
+        DEC A  
+        JRNE UMMOD5 
+UMMOD6: ; Y=remainder 
+        LDW X,(DP,SP)        
+        LDW (2,X),Y 
+        LDW Y,(UDH,SP)
+        LDW (X),Y 
+UMMOD8:          
+        ADDW SP,#4*CELLL 
         RET
-MMSM1:
-        LD      A,#16           ; loop count
-        SLLW    Y               ; udl shift udl into udh
-MMSM3:
-        RLCW    X               ; rotate udl bit into uhdh (= remainder)
-        JRC     MMSMa           ; if carry out of rotate
-        CPW     X,YTEMP         ; compare udh to un
-        JRULT   MMSM4           ; can't subtract
-MMSMa:
-        SUBW    X,YTEMP         ; can subtract
-        RCF
-MMSM4:
-        CCF                     ; quotient bit
-        RLCW    Y               ; rotate into quotient, rotate out udl
-        DEC     A               ; repeat
-        JRNE    MMSM3           ; if A == 0
-MMSMb:
-        LDW     YTEMP,X         ; done, save remainder
-        POPW    X               ; restore stack pointer
-        LDW     (X),Y           ; save quotient
-        LDW     Y,YTEMP         ; remainder onto stack
-        LDW     (2,X),Y
-        RET
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   U/MOD ( u1 u2 -- ur uq )
+;   unsigned divide u1/u2 
+;   return remainder and quotient 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER USLMOD,5,"U/MOD"
+        LDW Y,X 
+        LDW Y,(Y)  ; dividend 
+        PUSHW X    ; DP >R 
+        LDW X,(2,X) ; divisor 
+        DIVW X,Y 
+        PUSHW X     ; quotient 
+        LDW X,(3,SP) ; DP 
+        LDW (2,X),Y ; remainder 
+        LDW Y,(1,SP) ; quotient 
+        LDW (X),Y 
+        ADDW SP,#2*CELLL ; drop quotient and DP from rstack 
+        RET 
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	
@@ -1909,15 +1940,47 @@ MMOD2:	CALL	RFROM
 MMOD3:	RET
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;       /MOD    ( n n -- r q )
-;       Signed divide. Return mod 
-;       and quotient.
+;       /MOD    ( n1 n2 -- r q )
+;       Signed divide n1/n2. 
+;       Return mod and quotient.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER SLMOD,4,"/MOD"
-        CALL	OVER
-        CALL	ZLESS
-        CALL	SWAPP
-        JP	MSMOD
+        LD A,(X)
+        PUSH A   ; n2 sign 
+        LD A,(2,X)
+        PUSH A    ; n1 sign 
+        CALL ABSS 
+        CALL TOR  ; 
+        CALL ABSS 
+        CALL RAT   
+        CALL USLMOD 
+        LD A,(3,SP)
+        OR A,(4,SP)
+        JRPL SLMOD8 ; both positive nothing to change 
+        LD A,(3,SP)
+        XOR A,(4,SP)
+        JRPL SLMOD1
+; dividend and divisor are opposite sign          
+        CALL ONEP   ; add one to quotient 
+        CALL NEGAT ; negative quotient
+        CALL RAT 
+        CALL ROT 
+        CALL SUBB  ; corrected_remainder=divisor-remainder 
+        CALL SWAPP
+SLMOD1:
+        LD A,(4,SP) ; divisor sign 
+        JRPL SLMOD8 
+        CALL TOR 
+        CALL NEGAT ; if divisor negative negate remainder 
+        CALL RFROM 
+SLMOD8: 
+        ADDW SP,#4 
+        RET 
+
+;        CALL	OVER
+;        CALL	ZLESS
+;        CALL	SWAPP
+;        JP	MSMOD
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       MOD     ( n n -- r )
@@ -3858,7 +3921,7 @@ SCOM2:  CALL     NUMBQ   ;try to convert to number
         call STORE 
         call UPDATCP 
         call EEPVP 
-        call DROP 
+        _DROP 
         call AT 
         call VPP 
         call STORE 
@@ -3899,7 +3962,7 @@ INITOFS:
         CALL DUPP 
         call QBRAN
         .word 1$
-        call DROP  
+        _DROP  
         call CPP 
         call AT 
         call HERE
@@ -4281,7 +4344,7 @@ PRINT_VERSION:
      CALL DIGS 
      _DOLIT '.' 
      CALL HOLD 
-     CALL DROP 
+     _DROP 
      CALL DIGS 
      CALL EDIGS 
      CALL TYPES 
@@ -4330,16 +4393,16 @@ WANT_DEBUG=0
 	.word 0xFFFE
 	CALL ZLESS 
 	CALL UPLUS 
- 	CALL DROP 
+ 	_DROP 
 	CALL DOLIT
 	.word 3
 	CALL UPLUS 
 	CALL UPLUS 
- 	CALL DROP
+ 	_DROP
 	CALL DOLIT
 	.word 0x43
 	CALL UPLUS 
- 	CALL DROP
+ 	_DROP
 	CALL EMIT
 	CALL DOLIT
 	.word 0x4F
@@ -4367,7 +4430,7 @@ WANT_DEBUG=0
 	CALL DOLIT
 	.word 0x70
 	CALL UPLUS 
-	CALL DROP
+	_DROP
 	CALL EMIT
 	CALL ZERO
 	CALL QBRAN
@@ -4412,7 +4475,7 @@ DEBUG3:
 DEBUG4:
 	CALL ONE
 	CALL UPLUS 
-	CALL DROP
+	_DROP
 	CALL DONXT
 	.word DEBUG4
 	CALL EMIT
@@ -4426,7 +4489,7 @@ DEBUG4:
 	.word 0x100
 	CALL UMSTA
 	CALL SWAPP 
-	CALL DROP
+	_DROP
 	CALL EMIT
 	CALL EMIT
 	CALL DOLIT
