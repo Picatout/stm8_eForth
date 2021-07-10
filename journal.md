@@ -4,6 +4,10 @@ AUTHOR: Jacques Deschênes
 DESCRIPTION: project log.
 -->
 
+#### 2021-07-10
+
+* Revenue au code original du 2021-02-22 pour **UM/MOD**. Puis modifié pour utilisé **USLMOD** lorsque udh==0. 
+
 #### 2021-07-09
 
 * Travail d'optimisation dans [stm8ef.asm](stm8ef.asm).

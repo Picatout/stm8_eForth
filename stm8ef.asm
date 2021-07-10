@@ -1812,78 +1812,56 @@ MIN1:	ADDW X,#2
 ;       Unsigned divide of a double by a
 ;       single. Return mod and quotient.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        _HEADER UMMOD,6,"UM/MOD" 
-        ;;;;;; local variables ;;;;
-        DP=7
-        DIV=5 
-        UDL=3 
-        UDH=1
-        ;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        LDW Y,X 
-        LDW Y,(2,Y) ; udh 
-        JRNE UMMOD1 
-; udh==0 use faster U/MOD         
-        LDW Y,X 
-        LDW Y,(Y)
-        LDW (2,X),Y  ; replace udh by un 
-        ADDW X,#CELLL ; drop un  
-        JP USLMOD 
-UMMOD1:
-        SUB SP,#4*CELLL ; local variables space 
-        LDW (UDH,SP),Y ; save udh 
-        LDW Y,X 
-        INCW X 
-        INCW X 
-        LDW (DP,SP),X ; save DP 
-        LDW Y,(Y) ; divisor 
-        LDW (DIV,SP),Y ; divisor 
-        EXGW X,Y 
-        CPW X,(UDH,SP) 
-        JRUGT UMMOD2
-; divisor < udh overflow          
-        LDW X,(DP,SP)
-        LDW Y,#-1 
-        LDW (X),Y 
-        CLRW Y 
-        LDW (2,X),Y
-        JRA UMMOD8 
-UMMOD2: ; shift left dividend until negative 
-        LDW X,(UDH,SP)
-        LDW Y,(UDL,SP) ; X:Y dividend 
-        LD A,#16
-UMMOD3:  
-        TNZ A 
-        JREQ UMMOD4 
-        TNZW X 
-        JRMI UMMOD4 
-        RCF 
-        RLCW Y 
-        RLCW X
-        DEC A 
-        JRA UMMOD3 
-UMMOD4:
-        LDW (UDL,SP),Y ; save least bits of remainder  
-        LDW Y,(DIV,SP) ; divisor 
-        DIVW X,Y  ; X=X/Y , Y=X%Y 
-        LDW (UDH,SP),X ; save quotient 
-        LDW X,(UDL,SP) ; Y:X remainder 
-; shift left remainder until A==0        
-        TNZ A 
-        JREQ UMMOD6 
-UMMOD5: 
-        RLCW X 
-        RLCW Y 
-        DEC A  
-        JRNE UMMOD5 
-UMMOD6: ; Y=remainder 
-        LDW X,(DP,SP)        
-        LDW (2,X),Y 
-        LDW Y,(UDH,SP)
-        LDW (X),Y 
-UMMOD8:          
-        ADDW SP,#4*CELLL 
+; 2021-02-22
+; changed algorithm for Jeeek one 
+; ref: https://github.com/TG9541/stm8ef/pull/406        
+        _HEADER UMMOD,6,"UM/MOD"
+        LDW     Y,X             ; stack pointer to Y
+        LDW     X,(X)           ; un
+        LDW     YTEMP,X         ; save un
+        LDW     X,Y
+        INCW    X               ; drop un
+        INCW    X
+        PUSHW   X               ; save stack pointer
+        LDW     X,(X)           ; X=udh
+        JRNE    MMSM0
+        POPW    X 
+        LDW     Y,YTEMP
+        LDW (X), Y 
+        JRA     USLMOD          ; faster when udl==0 
+MMSM0:    
+        LDW     Y,(4,Y)         ; Y=udl (offset before drop)
+        CPW     X,YTEMP
+        JRULT   MMSM1           ; X is still on the R-stack
+        POPW    X               ; restore stack pointer
+        CLRW    Y
+        LDW     (2,X),Y         ; remainder 0
+        DECW    Y
+        LDW     (X),Y           ; quotient max. 16 bit value
         RET
-
+MMSM1:
+        LD      A,#16           ; loop count
+        SLLW    Y               ; udl shift udl into udh
+MMSM3:
+        RLCW    X               ; rotate udl bit into uhdh (= remainder)
+        JRC     MMSMa           ; if carry out of rotate
+        CPW     X,YTEMP         ; compare udh to un
+        JRULT   MMSM4           ; can't subtract
+MMSMa:
+        SUBW    X,YTEMP         ; can subtract
+        RCF
+MMSM4:
+        CCF                     ; quotient bit
+        RLCW    Y               ; rotate into quotient, rotate out udl
+        DEC     A               ; repeat
+        JRNE    MMSM3           ; if A == 0
+MMSMb:
+        LDW     YTEMP,X         ; done, save remainder
+        POPW    X               ; restore stack pointer
+        LDW     (X),Y           ; save quotient
+        LDW     Y,YTEMP         ; remainder onto stack
+        LDW     (2,X),Y
+        RET
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   U/MOD ( u1 u2 -- ur uq )
