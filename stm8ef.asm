@@ -957,7 +957,7 @@ BRAN:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER EXECU,7,"EXECUTE"
         LDW Y,X
-	ADDW X,#2
+	ADDW X,#CELLL 
 	LDW  Y,(Y)
         JP   (Y)
 
@@ -1825,10 +1825,12 @@ MIN1:	ADDW X,#2
         PUSHW   X               ; save stack pointer
         LDW     X,(X)           ; X=udh
         JRNE    MMSM0
-        POPW    X 
-        LDW     Y,YTEMP
-        LDW (X), Y 
-        JRA     USLMOD          ; faster when udl==0 
+        LDW    X,(1,SP)
+        LDW    X,(2,X)          ; udl 
+        LDW     Y,YTEMP         ;divisor 
+        DIVW    X,Y             ; udl/un 
+        EXGW    X,Y 
+        JRA     MMSMb 
 MMSM0:    
         LDW     Y,(4,Y)         ; Y=udl (offset before drop)
         CPW     X,YTEMP
@@ -1980,20 +1982,18 @@ SLMOD8:
 ;; Multiply
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;       UM*     ( u u -- ud )
+;       UM*     ( u1 u2 -- ud )
 ;       Unsigned multiply. Return 
 ;       double product.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER UMSTA,3,"UM*"
-; stack have 4 bytes u1=a,b u2=c,d
-; take advantage of SP addressing modes
-; these PRODx in RAM are not required
-; the product is kept on stack as local variable 
+; stack have 4 bytes u1=a:b u2=c:d
         ;; bytes offset on data stack 
         da=2 
         db=3 
         dc=0 
         dd=1 
+        ;;;;;; local variables ;;;;;;;;;
         ;; product bytes offset on return stack 
         UD1=1  ; ud bits 31..24
         UD2=2  ; ud bits 23..16
@@ -2093,7 +2093,7 @@ MSTA1:	RET
 ;; Miscellaneous
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;       CELL+   ( a -- a )
+;       2+   ( a -- a )
 ;       Add cell size in byte to address.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER CELLP,2,"2+"
@@ -2104,7 +2104,7 @@ MSTA1:	RET
         RET
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;       CELL-   ( a -- a )
+;       2-   ( a -- a )
 ;       Subtract 2 from address.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER CELLM,2,"2-"
@@ -2115,7 +2115,7 @@ MSTA1:	RET
         RET
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;       CELLS   ( n -- n )
+;       2*   ( n -- n )
 ;       Multiply tos by 2.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER CELLS,2,"2*"
@@ -2290,18 +2290,20 @@ RSHIFT4:
 ;       address a.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER PSTOR,2,"+!"
-        ldw y,x 
-        ldw y,(y)
-        ldw YTEMP,y  ; address
-        ldw y,(y)  
-        pushw y  ; value at address 
-        ldw y,x 
-        ldw y,(2,y) ; n 
-        addw y,(1,sp) ; n+value
-        ldw [YTEMP],y ;  a!
-        popw y    ;drop local var
-        addw x,#4 ; DDROP 
-        ret 
+        PUSHW X   ; R: DP 
+        LDW Y,X 
+        LDW X,(X) ; a 
+        LDW Y,(2,Y)  ; n 
+        PUSHW Y      ; R: DP n 
+        LDW Y,X 
+        LDW Y,(Y)
+        ADDW Y,(1,SP) ; *a + n 
+        LDW (X),Y 
+        LDW X,(3,SP) ; DP
+        ADDW X,#2*CELLL  ; ( n a -- )  
+        ADDW SP,#2*CELLL ; R: DP n -- 
+        RET 
+                
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       2!      ( d a -- )
@@ -2403,20 +2405,56 @@ EXE1:   RET     ;do nothing if zero
 ;       Copy u bytes from b1 to b2.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER CMOVE,5,"CMOVE"
-        CALL	TOR
-        CALL	BRAN
-        .word	CMOV2
-CMOV1:	CALL	TOR
-        CALL	DUPP
-        CALL	CAT
-        CALL	RAT
-        CALL	CSTOR
-        CALL	ONEP
-        CALL	RFROM
-        CALL	ONEP
-CMOV2:	CALL	DONXT
-        .word	CMOV1
-        JP	DDROP
+        ;;;;  local variables ;;;;;;;
+        DP = 5
+        YTMP = 3 
+        CNT  = 1 
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        PUSHW X  ; R: DP  
+        SUB SP,#2 ; R: DP YTMP 
+        LDW Y,X 
+        LDW Y,(Y) ; CNT 
+        PUSHW Y  ; R: DP YTMP CNT
+        LDW Y,X 
+        LDW Y,(2,Y) ; b2, dest 
+        LDW X,(4,X) ; b1, src 
+        LDW (YTMP,SP),Y 
+        CPW X,(YTMP,SP) 
+        JRUGT CMOV2  ; src>dest 
+; src<dest copy from top to bottom
+        ADDW X,(CNT,SP)
+        ADDW Y,(CNT,SP)
+CMOV1:  
+        LDW (YTMP,SP),Y 
+        LDW Y,(CNT,SP)
+        JREQ CMOV3 
+        DECW Y 
+        LDW (CNT,SP),Y 
+        LDW Y,(YTMP,SP)
+        DECW X
+        LD A,(X)
+        DECW Y 
+        LD (Y),A 
+        JRA CMOV1
+; src>dest copy from bottom to top   
+CMOV2: 
+        LDW (YTMP,SP),Y 
+        LDW Y,(CNT,SP)
+        JREQ CMOV3
+        DECW Y 
+        LDW (CNT,SP),Y 
+        LDW Y,(YTMP,SP)
+        LD A,(X)
+        INCW X 
+        LD (Y),A 
+        INCW Y 
+        JRA CMOV2 
+CMOV3:
+        LDW X,(DP,SP)
+        ADDW X,#3*CELLL 
+        ADDW SP,#3*CELLL 
+        RET 
+        
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       FILL    ( b u c -- )
@@ -2424,27 +2462,22 @@ CMOV2:	CALL	DONXT
 ;       to area beginning at b.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER FILL,4,"FILL"
-        ldw y,x 
-        ld a,(1,y) ; c 
-        addw x,#CELLL ; drop c 
-        ldw y,x 
-        ldw y,(y) ; count
-        pushw y 
-        addw x,#CELLL ; drop u 
-        ldw y,x 
-        addw x,#CELLL ; drop b 
-        ldw y,(y) ; address
-        ldw YTEMP,y
-        popw y ; count 
-FILL1:  
-        ld [YTEMP],a 
-        inc YTEMP+1
-        jrnc FILL2 
-        inc YTEMP
-FILL2: 
-        decw y ; count 
-        jrne FILL1  
-        ret 
+        LD A,(1,X)
+        LDW Y,X 
+        ADDW X,#3*CELLL 
+        PUSHW X ; R: DP 
+        LDW X,Y 
+        LDW X,(4,X) ; b
+        LDW Y,(2,Y) ; u
+FILL0:
+        JREQ FILL1
+        LD (X),A 
+        INCW X 
+        DECW Y 
+        JRA FILL0         
+FILL1: POPW X 
+        RET         
+        
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       ERASE   ( b u -- )
