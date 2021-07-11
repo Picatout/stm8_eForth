@@ -4,6 +4,12 @@ AUTHOR: Jacques Deschênes
 DESCRIPTION: project log.
 -->
 
+#### 2021-07-11
+
+* Optimisation dans [stm8ef.asm](stm8ef.asm). 
+
+    * La compilation des **CALL BRAN address ** a été remplacée par la compilation d'un **JP address**, gain de 8 cycles machines.  
+
 #### 2021-07-10
 
 * Revenue au code original du 2021-02-22 pour **UM/MOD**. Puis modifié pour utilisé **USLMOD** lorsque udh==0. 

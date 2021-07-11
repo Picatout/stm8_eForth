@@ -194,6 +194,8 @@ TIC     =     39      ;tick
 CALLL   =     0xCD     ;CALL opcodes
 IRET_CODE =   0x80    ; IRET opcode 
 ADDWX   =     0x1C    ; opcode for ADDW X,#word  
+JPIMM   =     0xCC    ; JP addr opcode 
+
         .macro _ledon
         .if NUCLEO
         bset PC_ODR,#LED2_BIT
@@ -454,7 +456,7 @@ uart_init:
         call RFROM ; ( reg slot_level masked_val )
         call ORR   ; ( reg updated_rval )
         call SWAPP 
-        call CSTOR
+        jp CSTOR
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; sélectionne l'application 
@@ -598,6 +600,7 @@ FREEVAR4: ; not variable
         ld a,yl 
         ld SEEDY,a 
         ret 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    RANDOM ( u1 -- u2 )
 ; Pseudo random number betwen 0 and u1-1
@@ -1915,7 +1918,7 @@ MMOD2:	CALL	RFROM
         .word	MMOD3
         CALL	SWAPP
         CALL	NEGAT
-        CALL	SWAPP
+        JP	SWAPP
 MMOD3:	RET
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1956,10 +1959,6 @@ SLMOD8:
         ADDW SP,#4 
         RET 
 
-;        CALL	OVER
-;        CALL	ZLESS
-;        CALL	SWAPP
-;        JP	MSMOD
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       MOD     ( n n -- r )
@@ -2065,7 +2064,7 @@ SLMOD8:
         CALL	RFROM
         CALL	QBRAN
         .word	MSTA1
-        CALL	DNEGA
+        JP	DNEGA
 MSTA1:	RET
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2927,8 +2926,8 @@ DOTQP:
         CALL UDOT 
         CALL RFROM 
         CALL BASE 
-        CALL STORE 
-        RET 
+        JP STORE 
+         
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       .       ( w -- )
@@ -3468,8 +3467,7 @@ EVAL1:  CALL     TOKEN
         CALL     TEVAL
         CALL     ATEXE
         CALL     QSTAC   ;evaluate input, check stack
-        CALL     BRAN
-        .word    EVAL1
+        JRA     EVAL1 
 EVAL2:  CALL     DROP
         JP       DOTOK
 
@@ -3673,8 +3671,13 @@ STRCQ:
 ;       infinite loop structure.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER AGAIN,IMEDD+5,"AGAIN"
+.if OPTIMIZE 
+        _DOLIT JPIMM 
+        CALL  CCOMMA
+.else 
         CALL     COMPI
         .word BRAN
+.endif 
         call ADRADJ 
         JP     COMMA
 
@@ -3706,8 +3709,13 @@ STRCQ:
 ;       an IF-ELSE-THEN structure.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER ELSEE,IMEDD+4,"ELSE"
-        CALL     COMPI
+.if OPTIMIZE 
+        _DOLIT JPIMM 
+        CALL CCOMMA 
+.else 
+         CALL     COMPI
         .word BRAN
+.endif 
         CALL     HERE
         CALL     ZERO
         CALL     COMMA
@@ -3723,8 +3731,13 @@ STRCQ:
 ;       instruction.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER AHEAD,IMEDD+5,"AHEAD"
+.if OPTIMIZE 
+        _DOLIT JPIMM 
+        CALL CCOMMA
+.else 
         CALL     COMPI
         .word BRAN
+.endif 
         CALL     HERE
         CALL     ZERO
         JP     COMMA
@@ -3748,8 +3761,13 @@ STRCQ:
 ;       indefinite loop.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER REPEA,IMEDD+6,"REPEAT"
+.if OPTIMIZE 
+        _DOLIT JPIMM 
+        CALL  CCOMMA
+.else 
         CALL     COMPI
         .word BRAN
+.endif 
         call ADRADJ 
         CALL     COMMA
         CALL     HERE
@@ -3954,13 +3972,14 @@ SCOM2:  CALL     NUMBQ   ;try to convert to number
 ;       Compile a subroutine call.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER JSRC,5,^/"CALL,"/
+.if OPTIMIZE 
 ;;;;; optimization code ;;;;;;;;;;;;;;;
         LDW Y,#DROP 
         LDW YTEMP,Y 
         LDW Y,X 
         LDW Y,(Y)
         CPW Y,YTEMP 
-        JRNE JSRC1 
+        JRNE JSRC1         
 ; replace CALL DROP BY  ADDW X,#CELLL 
         ADDW X,#CELLL 
         _DOLIT ADDWX ; opcode 
@@ -3980,8 +3999,9 @@ JSRC1: ; check for DDROP
         CALL  CCOMMA 
         _DOLIT 2*CELLL 
         JP  COMMA 
+JSRC2: 
 ;;;;;;;; end optimization code ;;;;;;;;;;        
-JSRC2:        
+.endif        
         CALL     DOLIT
         .word     CALLL     ;CALL
         CALL     CCOMMA
@@ -4090,7 +4110,7 @@ SET_RAMLAST:
         CALL LAST 
         CALL AT 
         CALL RAMLAST 
-        jp STORE  
+        JP STORE  
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       CONSTANT  ( n -- ; <string> )
@@ -4159,8 +4179,11 @@ DO_DCONST:
     ldw (2,x),y 
     ret 
 
-;; Tools
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;          TOOLS 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       _TYPE   ( b u -- )
 ;       Display a string. Filter
 ;       non-printing characters.
@@ -4385,8 +4408,8 @@ PRINT_VERSION:
      _DROP 
      CALL DIGS 
      CALL EDIGS 
-     CALL TYPES 
-     RET 
+     JP TYPES 
+      
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       hi      ( -- )
