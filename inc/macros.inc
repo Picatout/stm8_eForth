@@ -77,8 +77,7 @@
 
     ; uncondittionnal BRANCH 
     .macro _BRAN target 
-    CALL BRAN 
-    .word target 
+    JRA target  
     .endm 
 
     ; run time NEXT 

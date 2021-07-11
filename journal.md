@@ -10,6 +10,8 @@ DESCRIPTION: project log.
 
 * Recodé  **+!**, **CMOVE**, **FILL**. 
 
+*  Optimization au niveau du compilateur dans le mot **CALL,** , une vérification est faite pour l'adresse cible du CALL si l'adresse cible est **DROP** ou **2DROP** au lieu de compiler **CALL DROP** ou **CALL 2DROP** l'instruction **ADDW X,#2** ou **ADDW X,#4** est compilée. Cette optimization sauve 8 cycles machines sur 10 par appel. Ces 2 mots étants utilisés souvent cette optimisation est significative et ne requière pas plus d'octets mémoire qu'un **CALL**.
+
 #### 2021-07-09
 
 * Travail d'optimisation dans [stm8ef.asm](stm8ef.asm).

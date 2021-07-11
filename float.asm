@@ -296,7 +296,7 @@ EDOT2:
     CALL TOR 
     CALL DUPP
     _QBRAN EDOT3 
-    _BRAN EDOT2  
+    JRA EDOT2  
 EDOT3:
     CALL OVER 
     CALL BASE 
@@ -363,14 +363,14 @@ FDOT2: ; e<0
     CALL    QDUP 
     _QBRAN  FDOT3 
     CALL    TOR 
-    _BRAN   FDOT2 
+    JRA   FDOT2 
 FDOT3:
     _DOLIT  '.' 
     CALL    HOLD 
     CALL    DDIGS
-    _BRAN   FDOT9  
+    JRA   FDOT9  
 FDOT6: ; e>=0 
-    _BRAN   FDOT8
+    JRA   FDOT8
 FDOT7:     
     _DOLIT  '0'
     CALL    HOLD 
@@ -440,7 +440,7 @@ PARSEXP_SUCCESS:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FLOATQ,5,"FLOAT?"
     _QBRAN FLOATQ0 
-    _BRAN FLOAT_ERROR  ; not a float, string start with '#'
+    JP FLOAT_ERROR  ; not a float, string start with '#'
 FLOATQ0:
 ; BASE must be 10 
     CALL BASE 
@@ -470,10 +470,10 @@ FLOATQ0:
     CALL TOR  ; dlo dhi a cntr R: sign fd 
     CALL DUPP ; cntr cntr  
     _QBRAN 1$ ; end of string, no exponent
-    _BRAN FLOATQ2
+    JRA FLOATQ2
 1$: CALL SWAPP 
     _DROP ; a
-    _BRAN FLOATQ3        
+    JRA FLOATQ3        
 FLOATQ1: ; must push fd==0 on RSTACK 
     CALL RFROM ; cntr 
     CALL ZERO  ; fd 
@@ -749,7 +749,7 @@ SCAL1:
     CALL ROT 
     CALL ONEP 
     CALL NROT  
-    _BRAN SCAL1 
+    JRA SCAL1 
 SCAL2: 
     RET 
 
@@ -880,7 +880,7 @@ MMSTA5:
     CALL RFROM 
     CALL ONEP 
     CALL TOR 
-    _BRAN MMSTA5 
+    JRA MMSTA5 
 ; now scale to double 
 ; scale further <= MAX_MANTISSA 
 MMSTA6: 
@@ -979,7 +979,7 @@ FSLASH1:
     CALL ONEP   ; increment exponent 
     _DOLIT 2 
     CALL NRSTO  ; e 2 NR! , update e on rstack     
-    _BRAN FSLASH1
+    JRA FSLASH1
 FSLASH8: ; remainder mantissa R: qs e divisor 
     CALL DSWAP  
     _DDROP  ; drop remainder     
@@ -1032,7 +1032,7 @@ DTOF2:
 ; negative exponent 
     CALL ABSS 
     CALL TOR
-    _BRAN FTOD2  
+    JRA FTOD2  
 FTOD1:
     CALL DDUP 
     CALL DZEQUAL 
@@ -1043,15 +1043,15 @@ FTOD1:
     _DROP
 FTOD2:      
     _DONXT FTOD1
-    _BRAN FTOD8   
+    JRA FTOD8   
 FTOD3: 
     CALL RFROM 
     _DROP 
-    _BRAN FTOD8  
+    JRA FTOD8  
 ; positive exponent 
 FTOD4:
     CALL TOR 
-    _BRAN FTOD6
+    JRA FTOD6
 FTOD5:
     CALL DDUP 
     _DOLIT 0XCCCC

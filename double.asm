@@ -96,7 +96,7 @@ parse_digits:
     CALL RFROM  ; dlo dhi a+ 
     CALL RFROM ; dlo dhi a+ cntr 
     CALL ONEM 
-    _BRAN 1$ ; dlo dhi a+ R: 
+    JRA 1$ ; dlo dhi a+ R: 
 4$: _DROP  ; dlo dhi a+ 
     CALL ONEM  ; unget char 
     CALL RFROM ; dlo dhi a+ cntr-
@@ -172,7 +172,7 @@ NUMQ3:
     CALL SWAPP 
     _DROP
     CALL ONEP   ; single return -1 flag   
-    _BRAN NUMQ8
+    JRA NUMQ8
 NUMQ4: ; not end of string error , ( a dlo dhi a+ cntr R: base d? sign )
 .if WANT_FLOAT
     CALL RFROM ; sign 

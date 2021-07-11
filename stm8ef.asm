@@ -193,7 +193,7 @@ ERR     =     27      ;error escape
 TIC     =     39      ;tick
 CALLL   =     0xCD     ;CALL opcodes
 IRET_CODE =   0x80    ; IRET opcode 
-
+ADDWX   =     0x1C    ; opcode for ADDW X,#word  
         .macro _ledon
         .if NUCLEO
         bset PC_ODR,#LED2_BIT
@@ -1660,13 +1660,12 @@ DN1:    LDW (X),Y
         _HEADER SUBB,1,"-"
         LDW Y,X
         LDW Y,(Y) ; n2 
-        PUSHW Y ; n2 >R 
+        LDW YTEMP,Y 
         ADDW X,#CELLL 
         LDW Y,X
         LDW Y,(Y) ; n1 
-        SUBW Y,(1,SP) ; n1-n2 
+        SUBW Y,YTEMP ; n1-n2 
         LDW (X),Y
-        ADDW SP,#2 ; drop n2 from rstack 
         RET
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -3955,6 +3954,34 @@ SCOM2:  CALL     NUMBQ   ;try to convert to number
 ;       Compile a subroutine call.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER JSRC,5,^/"CALL,"/
+;;;;; optimization code ;;;;;;;;;;;;;;;
+        LDW Y,#DROP 
+        LDW YTEMP,Y 
+        LDW Y,X 
+        LDW Y,(Y)
+        CPW Y,YTEMP 
+        JRNE JSRC1 
+; replace CALL DROP BY  ADDW X,#CELLL 
+        ADDW X,#CELLL 
+        _DOLIT ADDWX ; opcode 
+        CALL   CCOMMA 
+        _DOLIT CELLL 
+        JP      COMMA 
+JSRC1: ; check for DDROP 
+        LDW Y,#DDROP 
+        LDW YTEMP,Y 
+        LDW Y,X 
+        LDW Y,(Y)
+        CPW Y,YTEMP 
+        JRNE JSRC2 
+; replace CALL DDROP BY ADDW X,#2*CELLL 
+        ADDW X,#CELLL 
+        _DOLIT ADDWX 
+        CALL  CCOMMA 
+        _DOLIT 2*CELLL 
+        JP  COMMA 
+;;;;;;;; end optimization code ;;;;;;;;;;        
+JSRC2:        
         CALL     DOLIT
         .word     CALLL     ;CALL
         CALL     CCOMMA
