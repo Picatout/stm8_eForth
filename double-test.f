@@ -1,5 +1,10 @@
 \ double.asm library test suite.
 
+
+: show-version 
+    dbl-ver 
+;
+
 : double? 
     cr 
     ." double parsing test." cr 
@@ -205,13 +210,21 @@
 
 : d/mod-test 
     cr ." D/MOD test ( d d -- dr dq )" cr 
-    ." #56 #3 d/mod" cr 
-    #56 #3 d/mod 
+    ." #57 #5 d/mod" cr 
+    #57 #5 d/mod 
     ." quotient=" d. 
     ." , remainder=" d. cr 
-    ." #-56 #5 d/mod" cr 
-    #-56 #5 d/mod 
+    ." #-57 #5 d/mod" cr 
+    #-57 #5 d/mod 
     ." quotient=" d. 
+    ." , remainder=" d. cr 
+    ." #57 #-5 d/mod" cr 
+    #57 #-5 d/mod 
+    ." quotient=" d. 
+    ." , remainder=" d. cr 
+    ." #-57 #-5 d/mod" cr
+    #-57 #-5 d/mod 
+    ." quotient=" d.  
     ." , remainder=" d. cr 
 ; 
 
@@ -223,8 +236,56 @@
     #6377 #523 d- d. cr
 ;
 
+: add-spd 
+    msec 1000 for 
+    #-253353  #979788 d+ 
+    2drop next 
+    msec swap - 
+    . ." msec for 1000 double additions." 
+    cr 
+; 
+
+: sub-spd 
+    msec 1000 for 
+    #-254232 #34 d-
+    2drop next 
+    msec swap - 
+    . ." msec for 1000 double substactions." 
+    cr 
+;
+
+: mul-spd 
+    msec 1000 for 
+    #324 #33 d* 
+    2drop 
+    next
+    msec swap -  
+    . ." msec for 1000 double muliplications."
+    cr
+; 
+
+: div-spd 
+    msec 1000 for 
+    #324333 #56 d/ 2drop 
+    next 
+    msec swap - 
+    . ." msec for 1000 double divisions."
+    cr 
+;
+
+
+: performance 
+    cr
+    ." ******** Performance test ******"
+    cr 
+    add-spd
+    sub-spd 
+    mul-spd 
+    div-spd  
+; 
 
 : all-test 
+    show-version 
     double? 
     dabs-test
     dsign-test 
@@ -238,7 +299,6 @@
     d>-test
     d<-test 
     d0<-test 
-    dcmp-test 
     2>r-test 
     2over-test 
     d2/-test 
@@ -246,7 +306,8 @@
     dshift-test 
     d*-test 
     d/mod-test 
-    +-test  
+    +-test
+    performance   
 ;
 
 

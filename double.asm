@@ -868,22 +868,36 @@ UDSLA8:
 ;   dr remainder double 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER DDSLMOD,5,"D/MOD"  
-    CALL DSIGN 
-    CALL TOR   ; R: divisor sign 
+    LD A,(X) ; disisor sign 
+    PUSH A 
+    LD A,(4,X) ; dividend sign 
+    PUSH A   ; R: sdivsor sdivnd 
     CALL DABS 
-    CALL DSWAP 
-    CALL DSIGN ; dividend sign 
-    CALL RFROM 
-    CALL XORR  ; quotient sign
-    CALL TOR   ; 
-    CALL DABS  ; d2 ud1 R: sign 
-    CALL DSWAP  ; ud1 ud2 
+    CALL DTOR ; R: sign abs(divisor)
+    CALL DABS  ; ud1  
+    CALL DRAT  ; ud1 ud2 R: sign abs(divisor) 
     CALL UDSLMOD ; ud1/ud2 -- dr dq  
-    POPW Y ; sign 
-    TNZW Y 
+    LD A,(5,SP) ; sdivnd 
+    XOR A,(6,SP) ; 
+    JRPL DSLA8 
+    CALL ONE 
+    CALL ZERO 
+    CALL DPLUS 
+    CALL DNEGA ; negate quotient  
+    CALL DRAT 
+    CALL DROT 
+    CALL DSUB  ; corrected_remainder=divisor-remainder 
+    CALL DSWAP
+DSLA8:      
+; check for divisor sign 
+; if negative change negate remainder 
+    LD A,(6,SP) ; divisor sign 
     JRPL DSLA9 
-    CALL DNEGA ; remainder quotient 
-DSLA9: 
+    CALL DTOR 
+    CALL DNEGA 
+    CALL DRFROM 
+DSLA9:
+    ADDW SP,#6 
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

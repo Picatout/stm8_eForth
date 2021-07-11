@@ -24,6 +24,10 @@ Comme il s'agit de 2 MCU STM8 l'adaptation vers le stm8s208 ne devrait pas néce
 
 # Historique 
 
+## 2021-07-11 
+
+Poursuite du travail d'optimisation sur le système de base [stm8ef.asm](stm8ef.asm) et les librairies [double.asm](double.asm) ainsi que [float.asm](float.asm). 
+
 ## 2021-07-08 
 
 Pour envoyer un fichier source forth à la carte il faut utiliser l'outil  [tools/SendFile](SendFile) dans le dossier **tools**. Par exemple ma carte nucleo créé le port **ttyACM0**.

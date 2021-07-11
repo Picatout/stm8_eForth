@@ -1,5 +1,9 @@
 \ float.asm library test suite 
 
+: show-version 
+    float-ver 
+;
+
 : flags-test 
     ."  testing FPSW flags" cr 
     ." enter positive float number: "
@@ -99,7 +103,8 @@
     15.32e2 1532. f= . cr 
 ;   
 
-: all-test 
+: all-test
+    show-version 
     flags-test
     convert 
     display 

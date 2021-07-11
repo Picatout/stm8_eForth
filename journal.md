@@ -6,6 +6,8 @@ DESCRIPTION: project log.
 
 #### 2021-07-11
 
+* Débogué  **D/MOD**. 
+
 * Optimisation dans [stm8ef.asm](stm8ef.asm). 
 
     * La compilation des **CALL BRAN address ** a été remplacée par la compilation d'un **JP address**, gain de 8 cycles machines.  
