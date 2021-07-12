@@ -53,7 +53,7 @@
     ." ds/mod test ( ud us -- r dq )" cr 
     #3141592 2 ds/mod 
     ." #3141592 2 ds/mod quotient=" d. 
-    cr ." remainder= . cr 
+    cr ." remainder=" . cr 
 ; 
 
 : ds*-test 
@@ -143,18 +143,6 @@
     #-33 d0< 
     ." #-33 d0<" . cr 
 ;
-
-:  dcmp-test 
-    cr 
-    ." DCMP ( d1 d2 -- d1 d2 -1|0|1 ) test" cr
-    #1 #-1 
-    ." #1 #-1 dcmp ." . cr 
-    #-1 #1 dcmp 
-    ." #-1 #1 dcmp ." . cr
-    #22 #22 dcmp 
-    ." #22 #22 dcmp ." . cr 
-    preset 
-;  
 
 : 2>r-test 
     cr
@@ -289,7 +277,7 @@
     double? 
     dabs-test
     dsign-test 
-    d/mod-test 
+    ds/mod-test 
     ds*-test 
     2swap-test 
     dclz-test

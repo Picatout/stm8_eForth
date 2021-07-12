@@ -4,8 +4,15 @@ AUTHOR: Jacques Deschênes
 DESCRIPTION: project log.
 -->
 
+#### 2021-07-12
+
+* Corrigé bogue dans *parse_digits*, fichier [double.asm](double.asm). 
+
+* Optimisation de **UD/MOD**. 
+
 #### 2021-07-11
 
+* Optimisation du code __D*__ et **D/MOD**. 
 * Débogué  **D/MOD**. 
 
 * Optimisation dans [stm8ef.asm](stm8ef.asm). 

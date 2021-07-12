@@ -585,7 +585,8 @@ FORGET4:
         call STORE 
         jp UPDATVP 
 FREEVAR4: ; not variable
-        jp  DROP 
+        _DROP 
+        RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    SEED ( n -- )
@@ -991,7 +992,7 @@ EXIT:
         LDW X,(2,X) ; x=w 
         LDW (Y),X 
         POPW X  
-        ADDW X,#4 ; DDROP 
+        _DDROP 
         RET     
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2821,7 +2822,8 @@ CHAR2:  CALL     DONXT
 TYPE1:  CALL     COUNT 
         CALL     EMIT
 TYPE2:  _DONXT  TYPE1
-        JP     DROP
+        _DROP
+        RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       CR      ( -- )
@@ -2942,7 +2944,7 @@ DOTQP:
         CALL     XORR    ;?decimal
         CALL     QBRAN
         .word      DOT1
-        JP     UDOT
+        JRA     UDOT
 DOT1:   CALL     STR
         CALL     SPACE
         JP     TYPES
@@ -2953,7 +2955,7 @@ DOT1:   CALL     STR
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER QUEST,1,"?"
         CALL     AT
-        JP     DOT
+        JRA     DOT
 
 ;; Parsing
 
@@ -3409,8 +3411,9 @@ ABOR2:  CALL     DOSTR
         CALL     ABORQ
         .byte      13
         .ascii     " compile only"
-        JP     EXECU
-INTE1:  CALL     NUMBQ   ;convert a number
+        JP      EXECU
+INTE1:  
+        CALL     NUMBQ   ;convert a number
         CALL     QBRAN
         .word    ABOR1
         RET

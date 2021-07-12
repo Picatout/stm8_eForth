@@ -46,7 +46,7 @@
 
 ; check for negative sign 
 ; ajust pointer and cntr 
-nsign: ; addr cntr -- addr cntr f 
+nsign: ; ( addr cntr -- addr cntr f ) 
     SUBW X,#CELLL ; a cntr f 
     LDW Y,X 
     LDW Y,(4,Y) ; addr 
@@ -77,15 +77,14 @@ STO_SIGN:
 ; stop at first non-digit or end of string 
 ; ( dlo dhi a cntr -- dlo dhi [ a+ cntr- | a+ 0 ] )
 parse_digits:
-1$:
     CALL DUPP 
-    _QBRAN 5$ 
+    _QBRAN parse_d5  
     CALL TOR   ; dlo dhi a R: cntr 
     CALL COUNT ; dlo dhi a+ char 
     CALL BASE 
     CALL AT 
     CALL DIGTQ 
-    _QBRAN 4$ ; not a digit
+    _QBRAN parse_d4 ; not a digit
     CALL DTOR  ; dlo dhi R: cntr a+ c  
     CALL BASE 
     CALL AT 
@@ -96,11 +95,15 @@ parse_digits:
     CALL RFROM  ; dlo dhi a+ 
     CALL RFROM ; dlo dhi a+ cntr 
     CALL ONEM 
-    JRA 1$ ; dlo dhi a+ R: 
-4$: _DROP  ; dlo dhi a+ 
-    CALL ONEM  ; unget char 
-    CALL RFROM ; dlo dhi a+ cntr-
-5$:
+    JRA parse_digits ; dlo dhi a+ R: 
+parse_d4:
+    LDW Y,X 
+    LDW Y,(2,Y)
+    DECW Y  ; dec(a)
+    LDW (2,X),Y 
+    POPW Y 
+    LDW (X),Y ; dlo dhi a cntr  
+parse_d5:
     RET 
 
 
@@ -113,9 +116,9 @@ parse_digits:
 ; save current base value 
     CALL BASE 
     CALL AT 
-    CALL TOR 
+    CALL TOR  ; R: base 
 ; initialize integer to 0     
-    SUBW X,#4 
+    SUBW X,#4 ; create space for a double  
     CLRW Y 
     LDW (X),Y 
     LDW (2,X),Y ; a 0 0 R: base  
@@ -148,13 +151,15 @@ NUMQ0:
     CALL ONEP 
     CALL SWAPP
     CALL ONEM ; a 0 0 a+ n-  R: base d?
+    CALL QDUP 
+    _QBRAN NUMQ6 
 ; check for minus sign 
 NUMQ1: 
     CALL nsign 
     CALL TOR ; R: base d? sign  
 ; check for end of string     
     CALL QDUP    ; a dlo dhi a+ cntr R: base d? sign 
-    _QBRAN NUMQ4 ; yes , not a number 
+    _QBRAN NUMQ5 ; yes , not a number 
     CALL parse_digits
     CALL QDUP 
     CALL ZEQUAL  
@@ -177,19 +182,21 @@ NUMQ4: ; not end of string error , ( a dlo dhi a+ cntr R: base d? sign )
 .if WANT_FLOAT
     CALL RFROM ; sign 
     CALL RFROM ; d? 
-    CALL FLOATQ ; ( a dlo dhi a+ cntr sign d? )    
-.else 
-    ADDW X,#4 ; drop dhi a+  , ( a dlo R: base d? sign ) 
-    ADDW SP,#4 ; drop d? sign  R: base 
-    CLRW Y 
-    LDW (X),Y ; dlo replaced by 0 ( -- a 0 R: base ) 
+    CALL FLOATQ ; ( a dlo dhi a+ cntr sign d? )
+    JRA NUMQ8 
 .endif 
-; restore original base value     
+NUMQ5: 
+    ADDW SP,#2
+NUMQ6:    
+    ADDW SP,#2 
+    ADDW X,#4 
+    CLRW Y 
+    LDW (X),Y 
 NUMQ8: 
     CALL RFROM 
     CALL BASE 
-    CALL STORE 
-    RET 
+    JP STORE 
+     
 
 
 
@@ -201,7 +208,7 @@ NUMQ8:
     LD A,(X) 
     AND A,#0X80 
     JREQ DABS1 
-    CALL DNEGA 
+    JP DNEGA 
 DABS1:
     RET 
 
@@ -277,8 +284,8 @@ DSLMODb:
     CALL DSLMOD
     CALL ROT   
     CALL DIGIT 
-    CALL HOLD 
-    RET 
+    JP HOLD 
+     
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    D#S ( d -- s )
@@ -289,8 +296,8 @@ DSLMODb:
     CALL    DDUP 
     CALL    DZEQUAL
     _QBRAN  DDIGS 
-    CALL    DROP 
-    RET 
+    _DROP 
+    RET
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -313,8 +320,8 @@ DDOT0:
     CALL HOLD 
 DDOT1: 
     CALL EDIGS 
-    CALL TYPES     
-    RET 
+    JP TYPES     
+     
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -330,8 +337,8 @@ DDOT1:
     CALL RFROM 
     CALL UMSTA ; udhi*u 
     _DROP  ; drop overflow 
-    CALL PLUS  ; udlo*u+(uhi*u<<16)
-    RET 
+    JP PLUS  ; udlo*u+(uhi*u<<16)
+     
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; multiply double by unsigned single 
@@ -348,7 +355,7 @@ DDOT1:
     CALL UDSSTAR  
     CALL ROT 
     _QBRAN DSSTAR3 
-    CALL DNEGA 
+    JP DNEGA 
 DSSTAR3:
     RET 
 
@@ -530,7 +537,7 @@ DEQU4:
     CALL NROT  
     CALL DZLESS 
     _QBRAN DLESS4
-    CALL INVER  
+    JP INVER  
 DLESS4:
     RET
 
@@ -564,7 +571,7 @@ DZLESS1:
     LDW Y,X 
     LDW Y,(Y)
     PUSHW Y   ; d hi 
-    ADDW X,#4  
+    _DDROP  
     JP [YTEMP]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -618,9 +625,9 @@ DZLESS1:
         CALL QDUP 
         CALL QBRAN 
         .word SET_RAMLAST   
-        call UPDATVP  ; don't update if variable kept in RAM.
-        CALL UPDATPTR
-        RET         
+        CALL UPDATVP  ; don't update if variable kept in RAM.
+        JP UPDATPTR
+                
 
 
 
@@ -756,36 +763,30 @@ DRSHIFT2:
 ;   d3 = d1 * d2
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER DSTAR,2,"D*"
-    CALL DUPP 
-    CALL ZLESS  
-    CALL TOR    ; R: d2sign 
+    CLRW Y 
+    LD A,(X)   ; d2 sign 
+    XOR A,(4,X) ; d1 sign 
+    JRPL 1$
+    CPLW Y  
+1$: SUB SP,#2 
+    LDW (1,SP),Y ; R: prod_sign 
     CALL DABS   
-    CALL RFROM 
-    CALL NROT  ; d1 d2s ud2
-    CALL DTOR  ; d1 d2s R: ud2  
-    CALL TOR   ; d1 R: ud2 d2s   
-    CALL DUPP 
-    CALL ZLESS 
-    CALL RFROM 
-    CALL XORR   
-    CALL TOR   ; d1 R: ud2 prod_sign  
-    CALL DABS ; ud1 R: ud2 ps  
-    CALL RFROM  
-    CALL NROT   ; ps ud1 
-    CALL DDUP   ; ps ud1 ud1  
-    CALL RFROM  ; ps ud1 ud1 ud2hi 
-    CALL DSSTAR ; ps ud1 dprodhi 
+    CALL DTOR 
+    CALL DABS
+    CALL DDUP   ; ud1 ud1  
+    CALL RFROM  ; ud1 ud1 ud2hi 
+    CALL DSSTAR ; ud1 dprodhi 
 ; shift partial product 16 bits left 
     _DROP   ; drop overflow 
-    CALL ZERO   ; ps ud1 prodhi 
+    CALL ZERO   ; ud1 prodhi 
     CALL SWAPP  
-    CALL DSWAP  ; ps dprodhi ud1 
-    CALL RFROM  ; ps dprodhi ud1 ud2lo
-    CALL DSSTAR ; ps  dprodhi dprodlo 
-    CALL DPLUS
-    CALL ROT    ; dprod ps 
+    CALL DSWAP  ; dprodhi ud1 
+    CALL RFROM  ; dprodhi ud1 ud2lo
+    CALL DSSTAR ; dprodhi dprodlo 
+    CALL DPLUS    
+    CALL RFROM    ; dprod ps 
     _QBRAN DDSTAR3 
-    CALL DNEGA 
+    JP DNEGA 
 DDSTAR3:  
     RET 
 
@@ -793,10 +794,18 @@ DDSTAR3:
 ;  UD/MOD ( ud1 ud2 -- dr udq )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER UDSLMOD,6,"UD/MOD"
+;;;;;;;;;;;LOCAL VARIABLES ;;;;;;;;;;;;;;;;
+    QLO = 9   ; 4 
+    QHI = 7   ; 3
+    CNT1 = 5  ; 2 
+    CNT2 = 3  ; 1
+    QLBIT = 1 ; 0
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; unsigned double division 
-    CALL ZERO 
-    CALL ZERO
-    CALL DTOR ; quotient  R: qlo qhi 
+    SUB SP,#5*CELLL ; space for local variables 
+    CLRW Y 
+    LDW (QLO,SP),Y 
+    LDW (QHI,SP),Y ; quotient=0  
     CALL DOVER 
     CALL DCLZ ; n2, dividend leading zeros  
     CALL TOR 
@@ -804,59 +813,58 @@ DDSTAR3:
     CALL DCLZ  ; n1, divisor leading zeros
     CALL RFROM ; n1 n2 
     CALL SUBB  ; loop count 
-    CALL DUPP
-    CALL DTOR  ; ud1 ud2 R: qlo qhi cntr cntr 
-    CALL RAT    
-    CALL ZLESS 
-    _TBRAN UDSLA7 ; quotient is null 
-    CALL RAT 
+    LDW Y,X 
+    LDW Y,(Y)
+    LDW (CNT1,SP),Y 
+    LDW (CNT2,SP),Y 
+    TNZW Y 
+    JRMI UDSLA7 ; quotient is null 
     CALL DLSHIFT ; align divisor with dividend 
+    CLRW Y  
+    LDW (QLBIT,SP),Y ; quotient least bit R: qlo qhi cntr qlbit 
 UDSLA3: ; division loop -- dividend divisor  
-    CLRW Y 
-    PUSHW Y  
+    CLR (2,SP)  ; qlbit=0 
     CALL DOVER 
     CALL DOVER 
     CALL DLESS 
     _TBRAN UDSLA4 
-    POPW Y 
-    ADDW Y,#1 
-    PUSHW Y    ; quotiend least bit 
+; divident >= divisor then substract     
+    INC (2,SP) ; quotient least bit 1 
     CALL DDUP  ; dividend divisor divisor 
     CALL DTOR  
     CALL DSUB  ; dividend-divisor 
     CALL DRFROM  ; dividend- divisor  
-UDSLA4: ; shift quotient and add 1 bit 
-    POPW Y 
-    LDW YTEMP,Y 
-    LDW Y,(7,SP) ; quotient low 
+UDSLA4: ; shift quotient and add qlbit 
+    LDW Y,(QLO,SP) ; quotient low 
     RCF 
     RLCW Y
-    LDW (7,SP),Y 
-    LDW Y,(5,SP) ; quotient hi 
+    LDW (QLO,SP),Y 
+    LDW Y,(QHI,SP) ; quotient hi 
     RLCW Y 
-    LDW (5,SP),Y 
-    LDW Y,(7,SP) 
-    ADDW Y,YTEMP
-    LDW (7,SP),Y 
-    LDW Y,(1,SP) ; loop counter 
+    LDW (QHI,SP),Y 
+    LDW Y,(QLO,SP) 
+    ADDW Y,(QLBIT,SP)
+    LDW (QLO,SP),Y 
+    LDW Y,(CNT2,SP) ; loop counter 
     TNZW Y 
     JREQ UDSLA8
     SUBW Y,#1  
-    LDW (1,SP),Y  
+    LDW (CNT2,SP),Y  
 ; shift dividend left 1 bit      
     CALL DSWAP 
     CALL D2STAR 
     CALL DSWAP 
     JRA UDSLA3 
 UDSLA7:
+    _DROP 
     CALL ZERO 
-    _DOLIT 1 
-    CALL NRSTO ; R: 0 0 0 cntr    
+    _DOLIT 2   ; cnt1 local var 
+    CALL NRSTO ; R: 0 0 cnt1 cnt2 qlbit     
 UDSLA8:
     ADDW X,#4 ; drop divisor
-    CALL RFROM  
-    _DROP ; drop cntr 
-    CALL RFROM   ; shift count
+    CALL DRFROM  
+    _DDROP ; drop cnt2 qlbit  
+    CALL RFROM   ; cnt1 
     CALL DRSHIFT 
     ; quotient replace dividend 
     CALL DRFROM  ; quotient 
