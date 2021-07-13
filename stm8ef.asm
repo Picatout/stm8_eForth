@@ -1944,8 +1944,11 @@ MMOD3:	RET
         XOR A,(4,SP)
         JRPL SLMOD1
 ; dividend and divisor are opposite sign          
-        CALL ONEP   ; add one to quotient 
         CALL NEGAT ; negative quotient
+        CALL OVER 
+        CALL ZEQUAL 
+        _TBRAN SLMOD8 
+        CALL ONEM   ; add one to quotient 
         CALL RAT 
         CALL ROT 
         CALL SUBB  ; corrected_remainder=divisor-remainder 

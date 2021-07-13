@@ -795,14 +795,14 @@ DDSTAR3:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER UDSLMOD,6,"UD/MOD"
 ;;;;;;;;;;;LOCAL VARIABLES ;;;;;;;;;;;;;;;;
-    QLO = 9   ; 4 
-    QHI = 7   ; 3
-    CNT1 = 5  ; 2 
-    CNT2 = 3  ; 1
-    QLBIT = 1 ; 0
+    QLO = 7   ;   int16 
+    QHI = 5   ;   int16 
+    CNT1 = 4  ;   byte 
+    CNT2 = 3  ;   byte 
+    QLBIT = 1 ;   int16
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; unsigned double division 
-    SUB SP,#5*CELLL ; space for local variables 
+    SUB SP,#4*CELLL ; space for local variables 
     CLRW Y 
     LDW (QLO,SP),Y 
     LDW (QHI,SP),Y ; quotient=0  
@@ -815,8 +815,9 @@ DDSTAR3:
     CALL SUBB  ; loop count 
     LDW Y,X 
     LDW Y,(Y)
-    LDW (CNT1,SP),Y 
-    LDW (CNT2,SP),Y 
+    LD A,YL 
+    LD (CNT1,SP),A
+    LD (CNT2,SP),A 
     TNZW Y 
     JRMI UDSLA7 ; quotient is null 
     CALL DLSHIFT ; align divisor with dividend 
@@ -826,15 +827,14 @@ UDSLA3: ; division loop -- dividend divisor
     CLR (2,SP)  ; qlbit=0 
     CALL DOVER 
     CALL DOVER 
-    CALL DLESS 
-    _TBRAN UDSLA4 
-; divident >= divisor then substract     
+    CALL DSUB
+    LD A,(X)
+    JRMI UDSLA4  
+    CALL DSWAP 
+    CALL DROT 
     INC (2,SP) ; quotient least bit 1 
-    CALL DDUP  ; dividend divisor divisor 
-    CALL DTOR  
-    CALL DSUB  ; dividend-divisor 
-    CALL DRFROM  ; dividend- divisor  
 UDSLA4: ; shift quotient and add qlbit 
+    _DDROP 
     LDW Y,(QLO,SP) ; quotient low 
     RCF 
     RLCW Y
@@ -845,11 +845,9 @@ UDSLA4: ; shift quotient and add qlbit
     LDW Y,(QLO,SP) 
     ADDW Y,(QLBIT,SP)
     LDW (QLO,SP),Y 
-    LDW Y,(CNT2,SP) ; loop counter 
-    TNZW Y 
-    JREQ UDSLA8
-    SUBW Y,#1  
-    LDW (CNT2,SP),Y  
+    LD A,(CNT2,SP)
+    JREQ UDSLA8 
+    DEC (CNT2,SP) ; loop counter  
 ; shift dividend left 1 bit      
     CALL DSWAP 
     CALL D2STAR 
@@ -862,9 +860,12 @@ UDSLA7:
     CALL NRSTO ; R: 0 0 cnt1 cnt2 qlbit     
 UDSLA8:
     ADDW X,#4 ; drop divisor
-    CALL DRFROM  
-    _DDROP ; drop cnt2 qlbit  
-    CALL RFROM   ; cnt1 
+    ADDW SP,#3 ; drop cnt2 qlbit   
+    POP A 
+    CLRW Y 
+    LD YL,A 
+    SUBW X,#CELLL 
+    LDW (X),Y  
     CALL DRSHIFT 
     ; quotient replace dividend 
     CALL DRFROM  ; quotient 
@@ -888,10 +889,13 @@ UDSLA8:
     LD A,(5,SP) ; sdivnd 
     XOR A,(6,SP) ; 
     JRPL DSLA8 
+    CALL DNEGA ; negate quotient  
+    CALL DOVER 
+    CALL DZEQUAL
+    _TBRAN DSLA9 
     CALL ONE 
     CALL ZERO 
-    CALL DPLUS 
-    CALL DNEGA ; negate quotient  
+    CALL DSUB  
     CALL DRAT 
     CALL DROT 
     CALL DSUB  ; corrected_remainder=divisor-remainder 

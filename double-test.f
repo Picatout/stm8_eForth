@@ -214,6 +214,10 @@
     #-57 #-5 d/mod 
     ." quotient=" d.  
     ." , remainder=" d. cr 
+    ." #-55 #-5 d/mod" cr
+    #-55 #-5 d/mod 
+    ." quotient=" d. 
+    ." , remainder=" d. cr  
 ; 
 
 : +-test 

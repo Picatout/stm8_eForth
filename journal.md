@@ -6,6 +6,10 @@ DESCRIPTION: project log.
 
 #### 2021-07-12
 
+* Corrigé bogue dans **/MOD** et **D/MOD** qui ne donnait pas la bonne réponse lorsque le reste était nul.
+
+* Optimisation supplémentaire de **UD/MOD**. 
+
 * Corrigé bogue dans *parse_digits*, fichier [double.asm](double.asm). 
 
 * Optimisation de **UD/MOD**. 
