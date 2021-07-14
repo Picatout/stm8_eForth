@@ -924,46 +924,82 @@ MMSTA7:
     _HEADER FSLASH,2,"F/"
     CALL ATEXP  ; f#1 m2 e2 
     CALL TOR    ; f#1 m2   R: e2 
-    CALL DSIGN  ; f#1 m2 m2sign 
-    CALL TOR    ; F#1 m2 R: e2 m2s 
+; m2 sign 
+    CLRW  Y
+    LD A,(X)
+    JRPL 1$  
+    CPLW Y  
+1$: PUSHW Y     ; f#1 m2 R: e2 m2s  
     CALL DABS   ; F#1 um2 
     CALL DSWAP  ; m2 f#1 
     CALL ATEXP  ; m2 m1 e1 
-    CALL ONE    ; e2 slot on rstack  
-    CALL NRAT   ; m2 m1 e1 e2 
-    CALL SUBB   ; m2 m1 e 
-    CALL ONE    ; e slot on rstack 
-    CALL NRSTO  ; m2 m1 R: e m2s 
-    CALL DSIGN  ; m2 m1 m1sign 
-    CALL RFROM  ; m2 m1 m1s m2s  
-    CALL XORR   ; m2 m1 quot_sign R: e 
-    CALL RFROM   
-    CALL DTOR   ; m2 m1 R: qs e  
+; substract expoenents e1-e2 
+    LDW Y,X 
+    LDW Y,(Y)
+    ADDW X,#CELLL 
+    SUBW Y,(3,SP)
+    LDW (3,SP),Y     
+;    CALL ONE    ; e2 slot on rstack  
+;    CALL NRAT   ; m2 m1 e1 e2 
+;    CALL SUBB   ; m2 m1 e 
+;    CALL ONE    ; e slot on rstack 
+;    CALL NRSTO  ; m2 m1 R: e m2s 
+; m1 sign xor m2 sign 
+    CLR A
+    LDW Y,X 
+    LDW Y,(Y)
+    JRPL 2$
+    CPL A  
+2$: XOR A,(1,SP)
+    LD YTEMP,A 
+    LD YTEMP+1,A 
+; swap e qs on rstack 
+    LDW Y,(3,SP) ; e 
+    ldw (1,SP),Y 
+    LDW Y,YTEMP 
+    LDW (3,SP),Y ; m2 m1 R: qs e 
     CALL DABS   ; um2 um1 R: qs e  
     CALL DSWAP  ; m1 m2 R: qs e
     CALL DDUP  ; m1 m2 m2 R: qs e
-    CALL DTOR  ; m1 m2 R: qs e m2 ( keep divisor need later ) 
+    CALL DTOR  ; m1 m2 R: qs e m2 ( keep divisor needed later ) 
     CALL UDSLMOD ; remainder m1/m2 R: e m2 
-FSLASH1: 
-    CALL DOVER ; if remainder null done 
-    CALL DZEQUAL 
-    _TBRAN FSLASH8 
+FSLASH1: ; fraction loop 
+; check of null remainder 
+    LD A,(4,X)
+    OR A,(5,X)
+    OR A,(6,X)
+    OR A,(7,X)
+    JREQ FSLASH8 
 ; get fractional digits from remainder until mantissa saturate
 ; remainder mantissa R: e divisor 
 ; check for mantissa saturation 
     CALL DDUP 
-    _DOLIT 0XCCCC 
-    _DOLIT 0xC
+; _DOLIT #0xccccc 
+    SUBW X,#2*CELLL 
+    LDW Y,#0XCCCC 
+    LDW (2,X),Y 
+    LDW Y,#0XC 
+    LDW (X),Y 
     CALL DGREAT 
     _TBRAN FSLASH8 ; another loop would result in mantissa overflow 
 ; multiply mantissa by 10 
-    _DOLIT 10 
-    CALL ZERO 
+; _DOLIT #10
+    SUBW X,#2*CELLL 
+    LDW Y,#10 
+    LDW (2,X),Y 
+; CALL ZERO 
+    CLRW Y 
+    LDW (X),Y 
     CALL DSTAR 
 ; mutliply remainder by 10     
     CALL DSWAP 
-    _DOLIT 10 
-    CALL ZERO 
+;    _DOLIT #10 
+    SUBW X,#2*CELLL 
+    LDW Y,#10 
+    LDW (2,X),Y 
+;    CALL ZERO 
+    CLRW Y 
+    LDW (X),Y
     CALL DSTAR 
 ; divide remainder by m2     
     CALL DRAT  ; mantissa remainder divisor R: e divisor 
@@ -974,26 +1010,23 @@ FSLASH1:
     CALL DRFROM ; mantissa remainder R: qs e divisor  
     CALL DSWAP  ; remainder mantissa  
 ; increment e 
-    _DOLIT 2    ; e slot on rstack 
-    CALL NRAT   ;  2 NR@ -- e 
-    CALL ONEP   ; increment exponent 
-    _DOLIT 2 
-    CALL NRSTO  ; e 2 NR! , update e on rstack     
+    LDW Y,(5,SP) ; e 
+    DECW Y 
+    LDW (5,SP),Y 
     JRA FSLASH1
 FSLASH8: ; remainder mantissa R: qs e divisor 
     CALL DSWAP  
     _DDROP  ; drop remainder     
-    CALL DRFROM
-    _DDROP  ; drop divisor 
-    CALL JFETCH    ; quotient sign 
-    _QBRAN FSLASH9 
+    ADDW SP,#2*CELLL ; drop divisor on rstack     
+    LDW Y,(3,SP)    ; quotient sign 
+    JRPL FSLASH9 
     CALL DNEGA  
 FSLASH9:
     CALL RFROM  ; exponent 
     CALL STEXP 
-    CALL RFROM 
-    _DROP ; drop qs 
+    ADDW SP,#CELLL ; drop qs on rstack 
     RET 
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   D>F  ( # -- f# )

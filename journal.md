@@ -4,6 +4,12 @@ AUTHOR: Jacques Deschênes
 DESCRIPTION: project log.
 -->
 
+#### 2021-07-13
+
+* Corrigé bogue et travail d'optimisation de **F/**. 
+
+* ajout de performance à [float-test.f](float-test.f)
+
 #### 2021-07-12
 
 * Corrigé bogue dans **/MOD** et **D/MOD** qui ne donnait pas la bonne réponse lorsque le reste était nul.
