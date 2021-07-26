@@ -392,7 +392,9 @@ uart_init:
         rim
         jp  COLD   ;default=MN1
 
-        LINK=0 
+
+        LINK = 0  ; used by _HEADER macro 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;        
 ;; place MCU in sleep mode with
 ;; halt opcode 
@@ -2679,38 +2681,39 @@ DGTQ1:  CALL     DUPP
         CALL     RFROM
         JP     ULESS
 
-.if  WANT_DOUBLE
-.else 
+.if  WANT_DOUBLE  
+.iff 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       NUMBER? ( a -- n T | a F )
 ;       Convert a number string to
 ;       integer. Push a flag on tos.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER NUMBQ,7,"NUMBER?"
+; save BASE
         CALL     BASE
         CALL     AT
         CALL     TOR
         CALL     ZERO
         CALL     OVER
-        CALL     COUNT
+        CALL     COUNT ; string length,  a 0 a+ cnt 
+;  check hexadecimal character        
         CALL     OVER
         CALL     CAT
-        CALL     DOLIT
-        .word     36	; "0x"
+        _DOLIT   '$'  ; hex? 
         CALL     EQUAL
-        CALL     QBRAN
-        .word      NUMQ1
+        _QBRAN   NUMQ1
         CALL     HEX
         CALL     SWAPP
         CALL     ONEP
         CALL     SWAPP
         CALL     ONEM
+; check for negative sign         
 NUMQ1:  CALL     OVER
         CALL     CAT
-        CALL     DOLIT
-        .word     45	; "-"
+        _DOLIT   '-'
         CALL     EQUAL
-        CALL     TOR
+        CALL     TOR    ; a 0 a+ cnt R: base sign 
+; update address and count 
         CALL     SWAPP
         CALL     RAT
         CALL     SUBB
@@ -2718,47 +2721,53 @@ NUMQ1:  CALL     OVER
         CALL     RAT
         CALL     PLUS
         CALL     QDUP
-        CALL     QBRAN
-        .word      NUMQ6
+        _QBRAN   NUMQ4  ; end of string  a 0 a+ R: base sign 
         CALL     ONEM
-        CALL     TOR
-NUMQ2:  CALL     DUPP
-        CALL     TOR
-        CALL     CAT
-        CALL     BASE
-        CALL     AT
-        CALL     DIGTQ
-        CALL     QBRAN
-        .word      NUMQ4
-        CALL     SWAPP
-        CALL     BASE
-        CALL     AT
-        CALL     STAR
-        CALL     PLUS
-        CALL     RFROM
-        CALL     ONEP
-        CALL     DONXT
-        .word      NUMQ2
-        CALL     RAT
-        CALL     SWAPP
-        CALL     DROP
-        CALL     QBRAN
-        .word      NUMQ3
-        CALL     NEGAT
+        CALL     TOR   ; a 0 a+ -- R: base sign cnt 
+NUMQ2:  CALL     COUNT  ; a n a+ c  
+        CALL     BASE 
+        CALL     AT 
+        CALL     DIGTQ 
+        _QBRAN   NUMQ6  ; not a digit 
+        CALL     ROT    ; a a+ c n 
+        CALL     BASE 
+        CALL     AT 
+        CALL    STAR 
+        CALL    PLUS 
+        CALL    SWAPP  ; a n a+  R: base sign cnt 
+        _DONXT   NUMQ2
+        CALL    DROP   ; a n  R: base sign 
+        CALL     RFROM   ; a n sign R: base 
+        _QBRAN   NUMQ3
+        CALL     NEGAT ; a n R: base 
 NUMQ3:  CALL     SWAPP
-        JRA     NUMQ5
+        LDW  Y, #-1 
+        LDW (X),Y     ; n -1 R: base 
+        JRA      NUMQ9
 NUMQ4:  CALL     RFROM
-        CALL     RFROM
         CALL     DDROP
-        CALL     DDROP
-        CALL     ZERO
-NUMQ5:  CALL     DUPP
-NUMQ6:  CALL     RFROM
-        CALL     DDROP
+        JRA      NUMQ9 
+NUMQ6:  
+.if WANT_FLOAT24 
+.ift 
+        CALL     DROP 
+        CALL     ONEM ; a n a+ 
+        CALL     RFROM  ; a n a+ cnt
+        CALL     ONEP    
+        CALL     RFROM ; a n a+ cnt sign 
+        CALL     FLOATQ  
+.iff
+        ADDW SP,#4 ; remove sign and cnt from rstack 
+        ADDW  X,#CELLL ; drop a+   S: a n  R: sign 
+        CLRW Y  
+        LDW (X),Y  ;  a 0 R: base 
+.endif 
+; restore BASE 
+NUMQ9: 
         CALL     RFROM
         CALL     BASE
-        JP     STORE
-.endif ; WANT_DOUBLE  
+        JP       STORE
+.endif ; WANT_DOUBLE   
 
 ;; Basic I/O
 
@@ -3892,14 +3901,25 @@ PNAM1:  CALL     STRQP
         .word      SCOM1
         JP     EXECU
 SCOM1:  JP     JSRC
-SCOM2:  CALL     NUMBQ   ;try to convert to number
+SCOM2:  CALL     NUMBQ   ;try to convert to number 
         CALL    QDUP  
         CALL     QBRAN
         .word      ABOR1
+.if WANT_DOUBLE 
         _DOLIT  -1
         CALL    EQUAL
-        _QBRAN DLITER  
+        _QBRAN DLITER
+        JP  LITER 
+.endif 
+.if WANT_FLOAT24 
+        _DOLIT -1 
+        CALL EQUAL 
+        _QBRAN FLITER
+        JP  LITER  
+.endif 
+        _DROP 
         JP     LITER
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       OVERT   ( -- )
@@ -4594,7 +4614,7 @@ COLD1:  CALL     DOLIT
         CALL     DOLIT
 	.word      UEND-UZERO
         CALL     CMOVE   ;initialize user area
-.if WANT_FLOAT 
+.if WANT_FLOAT + WANT_FLOAT24 
         CALL    FINIT 
 .endif 
 ; if APP_RUN==0 initialize with ca de 'hi'  
@@ -4654,6 +4674,9 @@ COLD1:  CALL     DOLIT
 .endif 
 .if WANT_FLOAT 
         .include "float.asm"
+.endif 
+.if WANT_FLOAT24 
+        .include "float24.asm"
 .endif 
 
 ;===============================================================

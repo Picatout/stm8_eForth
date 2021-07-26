@@ -33,7 +33,7 @@ EOL_LF=0
 ; set to 1 to include 
 ; scaling constants vocabulary
 ; see: const_ratio.asm 
-WANT_SCALING_CONST = 1
+WANT_SCALING_CONST = 0
 
 ; set to 1 to include 
 ; constants tables vocabulary 
@@ -41,12 +41,16 @@ WANT_SCALING_CONST = 1
 WANT_CONST_TABLE=1
 
 ; include double library 
-WANT_DOUBLE = 1 
+WANT_DOUBLE = 0
 
 ; to include floating point 
 ; library
 ; require double library  
-WANT_FLOAT = 1
+WANT_FLOAT = 0
+
+; to include float24.asm 
+; library 
+WANT_FLOAT24 = 1
 
 ; set to 1 to make vocabulary 
 ; case sensitive 

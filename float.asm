@@ -916,6 +916,32 @@ MMSTA7:
     CALL STEXP ; f#3 
     RET 
 
+; unsigned mutliply by 10 
+;  ( ud -- ud ) 
+UMUL10:
+    LDW Y,X 
+    LDW Y,(2,Y)
+    PUSHW Y 
+    LDW Y,X 
+    LDW Y,(Y)
+    PUSHW Y 
+    SUBW X,#CELLL 
+    CLR (X)
+    LD A,#3 
+    LD (1,X),A 
+    CALL DLSHIFT 
+    SUBW X,#2*CELLL 
+    LDW Y,(3,SP)
+    RCF 
+    RLCW Y 
+    LDW (2,X),Y 
+    POPW Y 
+    RLCW Y 
+    LDW (X),Y 
+    CALL DPLUS
+    ADDW SP,#CELLL  
+    RET 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;  F/ ( f#1 f#2 -- f#3 )
 ;  float division
@@ -964,7 +990,7 @@ MMSTA7:
     CALL DTOR  ; m1 m2 R: qs e m2 ( keep divisor needed later ) 
     CALL UDSLMOD ; remainder m1/m2 R: e m2 
 FSLASH1: ; fraction loop 
-; check of null remainder 
+; check for null remainder 
     LD A,(4,X)
     OR A,(5,X)
     OR A,(6,X)
@@ -983,24 +1009,22 @@ FSLASH1: ; fraction loop
     CALL DGREAT 
     _TBRAN FSLASH8 ; another loop would result in mantissa overflow 
 ; multiply mantissa by 10 
-; _DOLIT #10
-    SUBW X,#2*CELLL 
-    LDW Y,#10 
-    LDW (2,X),Y 
-; CALL ZERO 
-    CLRW Y 
-    LDW (X),Y 
-    CALL DSTAR 
+;    SUBW X,#2*CELLL 
+;    LDW Y,#10 
+;    LDW (2,X),Y 
+;    CLRW Y 
+;    LDW (X),Y 
+;    CALL DSTAR
+    CALL UMUL10 
 ; mutliply remainder by 10     
     CALL DSWAP 
-;    _DOLIT #10 
-    SUBW X,#2*CELLL 
-    LDW Y,#10 
-    LDW (2,X),Y 
-;    CALL ZERO 
-    CLRW Y 
-    LDW (X),Y
-    CALL DSTAR 
+;    SUBW X,#2*CELLL 
+;    LDW Y,#10 
+;    LDW (2,X),Y 
+;    CLRW Y 
+;    LDW (X),Y
+;    CALL DSTAR 
+    CALL UMUL10 
 ; divide remainder by m2     
     CALL DRAT  ; mantissa remainder divisor R: e divisor 
     CALL UDSLMOD ; mantissa dr dq R: qs e divisor 

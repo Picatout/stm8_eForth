@@ -4,6 +4,23 @@ AUTHOR: Jacques Deschênes
 DESCRIPTION: project log.
 -->
 
+#### 2021-07-25
+
+
+* Recodé **NUMBER?** dans fichier [stm8ef.asm](stm8ef.asm).
+
+* Corrigé bogue dans **$COMPILE** fichier [stm8ef.asm](stm8ef.asm).
+
+* Corrigé bogue dans **2LITERAL** fichier [double.asm](double.asm).
+
+* Débute travrail sur une nouvelle lilbrarie [float24.asm](float24.asm). Celle-ci de dépendera pas de [double.asm](double.asm). Le système sera donc plus compacte et les calculs sur en virgules flotttantes plus rapide. L'écart dynamique sera le même que pour les float32 mais avec une perte de précision sur la mantisse.  qui sera de 4.5 i.e log(32767) décimales au lieu de 6.9, i.e. log(8388608). 
+
+* double.asm et float.asm passe les tests [double-test.f](double-test.f) et [float-test.f](float-test.f). 
+
+#### 2021-07-17
+
+* Optimisation de **F/** par factorisation d'un **UMUL10** spécialisé. 
+
 #### 2021-07-13
 
 * Corrigé bogue et travail d'optimisation de **F/**. 

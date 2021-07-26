@@ -635,7 +635,7 @@ DZLESS1:
 ;  2LITERAL ( d -- )
 ;  compile double literal 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER DLITER,IMEDD+8,"2LITERAL"
+    _HEADER DLITER,COMPO+IMEDD+8,"2LITERAL"
     CALL COMPI 
     .word do2lit 
     CALL COMMA 
