@@ -376,7 +376,7 @@ parse_digits:
     CALL DUPP 
     _QBRAN parse_d5  
     CALL TOR   ; n a R: cntr 
-    CALL COUNT ; n a+ char 
+1$: CALL COUNT ; n a+ char 
     CALL BASE 
     CALL AT 
     CALL DIGTQ 
@@ -470,6 +470,12 @@ PARSEXP_SUCCESS: ; n a
     CALL TOR  ; R: sign cntr 
 ; parse fractional part
     CALL parse_digits ; a n a+ cntr -- n a cntr 
+    _DOLIT 2 
+    CALL  PICK ; n a cnt n  
+    CALL ZLESS  
+    CALL ABORQ 
+    .byte 17 
+    .ascii "mantissa overflow"
     CALL DUPP 
     CALL RFROM 
     CALL SWAPP 
@@ -491,6 +497,13 @@ FLOATQ2:
 FLOATQ3: ; m 0 || m e  
     CALL RFROM ;  fd  
     CALL SUBB  ; exp=e-fd 
+    CALL DUPP
+    CALL ABSS  
+    _DOLIT 127
+    CALL GREAT 
+    CALL ABORQ 
+    .byte 17 
+    .ascii "exponent overflow" 
     CALL SWAPP  
     CALL RFROM  ; sign 
     _QBRAN FLOATQ4 
@@ -730,36 +743,8 @@ SCALDN2:
 SCALDN3:
     RET 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   SCALE>M ( u -- e u* )
-;   scale down an unsigned  
-;   by repeated u/10
-;   until u<=MAX_MANTISSA   
-;   e is log10 exponent of scaled down
-;   u* is scaled down u 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER SCALETOM,7,"SCALE>M"
-    CALL ZERO 
-    CALL SWAPP  
-SCAL1:
-    CALL DUPP 
-    _DOLIT MAX_MANTISSA 
-    CALL UGREAT 
-    _QBRAN SCAL2  
-    _DOLIT 10  
-    CALL USLMOD 
-    CALL SWAPP 
-    _DOLIT 5 
-    CALL LESS 
-    _TBRAN SCAL15 
-    CALL ONEP 
-SCAL15:     
-    CALL SWAPP 
-    CALL ONEP 
-    CALL SWAPP 
-    JRA SCAL1 
-SCAL2: 
-    RET 
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;  F-ALIGN ( f#1 f#2 -- m1 m2 e )
@@ -871,17 +856,64 @@ FALGN10: ; m1 m2
     RET 
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  add 2 mantissa and ajust 
+;  for overflow 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+MPLUS: ; m1 m2 e -- m* e* )  
+    CALL TOR 
+    LDW Y,X 
+    LDW Y,(Y)
+    PUSHW Y 
+    LDW Y,X 
+    LDW Y,(2,Y)
+    ADDW Y,(1,SP)
+    LDW (2,X),Y ; sum 
+    POPW Y ; drop local variable m2 
+    JRNV 3$  ; no overflow, done 
+; increment e 
+    LDW Y,(1,SP) ; e
+    ADDW Y,#1    ; increment e 
+    LDW (1,SP),Y
+; divide mantissa by 10
+    LD A,(2,X) 
+    PUSH A 
+    JRMI 0$ 
+    LDW Y,X 
+    LDW Y,(2,Y)
+    NEGW Y 
+    LDW (2,X),Y 
+0$: LDW Y,#10 
+    LDW (X),Y 
+    CALL USLMOD ; remainder  sum/10 
+    CALL SWAPP
+    _DOLIT 5 
+    CALL LESS
+    POP A 
+    _TBRAN 2$
+    LDW Y,X
+    LDW Y,(Y) 
+    ADDW Y,#1
+    TNZ A 
+    JRMI 1$
+    NEGW Y 
+1$: LDW (X),Y  
+2$: SUBW X,#CELLL  
+3$: 
+    POPW Y  ; e 
+    LDW (X),Y  ; e  
+    RET 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   F+ ( f#1 f#2 -- f#1+f#2 )
 ;   float addition 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FPLUS,2,"F+"
     CALL FALIGN 
-    CALL TOR 
-    CALL PLUS
-    CALL RFROM 
+    CALL MPLUS
     CALL SET_FPSW
     RET 
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;  F- ( f#1 f#2 -- f#1-f#2 )

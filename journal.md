@@ -4,6 +4,10 @@ AUTHOR: Jacques Deschênes
 DESCRIPTION: project log.
 -->
 
+#### 2021-07-27 
+
+*  Ajout de **MPLUS** dans [float24.asm](float24.asm). Compensation des débordements de mantisse lors de l'addition. 
+
 #### 2021-07-26
 
 * Travail sur [float24.asm](float24.asm).
