@@ -4,8 +4,15 @@ AUTHOR: Jacques Deschênes
 DESCRIPTION: project log.
 -->
 
-#### 2021-07-25
+#### 2021-07-26
 
+* Travail sur [float24.asm](float24.asm).
+
+* Modification à **E.** dans [float.asm](float.asm) pour supprimer l'espace entre le E et l'exposant.
+
+* Ajout de **SET-FPSW**. 
+
+#### 2021-07-25
 
 * Recodé **NUMBER?** dans fichier [stm8ef.asm](stm8ef.asm).
 

@@ -135,6 +135,31 @@
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  SET-FPSW ( f24 -- f24 )
+;  set float status word 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER SET_FPSW,8,"SET-FPSW"
+    CLR UFPSW+1 
+    LDW Y,X 
+    LDW Y,(2,Y) ; m 
+    JRNE 1$
+    BSET UFPSW+1,#0  ; null mantissa 
+    JRA 4$ 
+1$: JRPL 2$    
+    BSET UFPSW+1,#1  ; negative mantissa 
+2$: LDW Y,X 
+    LDW Y,(Y) ; e 
+    CPW Y,#-127  
+    JRMI 3$
+    CPW Y,#128 
+    JRMI 4$ 
+3$:
+    CP A,#255 
+    JREQ 3$
+    BSET UFPSW+1,#2  ; overflow         
+4$: RET 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    SFZ ( f# -- f# )
 ;    set FPSW zero flag 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -185,6 +210,19 @@
     CALL STORE 
     RET 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   MSIGN  (m -- m -1|0 )
+;   get mantissa sign 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+     _HEADER MSIGN,5,"MSIGN"
+    CLRW Y 
+    LD A,(X)
+    JRPL 1$
+    CPLW Y 
+1$: SUBW X,#CELLL 
+    LDW (X),Y 
+    RET 
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   E. ( f# -- )
@@ -195,23 +233,24 @@
     CALL BASE 
     CALL AT 
     CALL TOR 
-    _DOLIT 10 
-    CALL BASE 
-    CALL STORE 
-EDOT0:
+    CALL DECIM 
+    CALL SET_FPSW
+EDOT0: 
     CALL TOR   ; R: e 
     CALL ABSS 
     CALL SPACE 
     CALL BDIGS     
 EDOT2: 
+    CALL DUPP 
+    _DOLIT 10 
+    CALL LESS 
+    _TBRAN EDOT3 
     CALL DIG
     CALL RFROM 
     CALL ONEP 
     CALL TOR 
-    CALL DUPP
-    _DOLIT 10 
-    CALL LESS 
-    _QBRAN EDOT2 
+    _BRAN EDOT2 
+EDOT3: 
     _DOLIT '.'
     CALL HOLD  
     CALL DIG
@@ -226,8 +265,9 @@ EDOT4:
     CALL QDUP 
     _QBRAN EDOT5     
     _DOLIT 'E'
-    CALL EMIT 
-    CALL DOT
+    CALL EMIT
+    _DOLIT 1  
+    CALL DOTR
 EDOT5: 
     CALL RFROM 
     CALL BASE 
@@ -243,9 +283,8 @@ EDOT5:
     CALL BASE 
     CALL AT 
     CALL TOR 
-    _DOLIT 10 
-    CALL BASE 
-    CALL STORE 
+    CALL DECIM 
+    CALL    SET_FPSW 
     CALL    DUPP  
     CALL    ABSS 
     _DOLIT  8
@@ -460,8 +499,7 @@ FLOATQ4:
     CALL ROT  
     _DROP 
     CALL SWAPP ; m e 
-    CALL SFN 
-    CALL SFZ 
+    CALL SET_FPSW 
     _DOLIT -3 
     RET       
 FLOAT_ERROR0: 
@@ -475,6 +513,32 @@ FLOAT_ERROR:
     CALL PLUS  
     CALL SPSTO 
     CALL ZERO 
+    RET 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  LSCALE ( f24 -- f24 )
+;  m *=10 , e -= 1
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER LSCALE,6,"LSCALE"
+    CALL ONE 
+    CALL SUBB 
+    CALL TOR
+    _DOLIT 10 
+    CALL STAR
+    CALL RFROM 
+    RET  
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  RSCALE ( f# -- f# )
+;  m /=10 , e+=1 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER RSCALE,6,"RSCALE"
+    CALL ONE 
+    CALL PLUS 
+    CALL TOR 
+    _DOLIT 10 
+    CALL SLASH  
+    CALL RFROM 
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -611,6 +675,224 @@ DOF24CONST:
     LD A,#255 
     LD YH,A 
 1$: LDW (X),Y ; m e -- 
+    JP SET_FPSW 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  SCALEUP ( um u1 u2 -- um* u1 u2* )
+;  while (um<=0xccc && u1<u2 ){
+;        um*10;
+;        u2--;
+;  }  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+SCALEUP:
+    CALL DDUP
+    CALL LESS  
+    _QBRAN SCALEUP3
+    CALL ROT 
+    CALL DUPP 
+    _DOLIT 0XCCC 
+    CALL GREAT  
+    _TBRAN SCALEUP2 
+    _DOLIT 10 
+    CALL STAR 
+    CALL NROT 
+    CALL ONEM
+    JRA SCALEUP
+SCALEUP2:
+    CALL NROT 
+SCALEUP3: 
+    RET 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; SCALEDOWN ( um u1 u2 -- um* u1 u2* )
+;  whhile (um && u1>u2 ){ 
+;     um/10;
+;     u2++;
+;  } 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+SCALEDOWN: 
+    CALL DDUP 
+    CALL GREAT 
+    _QBRAN SCALDN3 
+    CALL ROT  
+    CALL DUPP 
+    CALL ZEQUAL 
+    _TBRAN SCALDN2  
+    _DOLIT 10
+    CALL SLASH 
+    CALL NROT  
+    CALL ONEP  
+    JRA SCALEDOWN 
+SCALDN2:
+    CALL NROT  
+SCALDN3:
+    RET 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   SCALE>M ( u -- e u* )
+;   scale down an unsigned  
+;   by repeated u/10
+;   until u<=MAX_MANTISSA   
+;   e is log10 exponent of scaled down
+;   u* is scaled down u 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER SCALETOM,7,"SCALE>M"
+    CALL ZERO 
+    CALL SWAPP  
+SCAL1:
+    CALL DUPP 
+    _DOLIT MAX_MANTISSA 
+    CALL UGREAT 
+    _QBRAN SCAL2  
+    _DOLIT 10  
+    CALL USLMOD 
+    CALL SWAPP 
+    _DOLIT 5 
+    CALL LESS 
+    _TBRAN SCAL15 
+    CALL ONEP 
+SCAL15:     
+    CALL SWAPP 
+    CALL ONEP 
+    CALL SWAPP 
+    JRA SCAL1 
+SCAL2: 
+    RET 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  F-ALIGN ( f#1 f#2 -- m1 m2 e )
+;  align to same exponent 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER FALIGN,7,"F-ALIGN"
+    CALL TOR  
+    CALL SWAPP  ; m1 m2 e1 R: e2 
+    CALL RFROM ; m1 m2 e1 e2 
+    CALL DDUP  
+    CALL EQUAL 
+    _QBRAN FALGN1 
+    _DROP 
+    RET 
+FALGN1:     
+; scale mantissa absolute values 
+    CALL TOR 
+    CALL TOR   ; m1 m2 R: e2 e1 
+    CALL MSIGN 
+    CALL NROT  ; m2s m1 m2  
+    CALL ABSS  ; m2s m1 um2 
+    CALL SWAPP  ; m2s um2 m1 
+    CALL MSIGN ; m2s um2 m1 m1s 
+    CALL NROT  ; m2s m1s um2 m1     
+    CALL ABSS  ; m2s m1s um2 um1 
+    CALL SWAPP ; m2s m1s um1 um2       
+; scaleup the largest float 
+; but limit mantissa <=0xCCC 
+; to avoid mantissa overflow     
+    CALL RFROM 
+    CALL RFROM ; m2s m1s um1 um2 e1 e2 
+    CALL DDUP 
+    CALL LESS  
+    _QBRAN FALGN4 ; e2<e1 
+; e2>e1 then scale up m2   
+    CALL SCALEUP  ; ... um1 um2* e1 e2* 
+    JRA FALGN6
+FALGN4: ; e2<e1 then scaleup m1 
+    CALL TOR   ; ... um1 um2 e1 R: e2
+    CALL TOR   ; ... um1 um2 R: e2 e1 
+    CALL SWAPP 
+    CALL RFROM  
+    CALL RFROM 
+    CALL SWAPP ; .. um2 um1 e2 e1 
+    CALL SCALEUP ; um2 um1* e2 e1* 
+    CALL SWAPP 
+    CALL TOR
+    CALL TOR     
+    CALL SWAPP  ; um1 um2 R: e2 e1
+    CALL RFROM 
+    CALL RFROM
+    CALL SWAPP  ; ... um1 um2 e1 e2  
+; check again for e2==e1 
+; if scaleup was not enough 
+; to equalize exponent then
+; scaledown smallest float     
+FALGN6: 
+    CALL DDUP 
+    CALL EQUAL 
+    _TBRAN FALGN8 
+; e2!=e1 need to scale down smallest 
+    CALL DDUP
+    CALL LESS  
+    _QBRAN FALGN7 ; e2<e1 
+; e2>e1 scaledown m1 
+    CALL TOR 
+    CALL TOR 
+    CALL SWAPP   ; ... um2 um1 
+    CALL RFROM  ; ... um2 um1 e1 
+    CALL RFROM  ; ... um2 um1 e1 e2 
+    CALL SWAPP  ; ... um2 um1 e2 e1 
+    CALL SCALEDOWN
+    CALL SWAPP 
+    CALL TOR
+    CALL TOR 
+    CALL SWAPP   ; m1 m2 R: e2 e1  
+    CALL RFROM 
+    CALL RFROM   ; ... um1 um2 e1 e2 
+    JRA FALGN71  
+FALGN7: ; e2<e1 scaledown m2 
+    CALL SCALEDOWN 
+; after scaledown if e2!=e1 
+; this imply that one of mantissa 
+; as been nullified by scalling 
+; hence keep largest exponent 
+FALGN71:
+    CALL DDUP 
+    CALL EQUAL
+    _TBRAN FALGN8 
+    CALL DDUP  
+    CALL GREAT ; e1>e2 ? 
+    _TBRAN FALGN8
+    CALL SWAPP     
+FALGN8: ; m2s m1s um1 um2 e2 e1  
+    _DROP  ; m2s m1s um1 um2 e 
+    CALL TOR 
+    CALL TOR 
+    CALL SWAPP ; m2s um1 m1s 
+    _QBRAN FALGN9 
+    CALL NEGAT 
+FALGN9:  
+    CALL SWAPP 
+    CALL RFROM 
+    CALL SWAPP 
+    _QBRAN FALGN10 
+    CALL NEGAT 
+FALGN10: ; m1 m2 
+    CALL RFROM ; m1 m2 e 
+    RET 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   F+ ( f#1 f#2 -- f#1+f#2 )
+;   float addition 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER FPLUS,2,"F+"
+    CALL FALIGN 
+    CALL TOR 
+    CALL PLUS
+    CALL RFROM 
+    CALL SET_FPSW
+    RET 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  F- ( f#1 f#2 -- f#1-f#2 )
+;  substraction 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER FSUB,2,"F-"
+    CALL FALIGN 
+    CALL TOR 
+    CALL SUBB
+    CALL RFROM
+    CALL SET_FPSW
     RET 
 
 

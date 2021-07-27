@@ -318,8 +318,9 @@ EDOT4:
     CALL QDUP 
     _QBRAN EDOT5     
     _DOLIT 'E'
-    CALL EMIT 
-    CALL DOT
+    CALL EMIT
+    _DOLIT 1 
+    CALL DOTR
 EDOT5: 
     CALL RFROM 
     CALL BASE 
