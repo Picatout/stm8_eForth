@@ -3,6 +3,9 @@ TITLE: journal.md
 AUTHOR: Jacques Deschênes
 DESCRIPTION: project log.
 -->
+#### 2021-07-28 
+
+* Travail sur les comparateurs dans [float24.asm](float24.asm)
 
 #### 2021-07-27 
 

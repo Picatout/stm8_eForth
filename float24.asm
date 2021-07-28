@@ -927,3 +927,506 @@ MPLUS: ; m1 m2 e -- m* e* )
     JRA FPLUS  
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; /mod10  ( m -- m/10 r )
+; divide mantissa by 10 
+; return quotient and remainder 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+UMOD10:
+    _DOLIT 10 
+    CALL DSLMOD
+    CALL ROT  
+    RET 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   SCALE>M ( ud1 -- e ud2 )
+;   scale down a double  
+;   by repeated d/10
+;   until ud<=MAX_MANTISSA   
+;   e is log10 exponent of scaled down
+;   ud2 is scaled down ud1 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER SCALETOM,7,"SCALE>M"
+    CALL ZERO 
+    CALL NROT 
+SCAL1:
+    CALL DUPP 
+    _DOLIT 0X7F 
+    CALL UGREAT 
+    _QBRAN SCAL2  
+    CALL UMOD10 
+    _DROP 
+    CALL ROT 
+    CALL ONEP 
+    CALL NROT  
+    JRA SCAL1 
+SCAL2: 
+    RET 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  UDIV10 ( ut -- ut )
+;  divide a 48 bits uint by 10 
+;  used to scale down MM* 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+UDIV10:
+    LDW Y,X 
+    LDW Y,(Y)
+    LD A,#10 
+    DIV Y,A 
+    LDW (X),Y 
+    LD YH,A 
+    LD A,(2,X)
+    LD YL,A 
+    LD A,#10 
+    DIV Y,A 
+    LD YH,A 
+    LD A,YL 
+    LD (2,X),A 
+    LD A,(3,X)
+    LD YL,A 
+    LD A,#10 
+    DIV Y,A 
+    LD YH,A 
+    LD A,YL 
+    LD (3,X),A 
+    LD A,(4,X)
+    LD YL,A 
+    LD A,#10 
+    DIV Y,A 
+    LD YH,A 
+    LD A,YL 
+    LD (4,X),A 
+    LD A,(5,X)
+    LD YL,A 
+    LD A,#10 
+    DIV Y,A 
+    LD A,YL 
+    LD (5,X),A 
+    RET 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   MM* ( m1 m2 -- m3 e )
+;   mantissa product 
+;  scale down to 23 bits 
+;   e  is log10 scaling factor.
+;   The maximum product size 
+;   before scaling is 46 bits .
+;   UDIV10 is used to scale down.  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER MMSTAR,3,"MM*"
+    CALL DDUP
+    CALL DZEQUAL
+    _TBRAN MMSTA2
+MMSTA1:
+    CALL DOVER 
+    CALL DZEQUAL 
+    _QBRAN MMSTA3 
+MMSTA2: ; ( -- 0 0 0 )
+    ADDW X,#2 
+    CLRW Y 
+    LDW (X),Y 
+    LDW (2,X),Y
+    LDW (4,X),Y 
+    RET 
+MMSTA3:
+    CALL DSIGN 
+    CALL TOR    ; R: m2sign 
+    CALL DABS   ; m1 um2 
+    CALL DSWAP  ; um2 m1 
+    CALL DSIGN  ; um2 m1 m1sign 
+    CALL RFROM 
+    CALL XORR 
+    CALL TOR   ; R: product_sign 
+    CALL DABS  ; um2 um1  
+    CALL DTOR  ; um2 
+    CALL DUPP  ; um2 um2hi 
+    CALL RAT   ; um2 um2hi um1hi
+; first partial product  
+; pd1=um2hi*um1hi 
+    CALL STAR 
+    CALL ZERO 
+    CALL SWAPP ; pd1<<16  
+    CALL DSWAP ; pd1 um2 
+    CALL OVER  ; pd1 um2 um2lo 
+    CALL RFROM ; pd1 um2 um2lo um1hi 
+; pd2=um2lo*um1hi 
+    CALL UMSTA ; pd1 um2 pd2 
+    CALL DSWAP ; pd1 pd2 um2 
+    CALL RAT   ; pd1 pd2 um2 um1lo 
+; pd3= um2hi*um1lo 
+    CALL UMSTA ; pd1 pd2 um2lo pd3 
+    CALL ROT ; pd1 pd2 pd3 um2lo 
+    CALL TOR ; pd1 pd2 pd3 R: psign um1lo um2lo 
+; pd1+pd2+pd3  pd1
+    CALL DPLUS 
+    CALL DPLUS  
+    CALL DRFROM ; triple um2lo um1lo 
+; last partial product um2lo*um1lo 
+    CALL UMSTA ; prod pd4 
+; mm*=prod<<16+pd4  
+    CALL DTOR ;   R: psign pd4lo pd4hi  
+ ; add pd4hi to prodlo and propagate carry 
+    LDW Y,X 
+    LDW Y,(2,Y)  ; prodlo 
+    ADDW Y,(1,SP)  ; prodlo+pd4hi 
+    LDW (1,SP),Y    ; plo phi  
+    LDW Y,X
+    LDW Y,(Y) ; prodhi  
+    JRNC MMSTA4
+    ADDW Y,#1 ; add carry 
+MMSTA4:     
+    SUBW X,#2 
+    LDW (X),Y 
+    POPW Y 
+    LDW (2,X),Y 
+    POPW Y 
+    LDW (4,X),Y
+    CALL ZERO 
+    CALL TOR 
+MMSTA5:
+    CALL QDUP 
+    _QBRAN MMSTA6 
+    CALL UDIV10 
+    CALL RFROM 
+    CALL ONEP 
+    CALL TOR 
+    JRA MMSTA5 
+; now scale to double 
+; scale further <= MAX_MANTISSA 
+MMSTA6: 
+    CALL RFROM 
+    CALL NROT 
+    CALL SCALETOM
+    CALL DTOR 
+    CALL PLUS 
+    CALL DRFROM 
+    CALL RFROM
+    _QBRAN MMSTA7
+    CALL DNEGA
+MMSTA7:
+    CALL ROT ; m e 
+    RET 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;    F* ( f#1 f#2 -- f#3 )
+;    float product 
+;    f#3=f#1 * f#2 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER FSTAR,2,"F*"
+    CALL ATEXP ; f#1 m2 e2 
+    CALL TOR   
+    CALL DSWAP ; m2 f#1
+    CALL ATEXP ; m2 m1 e1 
+    CALL RFROM ; m2 m1 e1 e2 
+    CALL PLUS  ; m2 m1 e 
+    CALL TOR   ; m2 m1 R: e 
+    CALL MMSTAR ; m2*m1 e   
+    CALL RFROM 
+    CALL PLUS 
+    CALL STEXP ; f#3 
+    RET 
+
+; unsigned mutliply by 10 
+;  ( ud -- ud ) 
+UMUL10:
+    LDW Y,X 
+    LDW Y,(2,Y)
+    PUSHW Y 
+    LDW Y,X 
+    LDW Y,(Y)
+    PUSHW Y 
+    SUBW X,#CELLL 
+    CLR (X)
+    LD A,#3 
+    LD (1,X),A 
+    CALL DLSHIFT 
+    SUBW X,#2*CELLL 
+    LDW Y,(3,SP)
+    RCF 
+    RLCW Y 
+    LDW (2,X),Y 
+    POPW Y 
+    RLCW Y 
+    LDW (X),Y 
+    CALL DPLUS
+    ADDW SP,#CELLL  
+    RET 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  F/ ( f#1 f#2 -- f#3 )
+;  float division
+;  f#3 = f#1/f#2
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER FSLASH,2,"F/"
+    CALL ATEXP  ; f#1 m2 e2 
+    CALL TOR    ; f#1 m2   R: e2 
+; m2 sign 
+    CLRW  Y
+    LD A,(X)
+    JRPL 1$  
+    CPLW Y  
+1$: PUSHW Y     ; f#1 m2 R: e2 m2s  
+    CALL DABS   ; F#1 um2 
+    CALL DSWAP  ; m2 f#1 
+    CALL ATEXP  ; m2 m1 e1 
+; substract expoenents e1-e2 
+    LDW Y,X 
+    LDW Y,(Y)
+    ADDW X,#CELLL 
+    SUBW Y,(3,SP)
+    LDW (3,SP),Y     
+;    CALL ONE    ; e2 slot on rstack  
+;    CALL NRAT   ; m2 m1 e1 e2 
+;    CALL SUBB   ; m2 m1 e 
+;    CALL ONE    ; e slot on rstack 
+;    CALL NRSTO  ; m2 m1 R: e m2s 
+; m1 sign xor m2 sign 
+    CLR A
+    LDW Y,X 
+    LDW Y,(Y)
+    JRPL 2$
+    CPL A  
+2$: XOR A,(1,SP)
+    LD YTEMP,A 
+    LD YTEMP+1,A 
+; swap e qs on rstack 
+    LDW Y,(3,SP) ; e 
+    ldw (1,SP),Y 
+    LDW Y,YTEMP 
+    LDW (3,SP),Y ; m2 m1 R: qs e 
+    CALL DABS   ; um2 um1 R: qs e  
+    CALL DSWAP  ; m1 m2 R: qs e
+    CALL DDUP  ; m1 m2 m2 R: qs e
+    CALL DTOR  ; m1 m2 R: qs e m2 ( keep divisor needed later ) 
+    CALL UDSLMOD ; remainder m1/m2 R: e m2 
+FSLASH1: ; fraction loop 
+; check for null remainder 
+    LD A,(4,X)
+    OR A,(5,X)
+    OR A,(6,X)
+    OR A,(7,X)
+    JREQ FSLASH8 
+; get fractional digits from remainder until mantissa saturate
+; remainder mantissa R: e divisor 
+; check for mantissa saturation 
+    CALL DDUP 
+; _DOLIT #0xccccc 
+    SUBW X,#2*CELLL 
+    LDW Y,#0XCCCC 
+    LDW (2,X),Y 
+    LDW Y,#0XC 
+    LDW (X),Y 
+    CALL DGREAT 
+    _TBRAN FSLASH8 ; another loop would result in mantissa overflow 
+; multiply mantissa by 10 
+;    SUBW X,#2*CELLL 
+;    LDW Y,#10 
+;    LDW (2,X),Y 
+;    CLRW Y 
+;    LDW (X),Y 
+;    CALL DSTAR
+    CALL UMUL10 
+; mutliply remainder by 10     
+    CALL DSWAP 
+;    SUBW X,#2*CELLL 
+;    LDW Y,#10 
+;    LDW (2,X),Y 
+;    CLRW Y 
+;    LDW (X),Y
+;    CALL DSTAR 
+    CALL UMUL10 
+; divide remainder by m2     
+    CALL DRAT  ; mantissa remainder divisor R: e divisor 
+    CALL UDSLMOD ; mantissa dr dq R: qs e divisor 
+    CALL DSWAP ; mantissa frac_digit remainder R: qs e divisor  
+    CALL DTOR  ; mantissa frac_digit R: qs e divisor remainder 
+    CALL DPLUS ; mantissa+frac_digit 
+    CALL DRFROM ; mantissa remainder R: qs e divisor  
+    CALL DSWAP  ; remainder mantissa  
+; increment e 
+    LDW Y,(5,SP) ; e 
+    DECW Y 
+    LDW (5,SP),Y 
+    JRA FSLASH1
+FSLASH8: ; remainder mantissa R: qs e divisor 
+    CALL DSWAP  
+    _DDROP  ; drop remainder     
+    ADDW SP,#2*CELLL ; drop divisor on rstack     
+    LDW Y,(3,SP)    ; quotient sign 
+    JRPL FSLASH9 
+    CALL DNEGA  
+FSLASH9:
+    CALL RFROM  ; exponent 
+    CALL STEXP 
+    ADDW SP,#CELLL ; drop qs on rstack 
+    RET 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   S>F  ( # -- f# )
+;   convert double to float 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER STOF,3,"S>F"
+    CALL ZERO 
+    JP SET_FPSW
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   F>S  ( f# -- n )
+;  convert float24 to single  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER FTOS,3,"F>S"
+    CALL QDUP
+    _QBRAN FTOD9
+    CALL TOR 
+    CALL MSIGN 
+    CALL SWAPP 
+    CALL ABSS
+    CALL RFROM  
+    CALL DUPP   
+    CALL ZLESS 
+    _QBRAN FTOD4 
+; negative exponent 
+    CALL ABSS 
+    CALL TOR
+    JRA FTOD2  
+FTOD1:
+    CALL DDUP 
+    CALL ZEQUAL 
+    _TBRAN FTOD3 
+    _DOLIT 10 
+    CALL USLMOD 
+    CALL SWAPP  
+    _DOLIT 5 
+    CALL LESS 
+    _TBRAN FTOD2  
+    CALL ONEP 
+FTOD2:      
+    _DONXT FTOD1
+    JRA FTOD8   
+FTOD3: 
+    CALL RFROM 
+    _DROP 
+    JRA FTOD8  
+; positive exponent 
+FTOD4:
+    CALL TOR 
+    JRA FTOD6
+FTOD5:
+    _DOLIT 10 
+    CALL UMSTA
+    _QBRAN FTOD6 
+    ADDW SP,#CELLL 
+    JRA FTOD8  
+FTOD6: 
+    _DONXT FTOD5 
+FTOD8:
+    CALL ROT 
+    _QBRAN FTOD9 
+    CALL NEGAT
+FTOD9:          
+    RET 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; FSWAP ( f#1 f#2 -- f#2 f#1 )
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER FSWAP,5,"FSWAP"
+    LDW Y,X 
+    LDW Y,(Y)
+    PUSHW Y 
+    LDW Y,X 
+    LDW Y,(2,Y)
+    PUSHW Y 
+    LDW Y,X 
+    LDW Y,(4,Y)
+    LDW (X),Y 
+    LDW Y,X 
+    LDW Y,(6,Y)
+    LDW (2,X),Y 
+    POPW Y 
+    LDW (6,X),Y 
+    POPW Y 
+    LDW (4,X),Y 
+    JP SET_FPSW  ; reflect state of top float 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;
+;   F0< ( f# -- f )
+;   true if f#<0
+;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER FZLESS,3,"F0<"
+    _DROP 
+    JP ZLESS 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;
+;   F< ( f#1 f#2 -- f )
+;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER FLESS,2,"F<"
+    CALL FSUB 
+    JRA FZLESS 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   F> ( f#1 f#2 -- f )
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER FGREAT,2,"F>"
+    CALL FSWAP 
+    JRA FLESS 
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;
+;   F= ( f#1 f#2 -- f ) 
+;   true if f#1==f#2 
+;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER FEQUAL,2,"F="
+    CLR A 
+    LDW Y,X 
+    LDW Y,(Y)
+    PUSHW Y 
+    LDW Y,X 
+    LDW Y,(2,Y)
+    CPW Y,(1,SP)
+    JRNE 1$
+    LDW Y,X 
+    LDW Y,(1,Y)
+    LDW (1,SP),Y 
+    LDW Y,X 
+    LDW Y,(3,Y)
+    CPW Y,(1,SP)
+    JRNE 1$ 
+    LD A,#255
+1$: ADDW SP,#CELLL 
+    ADDW X,#CELLL 
+    LD (X),A 
+    LD (1,X),A 
+    RET 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   F0= ( f# -- f )
+;   true if f# is 0.0 
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER FZEQUAL,3,"F0="
+    _DROP  
+    JP ZEQUAL  
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  FNEGATE ( f#1 -- f#2 )
+;  f#2 is negation of f#1 
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER FNEGA,7,"FNEGATE"
+    CALL TOR 
+    CALL NEGAT
+    CALL RFROM 
+    JP SET_FPSW
+     
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  FABS ( f#1 -- abs(f#1) )
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER FABS,4,"FABS"
+    CALL TOR 
+    CALL ABSS 
+    CALL RFROM 
+    JP SET_FPSW
+     
