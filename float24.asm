@@ -920,11 +920,10 @@ MPLUS: ; m1 m2 e -- m* e* )
 ;  substraction 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FSUB,2,"F-"
-    CALL FALIGN 
-    CALL TOR 
-    CALL SUBB
-    CALL RFROM
-    CALL SET_FPSW
-    RET 
+    LDW Y,x
+    LDW Y,(2,Y)
+    NEGW Y 
+    LDW (2,X),Y 
+    JRA FPLUS  
 
 

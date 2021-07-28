@@ -10543,20 +10543,14 @@ Hexadecimal [24-Bits]
       002CE4 02                       3         .byte 2  
       002CE5 46 2D                    4         .ascii "F-"
       002CE7                          5         FSUB:
-      002CE7 CD 2B 7E         [ 4]  923     CALL FALIGN 
-      002CEA CD 05 E3         [ 4]  924     CALL TOR 
-      002CED CD 08 D3         [ 4]  925     CALL SUBB
-      002CF0 CD 05 35         [ 4]  926     CALL RFROM
-      002CF3 CD 26 22         [ 4]  927     CALL SET_FPSW
-      002CF6 81               [ 4]  928     RET 
+      002CE7 90 93            [ 1]  923     LDW Y,x
+      002CE9 90 EE 02         [ 2]  924     LDW Y,(2,Y)
+      002CEC 90 50            [ 2]  925     NEGW Y 
+      002CEE EF 02            [ 2]  926     LDW (2,X),Y 
+      002CF0 20 E6            [ 2]  927     JRA FPLUS  
+                                    928 
                                     929 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 158.
-Hexadecimal [24-Bits]
-
-
-
-                                    930 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 159.
 Hexadecimal [24-Bits]
 
 
@@ -10571,7 +10565,7 @@ Hexadecimal [24-Bits]
       002D00                       4687 	.bndry 128 ; align on flash block  
       002D00                       4688 app_space: 
                                    4689 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 160.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 159.
 Hexadecimal [24-Bits]
 
 Symbol Table
@@ -10631,7 +10625,7 @@ Symbol Table
     CC_C    =  000000     |     CC_H    =  000004     |     CC_I0   =  000003 
     CC_I1   =  000005     |     CC_N    =  000002     |     CC_V    =  000007 
     CC_Z    =  000001     |     CELLL   =  000002     |   6 CELLM      000B87 R
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 161.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 160.
 Hexadecimal [24-Bits]
 
 Symbol Table
@@ -10691,7 +10685,7 @@ Symbol Table
   6 DO_DCONS   001AAC R   |     DP      =  000005     |   6 DROP       000610 R
   6 DSTOR      000C9D R   |   6 DUMP       001B1B R   |   6 DUMP1      001B32 R
   6 DUMP3      001B54 R   |   6 DUMPP      001AEA R   |   6 DUPP       00061A R
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 162.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 161.
 Hexadecimal [24-Bits]
 
 Symbol Table
@@ -10751,7 +10745,7 @@ Symbol Table
     GPIO_BAS=  005000     |     GPIO_CR1=  000003     |     GPIO_CR2=  000004 
     GPIO_DDR=  000002     |     GPIO_IDR=  000001     |     GPIO_ODR=  000000 
     GPIO_SIZ=  000005     |   6 GREAT      000954 R   |   6 GREAT1     00095F R
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 163.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 162.
 Hexadecimal [24-Bits]
 
 Symbol Table
@@ -10811,7 +10805,7 @@ Symbol Table
     ITC_SPR4=  007F73     |     ITC_SPR5=  007F74     |     ITC_SPR6=  007F75 
     ITC_SPR7=  007F76     |     ITC_SPR8=  007F77     |     IWDG_KR =  0050E0 
     IWDG_PR =  0050E1     |     IWDG_RLR=  0050E2     |   6 JFETCH     0016C3 R
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 164.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 163.
 Hexadecimal [24-Bits]
 
 Symbol Table
@@ -10871,7 +10865,7 @@ Symbol Table
     PD_BASE =  00500F     |     PD_CR1  =  005012     |     PD_CR2  =  005013 
     PD_DDR  =  005011     |     PD_IDR  =  005010     |     PD_ODR  =  00500F 
     PE      =  000014     |     PE_BASE =  005014     |     PE_CR1  =  005017 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 165.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 164.
 Hexadecimal [24-Bits]
 
 Symbol Table
@@ -10931,7 +10925,7 @@ Symbol Table
   6 TICK       0015E9 R   |     TIM1_ARR=  005262     |     TIM1_ARR=  005263 
     TIM1_BKR=  00526D     |     TIM1_CCE=  00525C     |     TIM1_CCE=  00525D 
     TIM1_CCM=  005258     |     TIM1_CCM=  000000     |     TIM1_CCM=  000001 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 166.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 165.
 Hexadecimal [24-Bits]
 
 Symbol Table
@@ -10991,7 +10985,7 @@ Symbol Table
     TIM2_EGR=  005304     |     TIM2_EGR=  000001     |     TIM2_EGR=  000002 
     TIM2_EGR=  000003     |     TIM2_EGR=  000006     |     TIM2_EGR=  000000 
     TIM2_IER=  005301     |     TIM2_PSC=  00530C     |     TIM2_SR1=  005302 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 167.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 166.
 Hexadecimal [24-Bits]
 
 Symbol Table
@@ -11051,7 +11045,7 @@ Symbol Table
     UART_CR6=  000004     |     UART_CR6=  000007     |     UART_CR6=  000001 
     UART_CR6=  000002     |     UART_CR6=  000000     |     UART_CR6=  000005 
     UART_DR =  005231     |     UART_GTR=  000009     |     UART_PSC=  00000A 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 168.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 167.
 Hexadecimal [24-Bits]
 
 Symbol Table
@@ -11104,7 +11098,7 @@ Symbol Table
   6 row_eras   00206C R   |   6 set_opti   0020E0 R   |   6 set_vect   002214 R
   6 uart_ini   000076 R   |   6 write_ro   0020B0 R
 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 169.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 168.
 Hexadecimal [24-Bits]
 
 Area Table
