@@ -106,13 +106,13 @@
 : performance 
     cr ." performance test" cr
     msec 1000 for 3.141592 2.51 f* 2drop next msec swap -  
-    . ."  msec for 10000 F*" cr 
+    . ."  msec for 1000 F*" cr 
     msec 1000 for 3.141592 2.51 f/ 2drop next msec swap -  
     . ."  msec for 1000 F/" cr
     msec 1000 for 3.141592 4.14231 f+ 2drop next msec swap - 
     . ."  msec for 1000 F+" cr 
     msec 1000 for 3.141592 5.1434 f- 2drop next msec swap - 
-    . ."  msec for 10000 F-" cr  
+    . ."  msec for 1000 F-" cr  
 ;
 
 : all-test

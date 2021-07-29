@@ -26,7 +26,7 @@ Comme il s'agit de 2 MCU STM8 l'adaptation vers le stm8s208 ne devrait pas néce
 
 ## 2021-07-25 
 
-Débuté travail sur la librairie [float24.asm](float24.asm) qui implémente le traitement en virgule flottante sur nombre codés sur 24 bits au lieu de 32 bits. Ceci va accéller les opérations arithmétique au prix d'une réduction de la précision. La mantisse est codé sur 24 bits incluant le signe et l'exposant est codé sur 8 bits incluant le signe. Sur la pile les float24 sont stocké sur 4 octets mais sur 3 octets pour les litéraux, variables et constantes.
+Débuté travail sur la librairie [float24.asm](float24.asm) qui implémente le traitement en virgule flottante sur nombre codés sur 24 bits au lieu de 32 bits. Ceci va accéllérer les opérations arithmétique au prix d'une réduction de la précision. La mantisse est codé sur 16 bits incluant le signe et l'exposant est codé sur 8 bits incluant le signe. Sur la pile les float24 sont stocké sur 4 octets mais sur 3 octets pour les littéraux, variables et constantes.
 
 ## 2021-07-11 
 
