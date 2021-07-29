@@ -1666,10 +1666,10 @@ Hexadecimal [24-Bits]
       0080B5 17 00                  315         .word      TIBB    ;TIB
       0080B7 95 82                  316         .word      INTER   ;'EVAL
       0080B9 00 00                  317         .word      0       ;HLD
-      0080BB AD 64                  318         .word      LASTN  ;CNTXT pointer
+      0080BB B0 43                  318         .word      LASTN  ;CNTXT pointer
       0080BD 00 80                  319         .word      VAR_BASE   ;variables free space pointer 
-      0080BF AD 80                  320         .word      app_space ; FLASH free space pointer 
-      0080C1 AD 64                  321         .word      LASTN   ;LAST
+      0080BF B0 80                  320         .word      app_space ; FLASH free space pointer 
+      0080C1 B0 43                  321         .word      LASTN   ;LAST
       0080C3 00 00                  322         .word      0        ; OFFSET 
       0080C5 00 00                  323         .word      0       ; TFLASH
                                     324 ;       .word      0       ; URLAST   
@@ -1909,7 +1909,7 @@ Hexadecimal [24-Bits]
                                     500 ; only forget users words 
       0081F0 CD 86 9A         [ 4]  501         call DUPP ; ( ca na na )
       0081F3 CD 84 F0         [ 4]  502         call DOLIT 
-      0081F6 AD 80                  503         .word app_space 
+      0081F6 B0 80                  503         .word app_space 
       0081F8 CD 86 AA         [ 4]  504         call SWAPP 
       0081FB CD 89 91         [ 4]  505         call  ULESS 
       0081FE CD 85 19         [ 4]  506         call QBRAN 
@@ -8304,7 +8304,7 @@ Hexadecimal [24-Bits]
       00A089 CD 8D B6         [ 4]  498 	call CMOVE 
       00A08C                        499 block_erase:
       00A08C 90 BE 35         [ 2]  500 	ldw y,FPTR+1
-      00A08F 90 A3 AD 80      [ 2]  501 	cpw y,#app_space 
+      00A08F 90 A3 B0 80      [ 2]  501 	cpw y,#app_space 
       00A093 2A 19            [ 1]  502 	jrpl erase_flash 
                                     503 ; erase EEPROM block
       00A095 90 A3 40 00      [ 2]  504 	cpw y,#EEPROM_BASE 
@@ -8503,7 +8503,7 @@ Hexadecimal [24-Bits]
       00A1BB 90 A3 00 08      [ 2]  681 	cpw y,#8 
       00A1BF 25 E9            [ 1]  682 	jrult 2$
                                     683 ;;; erase first row of app_space 	
-      00A1C1 90 AE AD 80      [ 2]  684 	ldw y,#app_space
+      00A1C1 90 AE B0 80      [ 2]  684 	ldw y,#app_space
       00A1C5 EF 02            [ 2]  685 	ldw (2,x),y  
       00A1C7 90 5F            [ 1]  686 	clrw y 
       00A1C9 FF               [ 2]  687 	ldw (x),y ; ( app_space 0 -- )
@@ -10555,17 +10555,543 @@ Hexadecimal [24-Bits]
 
 
 
+                                    930 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                                    931 ;   DS/MOD ( ud us - ur qud )
+                                    932 ;   unsigned divide double by single 
+                                    933 ;   return double quotient 
+                                    934 ;   and single remainder 
+                                    935 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      002CF2                        936     _HEADER DSLMOD,6,"DS/MOD"
+      00AD72 AD 64                    1         .word LINK 
+                           002CF4     2         LINK=.
+      00AD74 06                       3         .byte 6  
+      00AD75 44 53 2F 4D 4F 44        4         .ascii "DS/MOD"
+      00AD7B                          5         DSLMOD:
+      00AD7B 90 93            [ 1]  937         LDW     Y,X             ; stack pointer to Y
+      00AD7D FE               [ 2]  938         LDW     X,(X)           ; us
+      00AD7E BF 26            [ 2]  939         LDW     YTEMP,X         ; save us
+      00AD80 93               [ 1]  940         LDW     X,Y
+      00AD81 89               [ 2]  941         PUSHW   X               ; save stack pointer
+      00AD82 90 89            [ 2]  942         PUSHW   Y 
+      00AD84 EE 02            [ 2]  943         LDW     X,(2,X)           ; X=udh
+      00AD86 90 BE 26         [ 2]  944         LDW     Y,YTEMP         ; divisor 
+      00AD89 65               [ 2]  945         DIVW    X,Y 
+      00AD8A BF 24            [ 2]  946         LDW     XTEMP,X         ; QUOTIENT hi 
+      00AD8C 93               [ 1]  947         LDW     X,Y             ; remainder in X 
+      00AD8D 90 85            [ 2]  948         POPW    Y 
+      00AD8F 90 EE 04         [ 2]  949         LDW     Y,(4,Y)         ; Y=udl (offset before drop)
+      00AD92 A6 10            [ 1]  950         LD      A,#16           ; loop count
+      00AD94 90 58            [ 2]  951         SLLW    Y               ; udl shift udl into udh
+      00AD96                        952 DSLMOD3:
+      00AD96 59               [ 2]  953         RLCW    X               ; rotate udl bit into uhdh (= remainder)
+      00AD97 25 04            [ 1]  954         JRC     DSLMODa         ; if carry out of rotate
+      00AD99 B3 26            [ 2]  955         CPW     X,YTEMP         ; compare udh to un
+      00AD9B 25 05            [ 1]  956         JRULT   DSLMOD4         ; can't subtract
+      00AD9D                        957 DSLMODa:
+      00AD9D 72 B0 00 26      [ 2]  958         SUBW    X,YTEMP         ; can subtract
+      00ADA1 98               [ 1]  959         RCF
+      00ADA2                        960 DSLMOD4:
+      00ADA2 8C               [ 1]  961         CCF                     ; quotient bit
+      00ADA3 90 59            [ 2]  962         RLCW    Y               ; rotate into quotient, rotate out udl
+      00ADA5 4A               [ 1]  963         DEC     A               ; repeat
+      00ADA6 26 EE            [ 1]  964         JRNE    DSLMOD3           ; if A == 0
+      00ADA8                        965 DSLMODb:
+      00ADA8 BF 26            [ 2]  966         LDW     YTEMP,X         ; done, save remainder
+      00ADAA 85               [ 2]  967         POPW    X               ; restore stack pointer
+      00ADAB EF 02            [ 2]  968         LDW     (2,X),Y           ; save quotient low 
+      00ADAD 90 BE 24         [ 2]  969         LDW     Y,XTEMP         ; quotient hi 
+      00ADB0 FF               [ 2]  970         LDW     (X),Y           ; save quotient hi 
+      00ADB1 90 BE 26         [ 2]  971         LDW     Y,YTEMP         ; remainder onto stack
+      00ADB4 EF 04            [ 2]  972         LDW     (4,X),Y
+      00ADB6 81               [ 4]  973         RET 
+                                    974 
+                                    975 
+                                    976 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                                    977 ;   SCALE>M ( ud1 -- e u )
+                                    978 ;   scale down a double  
+                                    979 ;   by repeated ud1/10
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 159.
+Hexadecimal [24-Bits]
+
+
+
+                                    980 ;   until ud<=MAX_MANTISSA   
+                                    981 ;   e is log10 exponent of scaled down
+                                    982 ;   u is scaled down ud1 
+                                    983 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      002D37                        984     _HEADER SCALETOM,7,"SCALE>M"
+      00ADB7 AD 74                    1         .word LINK 
+                           002D39     2         LINK=.
+      00ADB9 07                       3         .byte 7  
+      00ADBA 53 43 41 4C 45 3E 4D     4         .ascii "SCALE>M"
+      00ADC1                          5         SCALETOM:
+      00ADC1 90 5F            [ 1]  985     CLRW Y 
+      00ADC3 90 89            [ 2]  986     PUSHW Y  ; local variable to save last remainder 
+      00ADC5 CD 8C 8F         [ 4]  987     CALL ZERO 
+      00ADC8 CD 88 7D         [ 4]  988     CALL NROT ;  e ud 
+      00ADCB                        989 SCAL1:
+      00ADCB CD 86 9A         [ 4]  990     CALL DUPP 
+      00ADCE CD 86 E3         [ 4]  991     CALL ZEQUAL  
+      002D51                        992     _QBRAN SCAL2  
+      00ADD1 CD 85 19         [ 4]    1     CALL QBRAN
+      00ADD4 AD E6                    2     .word SCAL2
+      00ADD6 CD 86 C2         [ 4]  993     CALL OVER 
+      002D59                        994     _DOLIT MAX_MANTISSA
+      00ADD9 CD 84 F0         [ 4]    1     CALL DOLIT 
+      00ADDC 7F FF                    2     .word MAX_MANTISSA 
+      00ADDE CD 89 BE         [ 4]  995     CALL UGREAT 
+      002D61                        996     _QBRAN SCAL3
+      00ADE1 CD 85 19         [ 4]    1     CALL QBRAN
+      00ADE4 AE 05                    2     .word SCAL3
+      00ADE6                        997 SCAL2:     
+      002D66                        998     _DOLIT 10 
+      00ADE6 CD 84 F0         [ 4]    1     CALL DOLIT 
+      00ADE9 00 0A                    2     .word 10 
+      00ADEB CD AD 7B         [ 4]  999     CALL DSLMOD
+      00ADEE CD 88 5E         [ 4] 1000     CALL ROT  
+                                   1001 ; save remainder on rstack     
+      00ADF1 90 93            [ 1] 1002     LDW Y,X 
+      00ADF3 90 FE            [ 2] 1003     LDW Y,(Y)
+      00ADF5 17 01            [ 2] 1004     LDW (1,SP),Y 
+      00ADF7 1C 00 02         [ 2] 1005     ADDW X,#CELLL ; drop it from dstack 
+      00ADFA CD 88 5E         [ 4] 1006     CALL ROT 
+      00ADFD CD 8C 23         [ 4] 1007     CALL ONEP 
+      00AE00 CD 88 7D         [ 4] 1008     CALL NROT  
+      00AE03 20 C6            [ 2] 1009     JRA SCAL1 
+      00AE05                       1010 SCAL3: 
+      002D85                       1011     _DROP ; drop ud high
+      00AE05 1C 00 02         [ 2]    1     ADDW X,#CELLL  
+      00AE08 CD 85 B5         [ 4] 1012     CALL RFROM ; last remainder  
+      002D8B                       1013     _DOLIT 5 
+      00AE0B CD 84 F0         [ 4]    1     CALL DOLIT 
+      00AE0E 00 05                    2     .word 5 
+      00AE10 CD 89 A7         [ 4] 1014     CALL LESS 
+      002D93                       1015     _TBRAN SCAL4
+      00AE13 CD 85 27         [ 4]    1     CALL TBRAN 
+      00AE16 AE 1B                    2     .word SCAL4 
+      00AE18 CD 8C 23         [ 4] 1016     CALL ONEP 
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 160.
+Hexadecimal [24-Bits]
+
+
+
+      00AE1B                       1017 SCAL4:      
+      00AE1B 81               [ 4] 1018     RET 
+                                   1019 
+                                   1020 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                                   1021 ;    F* ( f#1 f#2 -- f#3 )
+                                   1022 ;    float24 product 
+                                   1023 ;    f#3=f#1 * f#2 
+                                   1024 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      002D9C                       1025     _HEADER FSTAR,2,"F*"
+      00AE1C AD B9                    1         .word LINK 
+                           002D9E     2         LINK=.
+      00AE1E 02                       3         .byte 2  
+      00AE1F 46 2A                    4         .ascii "F*"
+      00AE21                          5         FSTAR:
+      00AE21 CD 86 63         [ 4] 1026     CALL TOR   ; m1 e1 m2 R: e2 
+      00AE24 CD 86 AA         [ 4] 1027     CALL SWAPP ; m1 m2 e1  R: e2 
+      00AE27 CD 85 B5         [ 4] 1028     CALL RFROM 
+      00AE2A CD 88 BD         [ 4] 1029     CALL PLUS  ; m1 m2 e 
+      00AE2D CD 86 63         [ 4] 1030     CALL TOR   ; m1 m2 R: e  
+      00AE30 CD A7 4B         [ 4] 1031     CALL MSIGN
+      00AE33 CD 86 63         [ 4] 1032     CALL TOR   ; m1 m2 R: e m2sign 
+      00AE36 CD 89 6D         [ 4] 1033     CALL ABSS  
+      00AE39 CD 86 AA         [ 4] 1034     CALL SWAPP ; um2 m1  R: e m2sign 
+      00AE3C CD A7 4B         [ 4] 1035     CALL MSIGN ; um2 m1 m1sign R: e m2sign 
+      00AE3F CD 85 B5         [ 4] 1036     CALL RFROM   
+      00AE42 CD 87 20         [ 4] 1037     CALL XORR 
+      00AE45 CD 88 7D         [ 4] 1038     CALL NROT   ; *sign um2 m1 R: e 
+      00AE48 CD 89 6D         [ 4] 1039     CALL ABSS  ; *sign um2 um1 R: e 
+      00AE4B CD 8B 58         [ 4] 1040     CALL UMSTA 
+      00AE4E CD AD C1         [ 4] 1041     CALL SCALETOM
+      00AE51 CD 86 AA         [ 4] 1042     CALL SWAPP 
+      00AE54 CD 85 B5         [ 4] 1043     CALL RFROM 
+      00AE57 CD 88 BD         [ 4] 1044     CALL PLUS 
+      00AE5A CD 86 63         [ 4] 1045     CALL TOR 
+      00AE5D CD 86 AA         [ 4] 1046     CALL SWAPP 
+      002DE0                       1047     _QBRAN 1$
+      00AE60 CD 85 19         [ 4]    1     CALL QBRAN
+      00AE63 AE 68                    2     .word 1$
+      00AE65 CD 89 07         [ 4] 1048     CALL NEGAT 
+      00AE68 CD 85 B5         [ 4] 1049 1$: CALL RFROM  
+      00AE6B CC A6 A2         [ 2] 1050     JP SET_FPSW 
+                                   1051 
+                                   1052 
+                                   1053 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                                   1054 ;  F/ ( f#1 f#2 -- f#3 )
+                                   1055 ;  float division
+                                   1056 ;  f#3 = f#1/f#2
+                                   1057 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      002DEE                       1058     _HEADER FSLASH,2,"F/"
+      00AE6E AE 1E                    1         .word LINK 
+                           002DF0     2         LINK=.
+      00AE70 02                       3         .byte 2  
+      00AE71 46 2F                    4         .ascii "F/"
+      00AE73                          5         FSLASH:
+      00AE73 CD 86 63         [ 4] 1059     CALL TOR    ; m1 e1 m2   R: e2 
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 161.
+Hexadecimal [24-Bits]
+
+
+
+      00AE76 CD 86 AA         [ 4] 1060     CALL SWAPP
+      00AE79 CD 85 B5         [ 4] 1061     CALL RFROM 
+      00AE7C CD 89 53         [ 4] 1062     CALL SUBB 
+      00AE7F CD 86 63         [ 4] 1063     CALL TOR   ; m1 m2 R: e   
+      00AE82 CD A7 4B         [ 4] 1064     CALL MSIGN 
+      00AE85 CD 86 63         [ 4] 1065     CALL TOR   ; m1 m2 R: e m2s 
+      00AE88 CD 89 6D         [ 4] 1066     CALL ABSS   ; m1 um2 R: e m2s 
+      00AE8B CD 86 AA         [ 4] 1067     CALL SWAPP  ;um2 m1 R: e m2s 
+      00AE8E CD A7 4B         [ 4] 1068     CALL MSIGN  ; um2 m1 m1s R: e m2s 
+      00AE91 CD 85 B5         [ 4] 1069     CALL RFROM  ; um2 m1 m1s m2s R: e
+      00AE94 CD 87 20         [ 4] 1070     CALL XORR   
+      00AE97 CD 88 7D         [ 4] 1071     CALL NROT  ; qsign um2 m1 
+      00AE9A CD 89 6D         [ 4] 1072     CALL ABSS  ; qsign um2 um1 R: e 
+      00AE9D CD 86 AA         [ 4] 1073     CALL SWAPP ; qsign um1 um2 R: e  
+      00AEA0 CD 86 9A         [ 4] 1074     CALL DUPP 
+      00AEA3 CD 86 63         [ 4] 1075     CALL TOR   ; qsign um1 um2 R: e um2 
+      00AEA6 CD 8A 81         [ 4] 1076     CALL USLMOD ; qsign ur uq R: e um2 
+      00AEA9                       1077 FSLASH1: ; fraction loop 
+                                   1078 ; check for null remainder 
+      00AEA9 E6 02            [ 1] 1079     LD A,(2,X)
+      00AEAB EA 03            [ 1] 1080     OR A,(3,X)
+      00AEAD 27 40            [ 1] 1081     JREQ FSLASH8 
+                                   1082 ; get fractional digits from remainder until mantissa saturate
+                                   1083 ; qsign remainder mantissa R: e divisor 
+                                   1084 ; check for mantissa saturation 
+      00AEAF CD 86 9A         [ 4] 1085     CALL DUPP 
+      002E32                       1086     _DOLIT 0xCCC 
+      00AEB2 CD 84 F0         [ 4]    1     CALL DOLIT 
+      00AEB5 0C CC                    2     .word 0xCCC 
+      00AEB7 CD 89 BE         [ 4] 1087     CALL UGREAT
+      002E3A                       1088     _TBRAN FSLASH8 ; another loop would result in mantissa overflow 
+      00AEBA CD 85 27         [ 4]    1     CALL TBRAN 
+      00AEBD AE EF                    2     .word FSLASH8 
+                                   1089 ; multiply mantissa by 10 
+      002E3F                       1090     _DOLIT 10 
+      00AEBF CD 84 F0         [ 4]    1     CALL DOLIT 
+      00AEC2 00 0A                    2     .word 10 
+      00AEC4 CD 8B A2         [ 4] 1091     CALL STAR 
+                                   1092 ; mutliply remainder by 10     
+      00AEC7 CD 86 AA         [ 4] 1093     CALL SWAPP
+      002E4A                       1094     _DOLIT 10  
+      00AECA CD 84 F0         [ 4]    1     CALL DOLIT 
+      00AECD 00 0A                    2     .word 10 
+      00AECF CD 8B A2         [ 4] 1095     CALL STAR 
+                                   1096 ; divide remainder by um2     
+      00AED2 CD 85 C6         [ 4] 1097     CALL RAT  ; mantissa remainder divisor R: e divisor 
+      00AED5 CD 8A 81         [ 4] 1098     CALL USLMOD ; mantissa dr dq R: e divisor 
+      00AED8 CD 86 AA         [ 4] 1099     CALL SWAPP ; mantissa frac_digit remainder R:  e divisor  
+      00AEDB CD 86 63         [ 4] 1100     CALL TOR  ; mantissa frac_digit R: e divisor remainder 
+      00AEDE CD 88 BD         [ 4] 1101     CALL PLUS ; mantissa+frac_digit 
+      00AEE1 CD 85 B5         [ 4] 1102     CALL RFROM ; mantissa remainder R: e divisor  
+      00AEE4 CD 86 AA         [ 4] 1103     CALL SWAPP  ; remainder mantissa  
+                                   1104 ; decrement e 
+      00AEE7 16 03            [ 2] 1105     LDW Y,(3,SP) ; e 
+      00AEE9 90 5A            [ 2] 1106     DECW Y 
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 162.
+Hexadecimal [24-Bits]
+
+
+
+      00AEEB 17 03            [ 2] 1107     LDW (3,SP),Y 
+      00AEED 20 BA            [ 2] 1108     JRA FSLASH1
+      00AEEF                       1109 FSLASH8: ; qsign remainder mantissa R: qs e divisor 
+      00AEEF CD 86 AA         [ 4] 1110     CALL SWAPP  
+      002E72                       1111     _DROP  ; drop remainder     
+      00AEF2 1C 00 02         [ 2]    1     ADDW X,#CELLL  
+      00AEF5 5B 02            [ 2] 1112     ADDW SP,#CELLL ; drop divisor from rstack     
+      00AEF7 CD 86 AA         [ 4] 1113     CALL SWAPP ; quotient qsign
+      002E7A                       1114     _QBRAN FSLASH9 
+      00AEFA CD 85 19         [ 4]    1     CALL QBRAN
+      00AEFD AF 02                    2     .word FSLASH9
+      00AEFF CD 89 07         [ 4] 1115     CALL NEGAT  
+      00AF02                       1116 FSLASH9:
+      00AF02 CD 85 B5         [ 4] 1117     CALL RFROM  ; exponent 
+      00AF05 CC A6 A2         [ 2] 1118     JP SET_FPSW
+                                   1119     
+                                   1120 
+                                   1121 
+                                   1122 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                                   1123 ;   S>F  ( # -- f# )
+                                   1124 ;   convert double to float 
+                                   1125 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      002E88                       1126     _HEADER STOF,3,"S>F"
+      00AF08 AE 70                    1         .word LINK 
+                           002E8A     2         LINK=.
+      00AF0A 03                       3         .byte 3  
+      00AF0B 53 3E 46                 4         .ascii "S>F"
+      00AF0E                          5         STOF:
+      00AF0E CD 8C 8F         [ 4] 1127     CALL ZERO 
+      00AF11 CC A6 A2         [ 2] 1128     JP SET_FPSW
+                                   1129 
+                                   1130 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                                   1131 ;   F>S  ( f# -- n )
+                                   1132 ;  convert float24 to single  
+                                   1133 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      002E94                       1134     _HEADER FTOS,3,"F>S"
+      00AF14 AF 0A                    1         .word LINK 
+                           002E96     2         LINK=.
+      00AF16 03                       3         .byte 3  
+      00AF17 46 3E 53                 4         .ascii "F>S"
+      00AF1A                          5         FTOS:
+      00AF1A CD 88 4D         [ 4] 1135     CALL QDUP
+      002E9D                       1136     _QBRAN FTOD9
+      00AF1D CD 85 19         [ 4]    1     CALL QBRAN
+      00AF20 AF 9F                    2     .word FTOD9
+      00AF22 CD 86 63         [ 4] 1137     CALL TOR 
+      00AF25 CD A7 4B         [ 4] 1138     CALL MSIGN 
+      00AF28 CD 86 AA         [ 4] 1139     CALL SWAPP 
+      00AF2B CD 89 6D         [ 4] 1140     CALL ABSS
+      00AF2E CD 85 B5         [ 4] 1141     CALL RFROM  
+      00AF31 CD 86 9A         [ 4] 1142     CALL DUPP   
+      00AF34 CD 86 D1         [ 4] 1143     CALL ZLESS 
+      002EB7                       1144     _QBRAN FTOD4 
+      00AF37 CD 85 19         [ 4]    1     CALL QBRAN
+      00AF3A AF 79                    2     .word FTOD4
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 163.
+Hexadecimal [24-Bits]
+
+
+
+                                   1145 ; negative exponent 
+      00AF3C CD 89 6D         [ 4] 1146     CALL ABSS 
+      00AF3F CD 86 63         [ 4] 1147     CALL TOR
+      00AF42 20 26            [ 2] 1148     JRA FTOD2  
+      00AF44                       1149 FTOD1:
+      00AF44 CD 88 A8         [ 4] 1150     CALL DDUP 
+      00AF47 CD 86 E3         [ 4] 1151     CALL ZEQUAL 
+      002ECA                       1152     _TBRAN FTOD3 
+      00AF4A CD 85 27         [ 4]    1     CALL TBRAN 
+      00AF4D AF 71                    2     .word FTOD3 
+      002ECF                       1153     _DOLIT 10 
+      00AF4F CD 84 F0         [ 4]    1     CALL DOLIT 
+      00AF52 00 0A                    2     .word 10 
+      00AF54 CD 8A 81         [ 4] 1154     CALL USLMOD 
+      00AF57 CD 86 AA         [ 4] 1155     CALL SWAPP  
+      002EDA                       1156     _DOLIT 5 
+      00AF5A CD 84 F0         [ 4]    1     CALL DOLIT 
+      00AF5D 00 05                    2     .word 5 
+      00AF5F CD 89 A7         [ 4] 1157     CALL LESS 
+      002EE2                       1158     _TBRAN FTOD2  
+      00AF62 CD 85 27         [ 4]    1     CALL TBRAN 
+      00AF65 AF 6A                    2     .word FTOD2 
+      00AF67 CD 8C 23         [ 4] 1159     CALL ONEP 
+      00AF6A                       1160 FTOD2:      
+      002EEA                       1161     _DONXT FTOD1
+      00AF6A CD 85 04         [ 4]    1     CALL DONXT 
+      00AF6D AF 44                    2     .word FTOD1 
+      00AF6F 20 23            [ 2] 1162     JRA FTOD8   
+      00AF71                       1163 FTOD3: 
+      00AF71 CD 85 B5         [ 4] 1164     CALL RFROM 
+      002EF4                       1165     _DROP 
+      00AF74 1C 00 02         [ 2]    1     ADDW X,#CELLL  
+      00AF77 20 1B            [ 2] 1166     JRA FTOD8  
+                                   1167 ; positive exponent 
+      00AF79                       1168 FTOD4:
+      00AF79 CD 86 63         [ 4] 1169     CALL TOR 
+      00AF7C 20 11            [ 2] 1170     JRA FTOD6
+      00AF7E                       1171 FTOD5:
+      002EFE                       1172     _DOLIT 10 
+      00AF7E CD 84 F0         [ 4]    1     CALL DOLIT 
+      00AF81 00 0A                    2     .word 10 
+      00AF83 CD 8B 58         [ 4] 1173     CALL UMSTA
+      002F06                       1174     _QBRAN FTOD6 
+      00AF86 CD 85 19         [ 4]    1     CALL QBRAN
+      00AF89 AF 8F                    2     .word FTOD6
+      00AF8B 5B 02            [ 2] 1175     ADDW SP,#CELLL 
+      00AF8D 20 05            [ 2] 1176     JRA FTOD8  
+      00AF8F                       1177 FTOD6: 
+      002F0F                       1178     _DONXT FTOD5 
+      00AF8F CD 85 04         [ 4]    1     CALL DONXT 
+      00AF92 AF 7E                    2     .word FTOD5 
+      00AF94                       1179 FTOD8:
+      00AF94 CD 88 5E         [ 4] 1180     CALL ROT 
+      002F17                       1181     _QBRAN FTOD9 
+      00AF97 CD 85 19         [ 4]    1     CALL QBRAN
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 164.
+Hexadecimal [24-Bits]
+
+
+
+      00AF9A AF 9F                    2     .word FTOD9
+      00AF9C CD 89 07         [ 4] 1182     CALL NEGAT
+      00AF9F                       1183 FTOD9:          
+      00AF9F 81               [ 4] 1184     RET 
+                                   1185 
+                                   1186 
+                                   1187 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                                   1188 ; DSWAP ( f#1 f#2 -- f#2 f#1 )
+                                   1189 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      002F20                       1190     _HEADER DSWAP,5,"DSWAP"
+      00AFA0 AF 16                    1         .word LINK 
+                           002F22     2         LINK=.
+      00AFA2 05                       3         .byte 5  
+      00AFA3 44 53 57 41 50           4         .ascii "DSWAP"
+      00AFA8                          5         DSWAP:
+      00AFA8 90 93            [ 1] 1191     LDW Y,X 
+      00AFAA 90 FE            [ 2] 1192     LDW Y,(Y)
+      00AFAC 90 89            [ 2] 1193     PUSHW Y 
+      00AFAE 90 93            [ 1] 1194     LDW Y,X 
+      00AFB0 90 EE 02         [ 2] 1195     LDW Y,(2,Y)
+      00AFB3 90 89            [ 2] 1196     PUSHW Y 
+      00AFB5 90 93            [ 1] 1197     LDW Y,X 
+      00AFB7 90 EE 04         [ 2] 1198     LDW Y,(4,Y)
+      00AFBA FF               [ 2] 1199     LDW (X),Y 
+      00AFBB 90 93            [ 1] 1200     LDW Y,X 
+      00AFBD 90 EE 06         [ 2] 1201     LDW Y,(6,Y)
+      00AFC0 EF 02            [ 2] 1202     LDW (2,X),Y 
+      00AFC2 90 85            [ 2] 1203     POPW Y 
+      00AFC4 EF 06            [ 2] 1204     LDW (6,X),Y 
+      00AFC6 90 85            [ 2] 1205     POPW Y 
+      00AFC8 EF 04            [ 2] 1206     LDW (4,X),Y 
+      00AFCA CC A6 A2         [ 2] 1207     JP SET_FPSW  ; reflect state of top float 
+                                   1208 
+                                   1209 
+                                   1210 ;;;;;;;;;;;;;;;;;;;;;;;;
+                                   1211 ;   F0< ( f# -- f )
+                                   1212 ;   true if f#<0
+                                   1213 ;;;;;;;;;;;;;;;;;;;;;;;;
+      002F4D                       1214     _HEADER FZLESS,3,"F0<"
+      00AFCD AF A2                    1         .word LINK 
+                           002F4F     2         LINK=.
+      00AFCF 03                       3         .byte 3  
+      00AFD0 46 30 3C                 4         .ascii "F0<"
+      00AFD3                          5         FZLESS:
+      002F53                       1215     _DROP 
+      00AFD3 1C 00 02         [ 2]    1     ADDW X,#CELLL  
+      00AFD6 CC 86 D1         [ 2] 1216     JP ZLESS 
+                                   1217 
+                                   1218 
+                                   1219 ;;;;;;;;;;;;;;;;;;;;;;;;
+                                   1220 ;   F< ( f#1 f#2 -- f )
+                                   1221 ;;;;;;;;;;;;;;;;;;;;;;;
+      002F59                       1222     _HEADER FLESS,2,"F<"
+      00AFD9 AF CF                    1         .word LINK 
+                           002F5B     2         LINK=.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 165.
+Hexadecimal [24-Bits]
+
+
+
+      00AFDB 02                       3         .byte 2  
+      00AFDC 46 3C                    4         .ascii "F<"
+      00AFDE                          5         FLESS:
+      00AFDE CD AD 67         [ 4] 1223     CALL FSUB 
+      00AFE1 20 F0            [ 2] 1224     JRA FZLESS 
+                                   1225 
+                                   1226 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                                   1227 ;   F> ( f#1 f#2 -- f )
+                                   1228 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      002F63                       1229     _HEADER FGREAT,2,"F>"
+      00AFE3 AF DB                    1         .word LINK 
+                           002F65     2         LINK=.
+      00AFE5 02                       3         .byte 2  
+      00AFE6 46 3E                    4         .ascii "F>"
+      00AFE8                          5         FGREAT:
+      00AFE8 CD AF A8         [ 4] 1230     CALL DSWAP 
+      00AFEB 20 F1            [ 2] 1231     JRA FLESS 
+                                   1232 
+                                   1233 
+                                   1234 
+                                   1235 ;;;;;;;;;;;;;;;;;;;;;;;;;
+                                   1236 ;   F= ( f#1 f#2 -- f ) 
+                                   1237 ;   true if f#1==f#2 
+                                   1238 ;;;;;;;;;;;;;;;;;;;;;;;;;
+      002F6D                       1239     _HEADER FEQUAL,2,"F="
+      00AFED AF E5                    1         .word LINK 
+                           002F6F     2         LINK=.
+      00AFEF 02                       3         .byte 2  
+      00AFF0 46 3D                    4         .ascii "F="
+      00AFF2                          5         FEQUAL:
+      00AFF2 4F               [ 1] 1240     CLR A 
+      00AFF3 90 93            [ 1] 1241     LDW Y,X 
+      00AFF5 90 FE            [ 2] 1242     LDW Y,(Y)
+      00AFF7 90 BF 26         [ 2] 1243     LDW YTEMP,Y  
+      00AFFA 90 93            [ 1] 1244     LDW Y,X 
+      00AFFC 90 EE 04         [ 2] 1245     LDW Y,(4,Y)
+      00AFFF 90 B3 26         [ 2] 1246     CPW Y,YTEMP
+      00B002 26 14            [ 1] 1247     JRNE 1$
+      00B004 90 93            [ 1] 1248     LDW Y,X 
+      00B006 90 EE 02         [ 2] 1249     LDW Y,(2,Y)
+      00B009 90 BF 26         [ 2] 1250     LDW YTEMP,Y 
+      00B00C 90 93            [ 1] 1251     LDW Y,X 
+      00B00E 90 EE 06         [ 2] 1252     LDW Y,(6,Y)
+      00B011 90 B3 26         [ 2] 1253     CPW Y,YTEMP 
+      00B014 26 02            [ 1] 1254     JRNE 1$ 
+      00B016 A6 FF            [ 1] 1255     LD A,#255
+      00B018                       1256 1$: 
+      00B018 1C 00 02         [ 2] 1257     ADDW X,#CELLL 
+      00B01B F7               [ 1] 1258     LD (X),A 
+      00B01C E7 01            [ 1] 1259     LD (1,X),A 
+      00B01E 81               [ 4] 1260     RET 
+                                   1261 
+                                   1262 ;;;;;;;;;;;;;;;;;;;;;;;;;;
+                                   1263 ;   F0= ( f# -- f )
+                                   1264 ;   true if f# is 0.0 
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 166.
+Hexadecimal [24-Bits]
+
+
+
+                                   1265 ;;;;;;;;;;;;;;;;;;;;;;;;;;
+      002F9F                       1266     _HEADER FZEQUAL,3,"F0="
+      00B01F AF EF                    1         .word LINK 
+                           002FA1     2         LINK=.
+      00B021 03                       3         .byte 3  
+      00B022 46 30 3D                 4         .ascii "F0="
+      00B025                          5         FZEQUAL:
+      002FA5                       1267     _DROP  
+      00B025 1C 00 02         [ 2]    1     ADDW X,#CELLL  
+      00B028 CC 86 E3         [ 2] 1268     JP ZEQUAL  
+                                   1269 
+                                   1270 ;;;;;;;;;;;;;;;;;;;;;;;;;;
+                                   1271 ;  FNEGATE ( f#1 -- f#2 )
+                                   1272 ;  f#2 is negation of f#1 
+                                   1273 ;;;;;;;;;;;;;;;;;;;;;;;;;;
+      002FAB                       1274     _HEADER FNEGA,7,"FNEGATE"
+      00B02B B0 21                    1         .word LINK 
+                           002FAD     2         LINK=.
+      00B02D 07                       3         .byte 7  
+      00B02E 46 4E 45 47 41 54 45     4         .ascii "FNEGATE"
+      00B035                          5         FNEGA:
+      00B035 CD 86 63         [ 4] 1275     CALL TOR 
+      00B038 CD 89 07         [ 4] 1276     CALL NEGAT
+      00B03B CD 85 B5         [ 4] 1277     CALL RFROM 
+      00B03E CC A6 A2         [ 2] 1278     JP SET_FPSW
+                                   1279      
+                                   1280 
+                                   1281 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                                   1282 ;  FABS ( f#1 -- abs(f#1) )
+                                   1283 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      002FC1                       1284     _HEADER FABS,4,"FABS"
+      00B041 B0 2D                    1         .word LINK 
+                           002FC3     2         LINK=.
+      00B043 04                       3         .byte 4  
+      00B044 46 41 42 53              4         .ascii "FABS"
+      00B048                          5         FABS:
+      00B048 CD 86 63         [ 4] 1285     CALL TOR 
+      00B04B CD 89 6D         [ 4] 1286     CALL ABSS 
+      00B04E CD 85 B5         [ 4] 1287     CALL RFROM 
+      00B051 CC A6 A2         [ 2] 1288     JP SET_FPSW
+                                   1289      
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 167.
+Hexadecimal [24-Bits]
+
+
+
                                    4680 .endif 
                                    4681 
                                    4682 ;===============================================================
                                    4683 
-                           002CE4  4684 LASTN =	LINK   ;last name defined
+                           002FC3  4684 LASTN =	LINK   ;last name defined
                                    4685 
                                    4686 ; application code begin here
-      00AD80                       4687 	.bndry 128 ; align on flash block  
-      00AD80                       4688 app_space: 
+      00B080                       4687 	.bndry 128 ; align on flash block  
+      00B080                       4688 app_space: 
                                    4689 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 159.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 168.
 Hexadecimal [24-Bits]
 
 Symbol Table
@@ -10625,7 +11151,7 @@ Symbol Table
     CC_C    =  000000     |     CC_H    =  000004     |     CC_I0   =  000003 
     CC_I1   =  000005     |     CC_N    =  000002     |     CC_V    =  000007 
     CC_Z    =  000001     |     CELLL   =  000002     |   6 CELLM      000B87 R
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 160.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 169.
 Hexadecimal [24-Bits]
 
 Symbol Table
@@ -10683,13 +11209,15 @@ Symbol Table
   6 DOTQP      001095 R   |   6 DOTR       0010A3 R   |   6 DOTS       001B65 R
   6 DOTS1      001B70 R   |   6 DOTS2      001B79 R   |   6 DOVAR      0006D0 R
   6 DO_DCONS   001AAC R   |     DP      =  000005     |   6 DROP       000610 R
-  6 DSTOR      000C9D R   |   6 DUMP       001B1B R   |   6 DUMP1      001B32 R
-  6 DUMP3      001B54 R   |   6 DUMPP      001AEA R   |   6 DUPP       00061A R
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 161.
+  6 DSLMOD     002CFB R   |   6 DSLMOD3    002D16 R   |   6 DSLMOD4    002D22 R
+  6 DSLMODa    002D1D R   |   6 DSLMODb    002D28 R   |   6 DSTOR      000C9D R
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 170.
 Hexadecimal [24-Bits]
 
 Symbol Table
 
+  6 DSWAP      002F28 R   |   6 DUMP       001B1B R   |   6 DUMP1      001B32 R
+  6 DUMP3      001B54 R   |   6 DUMPP      001AEA R   |   6 DUPP       00061A R
   6 EDIGS      000E7C R   |   6 EDOT       0026DC R   |   6 EDOT0      0026EB R
   6 EDOT2      0026F7 R   |   6 EDOT3      002715 R   |   6 EDOT4      002730 R
   6 EDOT5      002751 R   |   6 EECSTORE   001F76 R   |   6 EEPCP      001D9C R
@@ -10705,15 +11233,16 @@ Symbol Table
     EXT     =  000000     |     EXTI_CR1=  0050A0     |     EXTI_CR2=  0050A1 
   6 EXTRC      000E03 R   |   6 F24AT      002AF4 R   |   6 F24CONST   002A41 R
   6 F24STO     002AD2 R   |   6 F24VAR     002A88 R   |     F24_MAJO=  000001 
-    F24_MINO=  000000     |   6 FADDR      002359 R   |   6 FALGN1     002B96 R
-  6 FALGN10    002C74 R   |   6 FALGN4     002BCA R   |   6 FALGN6     002BF4 R
-  6 FALGN7     002C33 R   |   6 FALGN71    002C36 R   |   6 FALGN8     002C4F R
-  6 FALGN9     002C63 R   |   6 FALIGN     002B7E R   |   6 FALSE      000869 R
-  6 FARAT      001E1D R   |   6 FARCAT     001E29 R   |   6 FC_XOFF    000464 R
-  6 FC_XON     00044E R   |   6 FDOT       002760 R   |   6 FDOT0      002796 R
-  6 FDOT1      002785 R   |   6 FDOT10     0027E9 R   |   6 FDOT2      0027A4 R
-  6 FDOT3      0027BA R   |   6 FDOT6      0027C7 R   |   6 FDOT7      0027C9 R
-  6 FDOT8      0027D1 R   |   6 FDOT9      0027D9 R   |   6 FER        0025BF R
+    F24_MINO=  000000     |   6 FABS       002FC8 R   |   6 FADDR      002359 R
+  6 FALGN1     002B96 R   |   6 FALGN10    002C74 R   |   6 FALGN4     002BCA R
+  6 FALGN6     002BF4 R   |   6 FALGN7     002C33 R   |   6 FALGN71    002C36 R
+  6 FALGN8     002C4F R   |   6 FALGN9     002C63 R   |   6 FALIGN     002B7E R
+  6 FALSE      000869 R   |   6 FARAT      001E1D R   |   6 FARCAT     001E29 R
+  6 FC_XOFF    000464 R   |   6 FC_XON     00044E R   |   6 FDOT       002760 R
+  6 FDOT0      002796 R   |   6 FDOT1      002785 R   |   6 FDOT10     0027E9 R
+  6 FDOT2      0027A4 R   |   6 FDOT3      0027BA R   |   6 FDOT6      0027C7 R
+  6 FDOT7      0027C9 R   |   6 FDOT8      0027D1 R   |   6 FDOT9      0027D9 R
+  6 FEQUAL     002F72 R   |   6 FER        0025BF R   |   6 FGREAT     002F68 R
     FHSE    =  7A1200     |     FHSI    =  F42400     |   6 FILL       000D89 R
   6 FILL0      000D97 R   |   6 FILL1      000D9F R   |   6 FIND       00132B R
   6 FIND1      001349 R   |   6 FIND2      001377 R   |   6 FIND3      001383 R
@@ -10732,24 +11261,30 @@ Symbol Table
     FLASH_NF=  000001     |     FLASH_NF=  000002     |     FLASH_NF=  000003 
     FLASH_NF=  000004     |     FLASH_NF=  000005     |     FLASH_PU=  005062 
     FLASH_PU=  000056     |     FLASH_PU=  0000AE     |     FLASH_SI=  020000 
-    FLASH_WS=  00480D     |   6 FLITER     002A0C R   |   6 FLOATQ     0028CE R
-  6 FLOATQ1    00294D R   |   6 FLOATQ2    002956 R   |   6 FLOATQ3    00295E R
-  6 FLOATQ4    002995 R   |   6 FLOAT_ER   0029AD R   |   6 FLOAT_ER   0029A7 R
-    FLSI    =  01F400     |   6 FMOVE      002364 R   |   6 FMOVE2     002395 R
-  6 FNE        0025E2 R   |   6 FOR        00169A R   |   6 FORGET     00015A R
-  6 FORGET1    000189 R   |   6 FORGET2    00020F R   |   6 FORGET4    000218 R
-  6 FORGET6    0001D1 R   |   6 FOV        0025FD R   |   6 FPLUS      002CD8 R
-  6 FPSTOR     001D38 R   |   6 FPSW       002591 R   |     FPTR    =  000034 
-  6 FREEVAR    000225 R   |   6 FREEVAR4   00025B R   |   6 FRESET     0025A3 R
-  6 FSUB       002CE7 R   |   6 FVER       00255F R   |   6 FZE        0025CC R
-    GPIO_BAS=  005000     |     GPIO_CR1=  000003     |     GPIO_CR2=  000004 
-    GPIO_DDR=  000002     |     GPIO_IDR=  000001     |     GPIO_ODR=  000000 
-    GPIO_SIZ=  000005     |   6 GREAT      000954 R   |   6 GREAT1     00095F R
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 162.
+    FLASH_WS=  00480D     |   6 FLESS      002F5E R   |   6 FLITER     002A0C R
+  6 FLOATQ     0028CE R   |   6 FLOATQ1    00294D R   |   6 FLOATQ2    002956 R
+  6 FLOATQ3    00295E R   |   6 FLOATQ4    002995 R   |   6 FLOAT_ER   0029AD R
+  6 FLOAT_ER   0029A7 R   |     FLSI    =  01F400     |   6 FMOVE      002364 R
+  6 FMOVE2     002395 R   |   6 FNE        0025E2 R   |   6 FNEGA      002FB5 R
+  6 FOR        00169A R   |   6 FORGET     00015A R   |   6 FORGET1    000189 R
+  6 FORGET2    00020F R   |   6 FORGET4    000218 R   |   6 FORGET6    0001D1 R
+  6 FOV        0025FD R   |   6 FPLUS      002CD8 R   |   6 FPSTOR     001D38 R
+  6 FPSW       002591 R   |     FPTR    =  000034     |   6 FREEVAR    000225 R
+  6 FREEVAR4   00025B R   |   6 FRESET     0025A3 R   |   6 FSLASH     002DF3 R
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 171.
 Hexadecimal [24-Bits]
 
 Symbol Table
 
+  6 FSLASH1    002E29 R   |   6 FSLASH8    002E6F R   |   6 FSLASH9    002E82 R
+  6 FSTAR      002DA1 R   |   6 FSUB       002CE7 R   |   6 FTOD1      002EC4 R
+  6 FTOD2      002EEA R   |   6 FTOD3      002EF1 R   |   6 FTOD4      002EF9 R
+  6 FTOD5      002EFE R   |   6 FTOD6      002F0F R   |   6 FTOD8      002F14 R
+  6 FTOD9      002F1F R   |   6 FTOS       002E9A R   |   6 FVER       00255F R
+  6 FZE        0025CC R   |   6 FZEQUAL    002FA5 R   |   6 FZLESS     002F53 R
+    GPIO_BAS=  005000     |     GPIO_CR1=  000003     |     GPIO_CR2=  000004 
+    GPIO_DDR=  000002     |     GPIO_IDR=  000001     |     GPIO_ODR=  000000 
+    GPIO_SIZ=  000005     |   6 GREAT      000954 R   |   6 GREAT1     00095F R
   6 HDOT       0010F2 R   |   6 HERE       000CE9 R   |   6 HEX        000EB2 R
   6 HI         001C7B R   |   6 HLD        000750 R   |   6 HOLD       000E27 R
     HSECNT  =  004809     |     I2C_CCRH=  00521C     |     I2C_CCRH=  000080 
@@ -10796,6 +11331,11 @@ Symbol Table
     INT_VECT=  008054     |     INT_VECT=  008000     |     INT_VECT=  008030 
     INT_VECT=  008038     |     INT_VECT=  008034     |     INT_VECT=  008040 
     INT_VECT=  00803C     |     INT_VECT=  008048     |     INT_VECT=  008044 
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 172.
+Hexadecimal [24-Bits]
+
+Symbol Table
+
     INT_VECT=  008064     |     INT_VECT=  008008     |     INT_VECT=  008004 
     INT_VECT=  008050     |     INT_VECT=  00804C     |     INT_VECT=  00805C 
     INT_VECT=  008058     |   6 INVER      000876 R   |     IPR0    =  000002 
@@ -10805,17 +11345,12 @@ Symbol Table
     ITC_SPR4=  007F73     |     ITC_SPR5=  007F74     |     ITC_SPR6=  007F75 
     ITC_SPR7=  007F76     |     ITC_SPR8=  007F77     |     IWDG_KR =  0050E0 
     IWDG_PR =  0050E1     |     IWDG_RLR=  0050E2     |   6 JFETCH     0016C3 R
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 163.
-Hexadecimal [24-Bits]
-
-Symbol Table
-
     JPIMM   =  0000CC     |   6 JSRC       001927 R   |   6 JSRC1      00194A R
   6 JSRC2      00196D R   |   6 KEY        000FED R   |   6 KTAP       00141C R
   6 KTAP1      00143F R   |   6 KTAP2      001442 R   |   6 LAST       00078F R
-  6 LASTN   =  002CE4 R   |   6 LBRAC      001539 R   |     LED2_BIT=  000005 
+  6 LASTN   =  002FC3 R   |   6 LBRAC      001539 R   |     LED2_BIT=  000005 
     LED2_MAS=  000020     |     LED2_POR=  00500A     |   6 LESS       000927 R
-    LF      =  00000A     |   6 LINK    =  002CE4 R   |   6 LITER      001672 R
+    LF      =  00000A     |   6 LINK    =  002FC3 R   |   6 LITER      001672 R
   6 LOCAL      000555 R   |   6 LOCK       001E9E R   |   6 LSCALE     0029CC R
   6 LSHIFT     000BC1 R   |   6 LSHIFT1    000BCA R   |   6 LSHIFT4    000BD2 R
   6 LT1        000932 R   |     MASKK   =  001F7F     |   6 MAX        00096C R
@@ -10856,6 +11391,11 @@ Symbol Table
   6 PARS8      0011F5 R   |   6 PARSE      001206 R   |   6 PARSEXP_   0028B1 R
   6 PAUSE      0002E1 R   |     PA_BASE =  005000     |     PA_CR1  =  005003 
     PA_CR2  =  005004     |     PA_DDR  =  005002     |     PA_IDR  =  005001 
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 173.
+Hexadecimal [24-Bits]
+
+Symbol Table
+
     PA_ODR  =  005000     |     PB      =  000005     |     PB_BASE =  005005 
     PB_CR1  =  005008     |     PB_CR2  =  005009     |     PB_DDR  =  005007 
     PB_IDR  =  005006     |     PB_ODR  =  005005     |     PC      =  00000A 
@@ -10865,11 +11405,6 @@ Symbol Table
     PD_BASE =  00500F     |     PD_CR1  =  005012     |     PD_CR2  =  005013 
     PD_DDR  =  005011     |     PD_IDR  =  005010     |     PD_ODR  =  00500F 
     PE      =  000014     |     PE_BASE =  005014     |     PE_CR1  =  005017 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 164.
-Hexadecimal [24-Bits]
-
-Symbol Table
-
     PE_CR2  =  005018     |     PE_DDR  =  005016     |     PE_IDR  =  005015 
     PE_ODR  =  005014     |     PF      =  000019     |     PF_BASE =  005019 
     PF_CR1  =  00501C     |     PF_CR2  =  00501D     |     PF_DDR  =  00501B 
@@ -10898,23 +11433,30 @@ Symbol Table
   6 RPSTO      00051F R   |   6 RSCALE     0029EA R   |   6 RSHIFT     000BDD R
   6 RSHIFT1    000BE6 R   |   6 RSHIFT4    000BEE R   |     RST_SR  =  0050B3 
   6 SAME1      0012F3 R   |   6 SAME2      00131C R   |   6 SAMEQ      0012EB R
-  6 SCALDN2    002B70 R   |   6 SCALDN3    002B73 R   |   6 SCALEDOW   002B47 R
-  6 SCALEUP    002B15 R   |   6 SCALEUP2   002B43 R   |   6 SCALEUP3   002B46 R
-  6 SCOM1      001874 R   |   6 SCOM2      001877 R   |   6 SCOMP      001856 R
-  6 SEED       000266 R   |     SEEDX   =  000038     |     SEEDY   =  00003A 
-  6 SEMIS      0018B0 R   |   6 SETISP     0000D0 R   |   6 SET_FPSW   002622 R
-  6 SET_RAML   001A3D R   |   6 SFN        002685 R   |     SFR_BASE=  005000 
-    SFR_END =  0057FF     |   6 SFV        0026B1 R   |   6 SFZ        002656 R
-  6 SIGN       000E66 R   |   6 SIGN1      000E76 R   |   6 SLASH      000AC9 R
-  6 SLMOD      000A6C R   |   6 SLMOD1     000AA9 R   |   6 SLMOD8     000AB6 R
-  6 SNAME      001809 R   |     SP0     =  00002C     |   6 SPACE      001025 R
-  6 SPACS      001034 R   |   6 SPAT       0005FA R   |     SPI_CR1 =  005200 
-    SPI_CR2 =  005201     |     SPI_CRCP=  005205     |     SPI_DR  =  005204 
-    SPI_ICR =  005202     |     SPI_RXCR=  005206     |     SPI_SR  =  005203 
-    SPI_TXCR=  005207     |     SPP     =  001680     |     SPSAVE  =  000001 
-  6 SPSTO      000607 R   |   6 SSMOD      000B59 R   |     SSP     =  000001 
-    STACK   =  0017FF     |   6 STAR       000B22 R   |   6 STASL      000B6A R
-  6 STOD       0008BC R   |   6 STORE      0004D2 R   |   6 STO_SIGN   002822 R
+  6 SCAL1      002D4B R   |   6 SCAL2      002D66 R   |   6 SCAL3      002D85 R
+  6 SCAL4      002D9B R   |   6 SCALDN2    002B70 R   |   6 SCALDN3    002B73 R
+  6 SCALEDOW   002B47 R   |   6 SCALETOM   002D41 R   |   6 SCALEUP    002B15 R
+  6 SCALEUP2   002B43 R   |   6 SCALEUP3   002B46 R   |   6 SCOM1      001874 R
+  6 SCOM2      001877 R   |   6 SCOMP      001856 R   |   6 SEED       000266 R
+    SEEDX   =  000038     |     SEEDY   =  00003A     |   6 SEMIS      0018B0 R
+  6 SETISP     0000D0 R   |   6 SET_FPSW   002622 R   |   6 SET_RAML   001A3D R
+  6 SFN        002685 R   |     SFR_BASE=  005000     |     SFR_END =  0057FF 
+  6 SFV        0026B1 R   |   6 SFZ        002656 R   |   6 SIGN       000E66 R
+  6 SIGN1      000E76 R   |   6 SLASH      000AC9 R   |   6 SLMOD      000A6C R
+  6 SLMOD1     000AA9 R   |   6 SLMOD8     000AB6 R   |   6 SNAME      001809 R
+    SP0     =  00002C     |   6 SPACE      001025 R   |   6 SPACS      001034 R
+  6 SPAT       0005FA R   |     SPI_CR1 =  005200     |     SPI_CR2 =  005201 
+    SPI_CRCP=  005205     |     SPI_DR  =  005204     |     SPI_ICR =  005202 
+    SPI_RXCR=  005206     |     SPI_SR  =  005203     |     SPI_TXCR=  005207 
+    SPP     =  001680     |     SPSAVE  =  000001     |   6 SPSTO      000607 R
+  6 SSMOD      000B59 R   |     SSP     =  000001     |     STACK   =  0017FF 
+  6 STAR       000B22 R   |   6 STASL      000B6A R   |   6 STOD       0008BC R
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 174.
+Hexadecimal [24-Bits]
+
+Symbol Table
+
+  6 STOF       002E8E R   |   6 STORE      0004D2 R   |   6 STO_SIGN   002822 R
   6 STR        000E94 R   |   6 STRCQ      00167A R   |   6 STRQ       0017C8 R
   6 STRQP      001091 R   |   6 SUBB       0008D3 R   |   6 SWAPP      00062A R
     SWIM_CSR=  007F80     |   6 TAP        001406 R   |   6 TBOOT      001CBA R
@@ -10925,11 +11467,6 @@ Symbol Table
   6 TICK       0015E9 R   |     TIM1_ARR=  005262     |     TIM1_ARR=  005263 
     TIM1_BKR=  00526D     |     TIM1_CCE=  00525C     |     TIM1_CCE=  00525D 
     TIM1_CCM=  005258     |     TIM1_CCM=  000000     |     TIM1_CCM=  000001 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 165.
-Hexadecimal [24-Bits]
-
-Symbol Table
-
     TIM1_CCM=  000004     |     TIM1_CCM=  000005     |     TIM1_CCM=  000006 
     TIM1_CCM=  000007     |     TIM1_CCM=  000002     |     TIM1_CCM=  000003 
     TIM1_CCM=  000007     |     TIM1_CCM=  000002     |     TIM1_CCM=  000004 
@@ -10974,6 +11511,11 @@ Symbol Table
     TIM1_SR2=  005256     |     TIM1_SR2=  000001     |     TIM1_SR2=  000002 
     TIM1_SR2=  000003     |     TIM1_SR2=  000004     |     TIM2_ARR=  00530D 
     TIM2_ARR=  00530E     |     TIM2_CCE=  005308     |     TIM2_CCE=  000000 
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 175.
+Hexadecimal [24-Bits]
+
+Symbol Table
+
     TIM2_CCE=  000001     |     TIM2_CCE=  000004     |     TIM2_CCE=  000005 
     TIM2_CCE=  005309     |     TIM2_CCM=  005305     |     TIM2_CCM=  005306 
     TIM2_CCM=  005307     |     TIM2_CCM=  000000     |     TIM2_CCM=  000004 
@@ -10985,11 +11527,6 @@ Symbol Table
     TIM2_EGR=  005304     |     TIM2_EGR=  000001     |     TIM2_EGR=  000002 
     TIM2_EGR=  000003     |     TIM2_EGR=  000006     |     TIM2_EGR=  000000 
     TIM2_IER=  005301     |     TIM2_PSC=  00530C     |     TIM2_SR1=  005302 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 166.
-Hexadecimal [24-Bits]
-
-Symbol Table
-
     TIM2_SR2=  005303     |     TIM3_ARR=  00532B     |     TIM3_ARR=  00532C 
     TIM3_CCE=  005327     |     TIM3_CCE=  000000     |     TIM3_CCE=  000001 
     TIM3_CCE=  000004     |     TIM3_CCE=  000005     |     TIM3_CCE=  000000 
@@ -11034,6 +11571,11 @@ Symbol Table
     UART_CR1=  000003     |     UART_CR2=  005235     |     UART_CR2=  000004 
     UART_CR2=  000002     |     UART_CR2=  000005     |     UART_CR2=  000001 
     UART_CR2=  000000     |     UART_CR2=  000006     |     UART_CR2=  000003 
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 176.
+Hexadecimal [24-Bits]
+
+Symbol Table
+
     UART_CR2=  000007     |     UART_CR3=  000006     |     UART_CR3=  000003 
     UART_CR3=  000001     |     UART_CR3=  000002     |     UART_CR3=  000000 
     UART_CR3=  000006     |     UART_CR3=  000004     |     UART_CR3=  000005 
@@ -11045,11 +11587,6 @@ Symbol Table
     UART_CR6=  000004     |     UART_CR6=  000007     |     UART_CR6=  000001 
     UART_CR6=  000002     |     UART_CR6=  000000     |     UART_CR6=  000005 
     UART_DR =  005231     |     UART_GTR=  000009     |     UART_PSC=  00000A 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 167.
-Hexadecimal [24-Bits]
-
-Symbol Table
-
     UART_SR =  005230     |     UART_SR_=  000001     |     UART_SR_=  000004 
     UART_SR_=  000002     |     UART_SR_=  000003     |     UART_SR_=  000000 
     UART_SR_=  000005     |     UART_SR_=  000006     |     UART_SR_=  000007 
@@ -11085,7 +11622,7 @@ Symbol Table
     XON     =  000011     |   6 XORR       0006A0 R   |     XTEMP   =  000024 
     YTEMP   =  000026     |     YTMP    =  000003     |   6 ZEQU1      00066D R
   6 ZEQUAL     000663 R   |   6 ZERO       000C0F R   |   6 ZL1        00065A R
-  6 ZLESS      000651 R   |   6 app_spac   002D00 R   |   6 baudrate   00037C R
+  6 ZLESS      000651 R   |   6 app_spac   003000 R   |   6 baudrate   00037C R
   6 block_er   00200C R   |   6 clear_ra   000019 R   |   6 clock_in   000064 R
   6 copy_buf   00206C R   |   6 copy_buf   00208B R   |   6 copy_pro   00208B R
     da      =  000002     |     db      =  000003     |     dc      =  000000 
@@ -11094,11 +11631,16 @@ Symbol Table
   6 no_move    0023E8 R   |   6 nsign      0027F9 R   |   6 parse_d4   00285C R
   6 parse_d5   002868 R   |   6 parse_di   002826 R   |   6 parse_ex   002869 R
   6 pristine   00210C R   |   6 proceed_   002031 R   |   6 reboot     000328 R
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 177.
+Hexadecimal [24-Bits]
+
+Symbol Table
+
   6 reset_ve   002173 R   |   6 row_eras   001FEC R   |   6 row_eras   002045 R
   6 row_eras   00206C R   |   6 set_opti   0020E0 R   |   6 set_vect   002214 R
   6 uart_ini   000076 R   |   6 write_ro   0020B0 R
 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 168.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 178.
 Hexadecimal [24-Bits]
 
 Area Table
@@ -11109,5 +11651,5 @@ Area Table
    3 SSEG       size      0   flags    8
    4 SSEG1      size    100   flags    8
    5 HOME       size     80   flags    0
-   6 CODE       size   2D00   flags    0
+   6 CODE       size   3000   flags    0
 

@@ -927,230 +927,128 @@ MPLUS: ; m1 m2 e -- m* e* )
     JRA FPLUS  
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; /mod10  ( m -- m/10 r )
-; divide mantissa by 10 
-; return quotient and remainder 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-UMOD10:
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   DS/MOD ( ud us - ur qud )
+;   unsigned divide double by single 
+;   return double quotient 
+;   and single remainder 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER DSLMOD,6,"DS/MOD"
+        LDW     Y,X             ; stack pointer to Y
+        LDW     X,(X)           ; us
+        LDW     YTEMP,X         ; save us
+        LDW     X,Y
+        PUSHW   X               ; save stack pointer
+        PUSHW   Y 
+        LDW     X,(2,X)           ; X=udh
+        LDW     Y,YTEMP         ; divisor 
+        DIVW    X,Y 
+        LDW     XTEMP,X         ; QUOTIENT hi 
+        LDW     X,Y             ; remainder in X 
+        POPW    Y 
+        LDW     Y,(4,Y)         ; Y=udl (offset before drop)
+        LD      A,#16           ; loop count
+        SLLW    Y               ; udl shift udl into udh
+DSLMOD3:
+        RLCW    X               ; rotate udl bit into uhdh (= remainder)
+        JRC     DSLMODa         ; if carry out of rotate
+        CPW     X,YTEMP         ; compare udh to un
+        JRULT   DSLMOD4         ; can't subtract
+DSLMODa:
+        SUBW    X,YTEMP         ; can subtract
+        RCF
+DSLMOD4:
+        CCF                     ; quotient bit
+        RLCW    Y               ; rotate into quotient, rotate out udl
+        DEC     A               ; repeat
+        JRNE    DSLMOD3           ; if A == 0
+DSLMODb:
+        LDW     YTEMP,X         ; done, save remainder
+        POPW    X               ; restore stack pointer
+        LDW     (2,X),Y           ; save quotient low 
+        LDW     Y,XTEMP         ; quotient hi 
+        LDW     (X),Y           ; save quotient hi 
+        LDW     Y,YTEMP         ; remainder onto stack
+        LDW     (4,X),Y
+        RET 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   SCALE>M ( ud1 -- e u )
+;   scale down a double  
+;   by repeated ud1/10
+;   until ud<=MAX_MANTISSA   
+;   e is log10 exponent of scaled down
+;   u is scaled down ud1 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER SCALETOM,7,"SCALE>M"
+    CLRW Y 
+    PUSHW Y  ; local variable to save last remainder 
+    CALL ZERO 
+    CALL NROT ;  e ud 
+SCAL1:
+    CALL DUPP 
+    CALL ZEQUAL  
+    _QBRAN SCAL2  
+    CALL OVER 
+    _DOLIT MAX_MANTISSA
+    CALL UGREAT 
+    _QBRAN SCAL3
+SCAL2:     
     _DOLIT 10 
     CALL DSLMOD
     CALL ROT  
-    RET 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   SCALE>M ( ud1 -- e ud2 )
-;   scale down a double  
-;   by repeated d/10
-;   until ud<=MAX_MANTISSA   
-;   e is log10 exponent of scaled down
-;   ud2 is scaled down ud1 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER SCALETOM,7,"SCALE>M"
-    CALL ZERO 
-    CALL NROT 
-SCAL1:
-    CALL DUPP 
-    _DOLIT 0X7F 
-    CALL UGREAT 
-    _QBRAN SCAL2  
-    CALL UMOD10 
-    _DROP 
+; save remainder on rstack     
+    LDW Y,X 
+    LDW Y,(Y)
+    LDW (1,SP),Y 
+    ADDW X,#CELLL ; drop it from dstack 
     CALL ROT 
     CALL ONEP 
     CALL NROT  
     JRA SCAL1 
-SCAL2: 
-    RET 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;  UDIV10 ( ut -- ut )
-;  divide a 48 bits uint by 10 
-;  used to scale down MM* 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-UDIV10:
-    LDW Y,X 
-    LDW Y,(Y)
-    LD A,#10 
-    DIV Y,A 
-    LDW (X),Y 
-    LD YH,A 
-    LD A,(2,X)
-    LD YL,A 
-    LD A,#10 
-    DIV Y,A 
-    LD YH,A 
-    LD A,YL 
-    LD (2,X),A 
-    LD A,(3,X)
-    LD YL,A 
-    LD A,#10 
-    DIV Y,A 
-    LD YH,A 
-    LD A,YL 
-    LD (3,X),A 
-    LD A,(4,X)
-    LD YL,A 
-    LD A,#10 
-    DIV Y,A 
-    LD YH,A 
-    LD A,YL 
-    LD (4,X),A 
-    LD A,(5,X)
-    LD YL,A 
-    LD A,#10 
-    DIV Y,A 
-    LD A,YL 
-    LD (5,X),A 
-    RET 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   MM* ( m1 m2 -- m3 e )
-;   mantissa product 
-;  scale down to 23 bits 
-;   e  is log10 scaling factor.
-;   The maximum product size 
-;   before scaling is 46 bits .
-;   UDIV10 is used to scale down.  
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER MMSTAR,3,"MM*"
-    CALL DDUP
-    CALL DZEQUAL
-    _TBRAN MMSTA2
-MMSTA1:
-    CALL DOVER 
-    CALL DZEQUAL 
-    _QBRAN MMSTA3 
-MMSTA2: ; ( -- 0 0 0 )
-    ADDW X,#2 
-    CLRW Y 
-    LDW (X),Y 
-    LDW (2,X),Y
-    LDW (4,X),Y 
-    RET 
-MMSTA3:
-    CALL DSIGN 
-    CALL TOR    ; R: m2sign 
-    CALL DABS   ; m1 um2 
-    CALL DSWAP  ; um2 m1 
-    CALL DSIGN  ; um2 m1 m1sign 
-    CALL RFROM 
-    CALL XORR 
-    CALL TOR   ; R: product_sign 
-    CALL DABS  ; um2 um1  
-    CALL DTOR  ; um2 
-    CALL DUPP  ; um2 um2hi 
-    CALL RAT   ; um2 um2hi um1hi
-; first partial product  
-; pd1=um2hi*um1hi 
-    CALL STAR 
-    CALL ZERO 
-    CALL SWAPP ; pd1<<16  
-    CALL DSWAP ; pd1 um2 
-    CALL OVER  ; pd1 um2 um2lo 
-    CALL RFROM ; pd1 um2 um2lo um1hi 
-; pd2=um2lo*um1hi 
-    CALL UMSTA ; pd1 um2 pd2 
-    CALL DSWAP ; pd1 pd2 um2 
-    CALL RAT   ; pd1 pd2 um2 um1lo 
-; pd3= um2hi*um1lo 
-    CALL UMSTA ; pd1 pd2 um2lo pd3 
-    CALL ROT ; pd1 pd2 pd3 um2lo 
-    CALL TOR ; pd1 pd2 pd3 R: psign um1lo um2lo 
-; pd1+pd2+pd3  pd1
-    CALL DPLUS 
-    CALL DPLUS  
-    CALL DRFROM ; triple um2lo um1lo 
-; last partial product um2lo*um1lo 
-    CALL UMSTA ; prod pd4 
-; mm*=prod<<16+pd4  
-    CALL DTOR ;   R: psign pd4lo pd4hi  
- ; add pd4hi to prodlo and propagate carry 
-    LDW Y,X 
-    LDW Y,(2,Y)  ; prodlo 
-    ADDW Y,(1,SP)  ; prodlo+pd4hi 
-    LDW (1,SP),Y    ; plo phi  
-    LDW Y,X
-    LDW Y,(Y) ; prodhi  
-    JRNC MMSTA4
-    ADDW Y,#1 ; add carry 
-MMSTA4:     
-    SUBW X,#2 
-    LDW (X),Y 
-    POPW Y 
-    LDW (2,X),Y 
-    POPW Y 
-    LDW (4,X),Y
-    CALL ZERO 
-    CALL TOR 
-MMSTA5:
-    CALL QDUP 
-    _QBRAN MMSTA6 
-    CALL UDIV10 
-    CALL RFROM 
+SCAL3: 
+    _DROP ; drop ud high
+    CALL RFROM ; last remainder  
+    _DOLIT 5 
+    CALL LESS 
+    _TBRAN SCAL4
     CALL ONEP 
-    CALL TOR 
-    JRA MMSTA5 
-; now scale to double 
-; scale further <= MAX_MANTISSA 
-MMSTA6: 
-    CALL RFROM 
-    CALL NROT 
-    CALL SCALETOM
-    CALL DTOR 
-    CALL PLUS 
-    CALL DRFROM 
-    CALL RFROM
-    _QBRAN MMSTA7
-    CALL DNEGA
-MMSTA7:
-    CALL ROT ; m e 
+SCAL4:      
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    F* ( f#1 f#2 -- f#3 )
-;    float product 
+;    float24 product 
 ;    f#3=f#1 * f#2 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FSTAR,2,"F*"
-    CALL ATEXP ; f#1 m2 e2 
-    CALL TOR   
-    CALL DSWAP ; m2 f#1
-    CALL ATEXP ; m2 m1 e1 
-    CALL RFROM ; m2 m1 e1 e2 
-    CALL PLUS  ; m2 m1 e 
-    CALL TOR   ; m2 m1 R: e 
-    CALL MMSTAR ; m2*m1 e   
+    CALL TOR   ; m1 e1 m2 R: e2 
+    CALL SWAPP ; m1 m2 e1  R: e2 
+    CALL RFROM 
+    CALL PLUS  ; m1 m2 e 
+    CALL TOR   ; m1 m2 R: e  
+    CALL MSIGN
+    CALL TOR   ; m1 m2 R: e m2sign 
+    CALL ABSS  
+    CALL SWAPP ; um2 m1  R: e m2sign 
+    CALL MSIGN ; um2 m1 m1sign R: e m2sign 
+    CALL RFROM   
+    CALL XORR 
+    CALL NROT   ; *sign um2 m1 R: e 
+    CALL ABSS  ; *sign um2 um1 R: e 
+    CALL UMSTA 
+    CALL SCALETOM
+    CALL SWAPP 
     CALL RFROM 
     CALL PLUS 
-    CALL STEXP ; f#3 
-    RET 
+    CALL TOR 
+    CALL SWAPP 
+    _QBRAN 1$
+    CALL NEGAT 
+1$: CALL RFROM  
+    JP SET_FPSW 
 
-; unsigned mutliply by 10 
-;  ( ud -- ud ) 
-UMUL10:
-    LDW Y,X 
-    LDW Y,(2,Y)
-    PUSHW Y 
-    LDW Y,X 
-    LDW Y,(Y)
-    PUSHW Y 
-    SUBW X,#CELLL 
-    CLR (X)
-    LD A,#3 
-    LD (1,X),A 
-    CALL DLSHIFT 
-    SUBW X,#2*CELLL 
-    LDW Y,(3,SP)
-    RCF 
-    RLCW Y 
-    LDW (2,X),Y 
-    POPW Y 
-    RLCW Y 
-    LDW (X),Y 
-    CALL DPLUS
-    ADDW SP,#CELLL  
-    RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;  F/ ( f#1 f#2 -- f#3 )
@@ -1158,108 +1056,67 @@ UMUL10:
 ;  f#3 = f#1/f#2
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FSLASH,2,"F/"
-    CALL ATEXP  ; f#1 m2 e2 
-    CALL TOR    ; f#1 m2   R: e2 
-; m2 sign 
-    CLRW  Y
-    LD A,(X)
-    JRPL 1$  
-    CPLW Y  
-1$: PUSHW Y     ; f#1 m2 R: e2 m2s  
-    CALL DABS   ; F#1 um2 
-    CALL DSWAP  ; m2 f#1 
-    CALL ATEXP  ; m2 m1 e1 
-; substract expoenents e1-e2 
-    LDW Y,X 
-    LDW Y,(Y)
-    ADDW X,#CELLL 
-    SUBW Y,(3,SP)
-    LDW (3,SP),Y     
-;    CALL ONE    ; e2 slot on rstack  
-;    CALL NRAT   ; m2 m1 e1 e2 
-;    CALL SUBB   ; m2 m1 e 
-;    CALL ONE    ; e slot on rstack 
-;    CALL NRSTO  ; m2 m1 R: e m2s 
-; m1 sign xor m2 sign 
-    CLR A
-    LDW Y,X 
-    LDW Y,(Y)
-    JRPL 2$
-    CPL A  
-2$: XOR A,(1,SP)
-    LD YTEMP,A 
-    LD YTEMP+1,A 
-; swap e qs on rstack 
-    LDW Y,(3,SP) ; e 
-    ldw (1,SP),Y 
-    LDW Y,YTEMP 
-    LDW (3,SP),Y ; m2 m1 R: qs e 
-    CALL DABS   ; um2 um1 R: qs e  
-    CALL DSWAP  ; m1 m2 R: qs e
-    CALL DDUP  ; m1 m2 m2 R: qs e
-    CALL DTOR  ; m1 m2 R: qs e m2 ( keep divisor needed later ) 
-    CALL UDSLMOD ; remainder m1/m2 R: e m2 
+    CALL TOR    ; m1 e1 m2   R: e2 
+    CALL SWAPP
+    CALL RFROM 
+    CALL SUBB 
+    CALL TOR   ; m1 m2 R: e   
+    CALL MSIGN 
+    CALL TOR   ; m1 m2 R: e m2s 
+    CALL ABSS   ; m1 um2 R: e m2s 
+    CALL SWAPP  ;um2 m1 R: e m2s 
+    CALL MSIGN  ; um2 m1 m1s R: e m2s 
+    CALL RFROM  ; um2 m1 m1s m2s R: e
+    CALL XORR   
+    CALL NROT  ; qsign um2 m1 
+    CALL ABSS  ; qsign um2 um1 R: e 
+    CALL SWAPP ; qsign um1 um2 R: e  
+    CALL DUPP 
+    CALL TOR   ; qsign um1 um2 R: e um2 
+    CALL USLMOD ; qsign ur uq R: e um2 
 FSLASH1: ; fraction loop 
 ; check for null remainder 
-    LD A,(4,X)
-    OR A,(5,X)
-    OR A,(6,X)
-    OR A,(7,X)
+    LD A,(2,X)
+    OR A,(3,X)
     JREQ FSLASH8 
 ; get fractional digits from remainder until mantissa saturate
-; remainder mantissa R: e divisor 
+; qsign remainder mantissa R: e divisor 
 ; check for mantissa saturation 
-    CALL DDUP 
-; _DOLIT #0xccccc 
-    SUBW X,#2*CELLL 
-    LDW Y,#0XCCCC 
-    LDW (2,X),Y 
-    LDW Y,#0XC 
-    LDW (X),Y 
-    CALL DGREAT 
+    CALL DUPP 
+    _DOLIT 0xCCC 
+    CALL UGREAT
     _TBRAN FSLASH8 ; another loop would result in mantissa overflow 
 ; multiply mantissa by 10 
-;    SUBW X,#2*CELLL 
-;    LDW Y,#10 
-;    LDW (2,X),Y 
-;    CLRW Y 
-;    LDW (X),Y 
-;    CALL DSTAR
-    CALL UMUL10 
+    _DOLIT 10 
+    CALL STAR 
 ; mutliply remainder by 10     
-    CALL DSWAP 
-;    SUBW X,#2*CELLL 
-;    LDW Y,#10 
-;    LDW (2,X),Y 
-;    CLRW Y 
-;    LDW (X),Y
-;    CALL DSTAR 
-    CALL UMUL10 
-; divide remainder by m2     
-    CALL DRAT  ; mantissa remainder divisor R: e divisor 
-    CALL UDSLMOD ; mantissa dr dq R: qs e divisor 
-    CALL DSWAP ; mantissa frac_digit remainder R: qs e divisor  
-    CALL DTOR  ; mantissa frac_digit R: qs e divisor remainder 
-    CALL DPLUS ; mantissa+frac_digit 
-    CALL DRFROM ; mantissa remainder R: qs e divisor  
-    CALL DSWAP  ; remainder mantissa  
-; increment e 
-    LDW Y,(5,SP) ; e 
+    CALL SWAPP
+    _DOLIT 10  
+    CALL STAR 
+; divide remainder by um2     
+    CALL RAT  ; mantissa remainder divisor R: e divisor 
+    CALL USLMOD ; mantissa dr dq R: e divisor 
+    CALL SWAPP ; mantissa frac_digit remainder R:  e divisor  
+    CALL TOR  ; mantissa frac_digit R: e divisor remainder 
+    CALL PLUS ; mantissa+frac_digit 
+    CALL RFROM ; mantissa remainder R: e divisor  
+    CALL SWAPP  ; remainder mantissa  
+; decrement e 
+    LDW Y,(3,SP) ; e 
     DECW Y 
-    LDW (5,SP),Y 
+    LDW (3,SP),Y 
     JRA FSLASH1
-FSLASH8: ; remainder mantissa R: qs e divisor 
-    CALL DSWAP  
-    _DDROP  ; drop remainder     
-    ADDW SP,#2*CELLL ; drop divisor on rstack     
-    LDW Y,(3,SP)    ; quotient sign 
-    JRPL FSLASH9 
-    CALL DNEGA  
+FSLASH8: ; qsign remainder mantissa R: qs e divisor 
+    CALL SWAPP  
+    _DROP  ; drop remainder     
+    ADDW SP,#CELLL ; drop divisor from rstack     
+    CALL SWAPP ; quotient qsign
+    _QBRAN FSLASH9 
+    CALL NEGAT  
 FSLASH9:
     CALL RFROM  ; exponent 
-    CALL STEXP 
-    ADDW SP,#CELLL ; drop qs on rstack 
-    RET 
+    JP SET_FPSW
+    
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1328,9 +1185,9 @@ FTOD9:
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; FSWAP ( f#1 f#2 -- f#2 f#1 )
+; DSWAP ( f#1 f#2 -- f#2 f#1 )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER FSWAP,5,"FSWAP"
+    _HEADER DSWAP,5,"DSWAP"
     LDW Y,X 
     LDW Y,(Y)
     PUSHW Y 
@@ -1370,7 +1227,7 @@ FTOD9:
 ;   F> ( f#1 f#2 -- f )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FGREAT,2,"F>"
-    CALL FSWAP 
+    CALL DSWAP 
     JRA FLESS 
 
 
@@ -1383,20 +1240,20 @@ FTOD9:
     CLR A 
     LDW Y,X 
     LDW Y,(Y)
-    PUSHW Y 
+    LDW YTEMP,Y  
     LDW Y,X 
-    LDW Y,(2,Y)
-    CPW Y,(1,SP)
+    LDW Y,(4,Y)
+    CPW Y,YTEMP
     JRNE 1$
     LDW Y,X 
-    LDW Y,(1,Y)
-    LDW (1,SP),Y 
+    LDW Y,(2,Y)
+    LDW YTEMP,Y 
     LDW Y,X 
-    LDW Y,(3,Y)
-    CPW Y,(1,SP)
+    LDW Y,(6,Y)
+    CPW Y,YTEMP 
     JRNE 1$ 
     LD A,#255
-1$: ADDW SP,#CELLL 
+1$: 
     ADDW X,#CELLL 
     LD (X),A 
     LD (1,X),A 
