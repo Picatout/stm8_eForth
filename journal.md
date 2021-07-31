@@ -3,6 +3,21 @@ TITLE: journal.md
 AUTHOR: Jacques Deschênes
 DESCRIPTION: project log.
 -->
+
+#### 2021-07-31
+
+* Travail sur [float24-test.f](float24-test.f).
+
+* Travail sur **F/** dans [float24.asm](float24.asm)  
+```
+3.1416 5.13 f/ f. 0.6123 ok
+```
+L'arrondi à la décimale la plus proche devrait donné  **0.6124**.  Ajout de l'arrondie vers la décimale la plus proche pour corriger cette erreur.  
+
+* Corrigé bogue dans **dof24lit** runtime subroutine.     
+
+* Corrigé bogue dans **F.** point décimal manquant lorsque exposant positif. 
+
 #### 2021-07-28 
 
 * Travail sur les comparateurs dans [float24.asm](float24.asm)

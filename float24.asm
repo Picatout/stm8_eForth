@@ -316,13 +316,15 @@ FDOT3:
     CALL    DIGS
     JRA   FDOT9  
 FDOT6: ; e>=0 
+    _DOLIT '.' 
+    CALL HOLD  
     JRA   FDOT8
 FDOT7:     
     _DOLIT  '0'
     CALL    HOLD 
 FDOT8:
     _DONXT FDOT7 
-    CALL    DIGS 
+    CALL    DIGS
 FDOT9:
     CALL    FNE 
     _QBRAN  FDOT10 
@@ -559,6 +561,7 @@ FLOAT_ERROR:
 ;  compile 24 bits literal 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FLITER,COMPO+IMEDD+10,"F24LITERAL"
+CALL DOTS 
     CALL COMPI 
     .word dof24lit 
     CALL CCOMMA 
@@ -579,7 +582,7 @@ dof24lit:
     LD YH,A   
 1$: LDW (X),Y 
     LDW Y,(1,SP)
-    LDW Y,(2,Y)
+    LDW Y,(1,Y)
     LDW (2,X),Y 
     POPW Y 
     JP (3,Y)
@@ -594,7 +597,7 @@ dof24lit:
         CALL SNAME 
         CALL OVERT 
         CALL COMPI 
-        .word DOF24CONST
+        .word DOF24CONST 
         CALL CCOMMA
         CALL COMMA  
         CALL FMOVE
@@ -1107,9 +1110,14 @@ FSLASH1: ; fraction loop
     LDW (3,SP),Y 
     JRA FSLASH1
 FSLASH8: ; qsign remainder mantissa R: qs e divisor 
+; round to nearest digit, i.e r>=divisor/2
     CALL SWAPP  
-    _DROP  ; drop remainder     
-    ADDW SP,#CELLL ; drop divisor from rstack     
+    CALL RFROM 
+    CALL TWOSL 
+    CALL ULESS  
+    _TBRAN FSLASH85 
+    CALL ONEP 
+FSLASH85: 
     CALL SWAPP ; quotient qsign
     _QBRAN FSLASH9 
     CALL NEGAT  
