@@ -4,6 +4,10 @@ AUTHOR: Jacques Deschênes
 DESCRIPTION: project log.
 -->
 
+#### 2021-08-02
+
+*  Corrigé bogue dans **SET-FPSW** du fichier [float24.asm](float24.asm).
+
 #### 2021-07-31
 
 * Travail sur [float24-test.f](float24-test.f).

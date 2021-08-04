@@ -154,10 +154,9 @@
     CPW Y,#128 
     JRMI 4$ 
 3$:
-    CP A,#255 
-    JREQ 3$
     BSET UFPSW+1,#2  ; overflow         
 4$: RET 
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    SFZ ( f# -- f# )
