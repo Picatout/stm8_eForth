@@ -4,6 +4,15 @@ AUTHOR: Jacques Deschênes
 DESCRIPTION: project log.
 -->
 
+#### 2021-08-05
+
+* Travail sur [float24.asm](float24.asm). 
+
+* Réorganaisation du code, transfert de la routine *parse_digits* dans stm8ef.asm pour réduire le dédboublement de code. 
+
+* Changement à **FLOAT?**.  Un saisie de float dont la mantisse est trop grande ne génère plus un **ABAORT"** mais float fait simplement appel à **SCALE>M** pour réajuster la mantisse dans les limites. 
+  Un exposant hors limite ne génère plus un **ABORT"** mais l'erreur est signalée dans FPSW par *l'overflow flag*. 
+
 #### 2021-08-02
 
 *  Corrigé bogue dans **SET-FPSW** du fichier [float24.asm](float24.asm).

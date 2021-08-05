@@ -370,39 +370,6 @@ STO_SIGN:
     RET 
 
 
-; get all digits in row 
-; stop at first non-digit or end of string 
-; ( n a cntr -- n  a+ cntr-  )
-parse_digits:
-    CALL DUPP 
-    _QBRAN parse_d5  
-    CALL TOR   ; n a R: cntr 
-1$: CALL COUNT ; n a+ char 
-    CALL BASE 
-    CALL AT 
-    CALL DIGTQ 
-    _QBRAN parse_d4 ; not a digit
-    CALL ROT 
-    CALL BASE 
-    CALL AT 
-    CALL STAR
-    CALL PLUS
-    CALL SWAPP  
-    CALL RFROM  ; n a+ cntr 
-    CALL ONEM 
-    JRA parse_digits ; n a+ cntr  
-parse_d4: ; n a+ char R: cntr 
-    LDW Y,X 
-    LDW Y,(2,Y)
-    DECW Y  ; dec(a)
-    LDW (2,X),Y 
-    POPW Y 
-    LDW (X),Y ; n a cntr  
-parse_d5:
-    RET 
-
-
-     
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; return parsed exponent or 
 ; 0 if failed
@@ -471,12 +438,6 @@ PARSEXP_SUCCESS: ; n a
     CALL TOR  ; R: sign cntr 
 ; parse fractional part
     CALL parse_digits ; a n a+ cntr -- n a cntr 
-    _DOLIT 2 
-    CALL  PICK ; n a cnt n  
-    CALL ZLESS  
-    CALL ABORQ 
-    .byte 17 
-    .ascii "mantissa overflow"
     CALL DUPP 
     CALL RFROM 
     CALL SWAPP 
@@ -498,20 +459,30 @@ FLOATQ2:
 FLOATQ3: ; m 0 || m e  
     CALL RFROM ;  fd  
     CALL SUBB  ; exp=e-fd 
-    CALL DUPP
-    CALL ABSS  
-    _DOLIT 127
-    CALL GREAT 
-    CALL ABORQ 
-    .byte 17 
-    .ascii "exponent overflow" 
     CALL SWAPP  
+; if m>MAX_MANTISSA then m/10 e++ 
+    CALL  DUPP 
+    CALL ZLESS 
+    _QBRAN FLOATQ34
+    _DOLIT 10 
+    CALL USLMOD 
+; round to nearest integer 
+    CALL SWAPP 
+    _DOLIT 5 
+    CALL GREAT 
+    _QBRAN FLOATQ31
+    CALL ONEP 
+FLOATQ31: 
+    CALL SWAPP
+    CALL ONEP 
+    CALL SWAPP      
+FLOATQ34:     
     CALL RFROM  ; sign 
     _QBRAN FLOATQ4 
     CALL NEGAT 
 FLOATQ4:
-    CALL ROT  
-    _DROP 
+    CALL ROT   ; e m a 
+    _DROP      ; drop a 
     CALL SWAPP ; m e 
     CALL SET_FPSW 
     _DOLIT -3 

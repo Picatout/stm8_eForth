@@ -228,12 +228,12 @@ DSIGN1:
     LD (1,X),A 
     RET 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   DS/MOD ( ud us - ur qud )
 ;   unsigned divide double by single 
 ;   return double quotient 
 ;   and single remainder 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER DSLMOD,6,"DS/MOD"
         LDW     Y,X             ; stack pointer to Y
         LDW     X,(X)           ; un

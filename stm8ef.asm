@@ -2683,6 +2683,40 @@ DGTQ1:  CALL     DUPP
 
 .if  WANT_DOUBLE  
 .iff 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; get all digits in row 
+; stop at first non-digit or end of string
+; ( n a cntr -- n  a+ cntr-  )
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+parse_digits:
+    CALL DUPP 
+    _QBRAN 5$  
+    CALL TOR   ; n a R: cntr 
+1$: CALL COUNT ; n a+ char 
+    CALL BASE 
+    CALL AT 
+    CALL DIGTQ 
+    _QBRAN 4$ ; not a digit
+    CALL ROT 
+    CALL BASE 
+    CALL AT 
+    CALL STAR
+    CALL PLUS
+    CALL SWAPP  
+    CALL RFROM  ; n a+ cntr 
+    CALL ONEM 
+    JRA parse_digits ; n a+ cntr  
+4$: ; n a+ char R: cntr 
+    LDW Y,X 
+    LDW Y,(2,Y)
+    DECW Y  ; dec(a)
+    LDW (2,X),Y 
+    POPW Y 
+    LDW (X),Y ; n a cntr  
+5$:
+    RET 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       NUMBER? ( a -- n T | a F )
 ;       Convert a number string to
@@ -2697,9 +2731,9 @@ DGTQ1:  CALL     DUPP
         CALL     OVER
         CALL     COUNT ; string length,  a 0 a+ cnt 
 ;  check hexadecimal character        
-        CALL     OVER
+        CALL     OVER           ; a 0 a+ cnt a+ 
         CALL     CAT
-        _DOLIT   '$'  ; hex? 
+        _DOLIT   '$'  ; hex?    ; a 0 a+ cnt char '$'
         CALL     EQUAL
         _QBRAN   NUMQ1
         CALL     HEX
@@ -2719,24 +2753,13 @@ NUMQ1:  CALL     OVER
         CALL     SUBB
         CALL     SWAPP
         CALL     RAT
-        CALL     PLUS
+        CALL     PLUS  ; a 0 a+ cnt- R: base sign 
         CALL     QDUP
         _QBRAN   NUMQ4  ; end of string  a 0 a+ R: base sign 
-        CALL     ONEM
-        CALL     TOR   ; a 0 a+ -- R: base sign cnt 
-NUMQ2:  CALL     COUNT  ; a n a+ c  
-        CALL     BASE 
-        CALL     AT 
-        CALL     DIGTQ 
-        _QBRAN   NUMQ6  ; not a digit 
-        CALL     ROT    ; a a+ c n 
-        CALL     BASE 
-        CALL     AT 
-        CALL    STAR 
-        CALL    PLUS 
-        CALL    SWAPP  ; a n a+  R: base sign cnt 
-        _DONXT   NUMQ2
-        CALL    DROP   ; a n  R: base sign 
+        CALL     parse_digits ; a 0 a+ cntr- -- a n a+ cntr-  R: base sign 
+        CALL     DUPP   ; a n a+ cnt cnt -- R: base sign  
+        _TBRAN   NUMQ6
+        CALL     DDROP   ; a n  R: base sign  
         CALL     RFROM   ; a n sign R: base 
         _QBRAN   NUMQ3
         CALL     NEGAT ; a n R: base 
@@ -2750,15 +2773,11 @@ NUMQ4:  CALL     RFROM
 NUMQ6:  
 .if WANT_FLOAT24 
 .ift 
-        CALL     DROP 
-        CALL     ONEM ; a n a+ 
-        CALL     RFROM  ; a n a+ cnt
-        CALL     ONEP    
-        CALL     RFROM ; a n a+ cnt sign 
+        CALL     RFROM ; a n a+ cnt sign R: base 
         CALL     FLOATQ  
 .iff
-        ADDW SP,#4 ; remove sign and cnt from rstack 
-        ADDW  X,#CELLL ; drop a+   S: a n  R: sign 
+        ADDW SP,#CELLL ; remove sign from rstack 
+        ADDW  X,#2*CELLL ; drop a+ cnt S: a n  R: sign 
         CLRW Y  
         LDW (X),Y  ;  a 0 R: base 
 .endif 
