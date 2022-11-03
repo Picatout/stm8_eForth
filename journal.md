@@ -4,6 +4,12 @@ AUTHOR: Jacques Deschênes
 DESCRIPTION: project log.
 -->
 
+#### 2022-11-03
+
+* Ajout du mot **COMIPE-ONLY**.
+
+* Application de l'indicateur **COMPO** à tous les mots contrôle de flux, i.e. IF,THEN,ELSE,WHILE,UNTIL, etc.
+
 #### 2021-08-05
 
 * Travail sur [float24.asm](float24.asm). 

@@ -3589,7 +3589,7 @@ QUIT2:  CALL     QUERY   ;get input
 ;       Compile next immediate
 ;       word into code dictionary.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        _HEADER BCOMP,IMEDD+9,"[COMPILE]"
+        _HEADER BCOMP,COMPO+IMEDD+9,"[COMPILE]"
         CALL     TICK
         JP     JSRC
 
@@ -3643,7 +3643,7 @@ STRCQ:
 ;       Start a FOR-NEXT loop
 ;       structure in a colon definition.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        _HEADER FOR,IMEDD+3,"FOR"
+        _HEADER FOR,COMPO+IMEDD+3,"FOR"
         CALL     COMPI
         .word TOR 
         JP     HERE
@@ -3652,7 +3652,7 @@ STRCQ:
 ;       NEXT    ( a -- )
 ;       Terminate a FOR-NEXT loop.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        _HEADER NEXT,IMEDD+4,"NEXT"
+        _HEADER NEXT,COMPO+IMEDD+4,"NEXT"
         CALL     COMPI
         .word DONXT 
         call ADRADJ
@@ -3685,7 +3685,7 @@ STRCQ:
 ;       Start an infinite or
 ;       indefinite loop structure.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        _HEADER BEGIN,IMEDD+5,"BEGIN"
+        _HEADER BEGIN,COMPO+IMEDD+5,"BEGIN"
         JP     HERE
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -3693,7 +3693,7 @@ STRCQ:
 ;       Terminate a BEGIN-UNTIL
 ;       indefinite loop structure.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        _HEADER UNTIL,IMEDD+5,"UNTIL"
+        _HEADER UNTIL,COMPO+IMEDD+5,"UNTIL"
         CALL     COMPI
         .word    QBRAN 
         call ADRADJ
@@ -3704,7 +3704,7 @@ STRCQ:
 ;       Terminate a BEGIN-AGAIN
 ;       infinite loop structure.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        _HEADER AGAIN,IMEDD+5,"AGAIN"
+        _HEADER AGAIN,COMPO+IMEDD+5,"AGAIN"
 .if OPTIMIZE 
         _DOLIT JPIMM 
         CALL  CCOMMA
@@ -3719,7 +3719,7 @@ STRCQ:
 ;       IF      ( -- A )
 ;       Begin a conditional branch.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        _HEADER IFF,IMEDD+2,"IF"
+        _HEADER IFF,COMPO+IMEDD+2,"IF"
         CALL     COMPI
         .word QBRAN
         CALL     HERE
@@ -3731,7 +3731,7 @@ STRCQ:
 ;       Terminate a conditional 
 ;       branch structure.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        _HEADER THENN,IMEDD+4,"THEN"
+        _HEADER THENN,COMPO+IMEDD+4,"THEN"
         CALL     HERE
         call ADRADJ 
         CALL     SWAPP
@@ -3742,7 +3742,7 @@ STRCQ:
 ;       Start the false clause in 
 ;       an IF-ELSE-THEN structure.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        _HEADER ELSEE,IMEDD+4,"ELSE"
+        _HEADER ELSEE,COMPO+IMEDD+4,"ELSE"
 .if OPTIMIZE 
         _DOLIT JPIMM 
         CALL CCOMMA 
@@ -3764,7 +3764,7 @@ STRCQ:
 ;       Compile a forward branch
 ;       instruction.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        _HEADER AHEAD,IMEDD+5,"AHEAD"
+        _HEADER AHEAD,COMPO+IMEDD+5,"AHEAD"
 .if OPTIMIZE 
         _DOLIT JPIMM 
         CALL CCOMMA
@@ -3781,7 +3781,7 @@ STRCQ:
 ;       Conditional branch out of a 
 ;       BEGIN-WHILE-REPEAT loop.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        _HEADER WHILE,IMEDD+5,"WHILE"
+        _HEADER WHILE,COMPO+IMEDD+5,"WHILE"
         CALL     COMPI
         .word QBRAN
         CALL     HERE
@@ -3794,7 +3794,7 @@ STRCQ:
 ;       Terminate a BEGIN-WHILE-REPEAT 
 ;       indefinite loop.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        _HEADER REPEA,IMEDD+6,"REPEAT"
+        _HEADER REPEA,COMPO+IMEDD+6,"REPEAT"
 .if OPTIMIZE 
         _DOLIT JPIMM 
         CALL  CCOMMA
@@ -3814,7 +3814,7 @@ STRCQ:
 ;       Jump to THEN in a FOR-AFT-THEN-NEXT 
 ;       loop the first time through.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        _HEADER AFT,IMEDD+3,"AFT"
+        _HEADER AFT,COMPO+IMEDD+3,"AFT"
         CALL     DROP
         CALL     AHEAD
         CALL     HERE
@@ -4101,16 +4101,26 @@ INITOFS:
 ;       an immediate word.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER IMMED,9,"IMMEDIATE"
-        CALL     DOLIT
-        .word     0x8000	;  IMEDD*256
-        CALL     LAST
-        CALL     AT
-        CALL     AT
-        CALL     ORR
-        CALL     LAST
-        CALL     AT
-        JP     STORE
+        CALL	DOLIT
+        .word	(IMEDD<<8)
+IMM01:  CALL	LAST
+        CALL    AT
+        CALL    AT
+        CALL    ORR
+        CALL    LAST
+        CALL    AT
+        JP      STORE
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;		COMPILE-ONLY  ( -- )
+;		Make last compiled word 
+;		a compile only word.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        _HEADER COMPONLY,12,"COMPILE-ONLY"
+        CALL     DOLIT
+        .word    (COMPO<<8)
+        JP       IMM01
+		
 ;; Defining words
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

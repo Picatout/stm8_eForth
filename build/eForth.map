@@ -7,13 +7,13 @@ Area                                    Addr        Size        Decimal Bytes (A
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-     FFFFFFFF  s_SSEG                          
      00000000  .__.ABS.                           EFORTH
      00000000  l_DATA                          
      00000000  l_DATA0                         
      00000000  l_SSEG                          
      00000000  l__CODE                         
      00000000  s_DATA0                         
+     00000000  s_SSEG                          
      00000000  s_SSEG1                         
      00000000  s__CODE                         
      00000001  s_DATA                          
@@ -61,6 +61,5 @@ User Base Address Definitions
 
 HOME = 0x8000
 DATA = 0x0001
-SSEG = 0xffffffff
 
 
