@@ -22,7 +22,7 @@
 ; to assemble for a specific 
 ; board or MCU set it to 1 and the other
 ; to 0. 
-NUCLEO_8S207K8=1 
+NUCLEO_8S207K8=1
 NUCLEO_8S208RB=0
 DISCOVERY=0
 DOORBELL=0

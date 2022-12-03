@@ -3810,7 +3810,7 @@ STRCQ:
 ;       $"     ( -- ; <string> )
 ;       Compile an inline string literal.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        _HEADER STRQ,IMEDD+2,'$"'
+        _HEADER STRQ,IMEDD+COMPO+2,'$"'
         CALL     COMPI
         .word STRQP 
         JP     STRCQ
@@ -3820,7 +3820,7 @@ STRCQ:
 ;       Compile an inline string literal 
 ;       to be typed out at run time.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        _HEADER DOTQ,IMEDD+2,'."'
+        _HEADER DOTQ,IMEDD+COMPO+2,'."'
         CALL     COMPI
         .word DOTQP 
         JP     STRCQ

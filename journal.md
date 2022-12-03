@@ -1,5 +1,11 @@
 ### 2022-12-03
 
+* commit tag V4.0R1D2
+
+* Mise à jour de [référence_eforth.pdf](docs/r%C3%A9f%C3%A9rence_eforth.pdf)
+
+* Ajout du flag **COMPO** aux mots __$"__ et __."__ . 
+
 commit et tag. 
 
 * Création du [readme_en.md](readme_en.md)
