@@ -343,6 +343,7 @@ clock_init:
 	jrne 1$
         
 ; initialize UART, 115200 8N1
+.if NUCLEO_8S20X|DISCOVERY
 uart_init:
 	bset CLK_PCKENR1,#CLK_PCKENR1_UART
 	; configure tx pin
@@ -354,6 +355,7 @@ uart_init:
 	mov UART_BRR2,#0x0b ; must be loaded first
 	mov UART_BRR1,#0x8
 	mov UART_CR2,#((1<<UART_CR2_TEN)|(1<<UART_CR2_REN));|(1<<UART_CR2_RIEN))
+.endif 
 ; initialize timer4, used for millisecond interrupt  
 	mov TIM4_PSCR,#7 ; prescale 128  
 	mov TIM4_ARR,#125 ; set for 1msec.

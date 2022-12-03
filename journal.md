@@ -1,8 +1,21 @@
-<!--
-TITLE: journal.md 
-AUTHOR: Jacques Deschênes
-DESCRIPTION: project log.
--->
+### 2022-12-03
+
+commit et tag. 
+
+* Création du [readme_en.md](readme_en.md)
+
+* commit 
+
+* Création des documents [docs/référence_eforth.pdf](docs/r%C3%A9f%C3%A9rence_eforth.pdf) et [tutoriel.pdf](docs/tutoriel.pdf)
+
+* Réécriture du [readme.md](readme.md).
+
+* Compilation de toutes les cibles.
+
+* Modifié fihciers [inc/config.inc](inc/config.inc) et [inc/stm8s_disco.inc](inc/stm8s_disco.inc).
+
+* Modifié  fichier [.gitignore](.gitignore)
+
 
 ### 2022-12-02
 

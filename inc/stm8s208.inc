@@ -531,7 +531,8 @@ UART_PSCR=10
 ; uart identifier
 ; to be used by uart_init
  UART1 = 0
- UART3 = 1
+ UART2 = 1 
+ UART3 = 2
 
 ; pins used by uart 
 UART1_TX_PIN=BIT5

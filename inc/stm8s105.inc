@@ -457,6 +457,12 @@ B230400=7
 B460800=8
 B921600=9
 
+; uart identifier
+; to be used by uart_init
+ UART1 = 0
+ UART2 = 1 
+ UART3 = 2
+
 ; UART2
  UART2_SR    = (0x5240)
  UART2_DR    = (0x5241)

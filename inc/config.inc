@@ -22,8 +22,8 @@
 ; to assemble for a specific 
 ; board or MCU set it to 1 and the other
 ; to 0. 
-NUCLEO_8S208RB=0
 NUCLEO_8S207K8=1 
+NUCLEO_8S208RB=0
 DISCOVERY=0
 DOORBELL=0
 
@@ -33,24 +33,26 @@ EOL_LF=0
 
 ; set to 1 to include 
 ; scaling constants vocabulary
-; see: const_ratio.asm 
+; file: const_ratio.asm 
 WANT_SCALING_CONST = 0
 
 ; set to 1 to include 
 ; constants tables vocabulary 
-; see: ctable.asm 
+; file: ctable.asm 
 WANT_CONST_TABLE=1
 
 ; include double library 
 WANT_DOUBLE = 0
 
-; to include floating point 
-; library
-; require double library  
+; to include 32 bits  
+; floating point library
+; require double library
+; file: float.asm   
 WANT_FLOAT = 0
 
-; to include float24.asm 
-; library 
+; to include 24 bits 
+; floating point library
+; file: float24.asm 
 WANT_FLOAT24 = 1
 
 ; set to 1 to make vocabulary 
@@ -75,11 +77,8 @@ NUCLEO_8S20X=1
 .endif 
 
 
-.if DOORBELL
-	.include "inc/stm8s105.inc"
-.endif 
-
-.if DISCOVERY
+.if DISCOVERY|DOORBELL 
+NUCLEO_8S20X=0
 	.include "inc/stm8s105.inc"
 	.include "inc/stm8s_disco.inc"
 .endif 

@@ -1,8 +1,78 @@
+[english](readme_en.md)
+
 # STM8EF
 
-Le but de ce projet est d'adapter le fichier [stm8ef.asm.org](stm8ef.asm.org) pour la carte **NUCLEO_8S208RB** et l'assembleur **SDAS**.
+Le but de ce projet est d'adapter le fichier [stm8ef.asm.org](stm8ef.asm.org) pour la carte **NUCLEO_8S208RB** et l'assembleur **SDASSTM8**.
 
-Pour les détails consultez le [journal.md](journal.md).
+## cartes supportées
+
+* **NUCLEO-8S207K8**<br>![nucleo-8s207k8-board.png](docs/images/nucleo-8s207k8-board.png)
+* **NUCLEO_8S208RB**<br>![nucleo-8s208rb-board.png](docs/images/nucleo-8s208rb-board.png)
+* **STM8S-DISCOVERY**<br>![stm8s-discovery-board.png](docs/images/stm8s-discovery-board.png)
+
+
+## construire à partir des sources 
+
+Les sources du projet sont disponibles sur [https://github.com/Picatout/stm8_eforth](https://github.com/Picatout/stm8_eforth).
+
+Le projet est distribué sous license [GPL V3](LICENSE.TXT). 
+
+### logiciels à installer 
+
+* make 
+```
+sudo apt install make 
+```
+* sdcc 
+```
+sudo apt install sdcc 
+```
+* [stm8flash](https://github.com/vdudouyt/stm8flash).  Il faut le construire et l'installer à partir des sources du projet.
+
+### procédure de construction du projet stm8 eforth
+*  Sélectionnez la carte et les options dans le fichier [inc/config.inc](inc/config.inc). Pour sélectionner la carte ou le type de CPU mettre à **1** la variable indiquant la cible désirée et toutes les autres à **0**.
+```
+NUCLEO_8S207K8=1 
+NUCLEO_8S208RB=0
+DISCOVERY=0
+DOORBELL=0
+```
+* Pour les options commançant par **WANT_** il s'agit de mettre la valeur à **1** pour include le fichier dans la construction du binaire. 
+
+* Chaque cible a un fichier __"*.mk"__ qui ressemble à ceci.
+```
+####################################
+# Make file for NUCLEO_8S207K8 board
+####################################
+BOARD=stm8s207k8
+PROGRAMMER=stlinkv21
+FLASH_SIZE=65536
+include Makefile
+``` 
+
+* Les fichiers résulants de la construction du projet se retrouve dans un sous-dossier de **build** qui porte le nom de la variable **BOARD**
+```
+~/github/stm8_eforth$ ls build
+stm8s105c6  stm8s105k6  stm8s207k8  stm8s208rb
+```
+
+* pour construire et flasher le binaire sur la carte il suffit de lancer la commande
+```
+make -fnucleo_8s207.mk 
+```
+Ici **nucleo_8s207.mk**  est le nom du fichier *make* spécifique à la cible choisie.
+
+* Pour construire le projet sans flasher la binaire il faut lancer la commande
+```
+make -fnucleo_8s207.mk compile 
+```
+
+## documentation 
+
+Les fichiers **PDF** suivants se retrouvent dans le dossier **docs**.
+
+* [référence du langage eforth](docs/référence_eforth.pdf)
+* [tutoriel eforth](docs/tutoriel.pdf)
 
 ## À propos de eForth
 

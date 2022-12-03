@@ -1,4 +1,24 @@
 connect.sh
-build/*
+build/stm8s105c6/*.lk
+build/stm8s105c6/*.map
+build/stm8s105c6/*.rel
+build/stm8s105c6/*.rst
+build/stm8s105c6/*.lst
+build/stm8s105k6/*.lk
+build/stm8s105k6/*.map
+build/stm8s105k6/*.rel
+build/stm8s105k6/*.rst
+build/stm8s105k6/*.lst
+build/stm8s207k8/*.lk
+build/stm8s207k8/*.map
+build/stm8s207k8/*.rel
+build/stm8s207k8/*.rst
+build/stm8s207k8/*.lst
+build/stm8s208rb/*.lk
+build/stm8s208rb/*.map
+build/stm8s208rb/*.rel
+build/stm8s208rb/*.rst
+build/stm8s208rb/*..lst
 *.tar
+*.tar.gz
 
