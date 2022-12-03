@@ -11,9 +11,9 @@ CFLAGS=-mstm8 -lstm8  -Iinc
 MAIN_FILE=stm8ef.asm
 SRC=flash.asm const_ratio.asm ctable.asm
 INC=inc/
-INCLUDES=$(INC)config.inc $(INC)ascii.inc $(INC)stm8s208.inc\
-$(INC)stm8s105.inc $(INC)stm8s_disco.inc $(INC)nucleo_8s208.inc 
-BUILD=build/
+INCLUDES=$(INC)config.inc $(INC)ascii.inc $(INC)stm8s208.inc $(INC)stm8s207.inc\
+$(INC)stm8s105.inc $(INC)stm8s_disco.inc $(INC)nucleo_8s208.inc $(INC)nucleo_8s207.inc 
+BUILD=build/$(BOARD)/
 OBJECTS=$(BUILD)$(SRC:.asm=.rel)
 SYMBOLS=$(OBJECTS:.rel=.sym)
 LISTS=$(OBJECTS:.rel=.lst)

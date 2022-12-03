@@ -106,7 +106,7 @@
 ;	Assembler constants
 ;*********************************************************
 RAMBASE =	0x0000	   ;ram base
-.if NUCLEO 
+.if NUCLEO_8S20X 
 STACK   =	0x17FF 	;system (return) stack empty 
 DATSTK  =	0x1680	;data stack  empty
 TBUFFBASE =     0x1680  ; flash read/write transaction buffer address  
@@ -197,23 +197,11 @@ ADDWX   =     0x1C    ; opcode for ADDW X,#word
 JPIMM   =     0xCC    ; JP addr opcode 
 
         .macro _ledon
-        .if NUCLEO
-        bset PC_ODR,#LED2_BIT
-        .else ;DISCOVERY 
-        .if DISCOVERY
-        bres PD_ODR,#LD1_BIT 
-        .endif
-        .endif
+            bset LED_PORT,#LED_BIT
         .endm
 
         .macro _ledoff
-        .if NUCLEO 
-        bres PC_ODR,#LED2_BIT
-        .else ;DISCOVERY 
-        .if DISCOVERY
-        bset PD_ODR,#LD1_BIT 
-        .endif 
-        .endif
+            bres LED_PORT,#LED_BIT
         .endm
 
 ;**********************************************************
@@ -331,18 +319,13 @@ ORIG:
         LDW     RP0,X
         LDW     X,#DATSTK ;initialize data stack
         LDW     SP0,X
-.if NUCLEO        
-; initialize PC_5 as output to control LED2
+.if NUCLEO_8S20X|DISCOVERY         
+; initialize USER LED on board 
 ; added by Picatout 
-        bset PC_CR1,#LED2_BIT
-        bset PC_CR2,#LED2_BIT
-        bset PC_DDR,#LED2_BIT
+        bset LED_CR1,#LED_BIT
+        bset LED_CR2,#LED_BIT
+        bset LED_DDR,#LED_BIT
 .endif 
-.if DISCOVERY
-        bset PD_CR1,#LD1_BIT
-        bset PD_CR2,#LD1_BIT
-        bset PD_DDR,#LD1_BIT 
-.endif
         _ledoff
 ; initialize clock to HSI
 ; no divisor 16Mhz 
@@ -350,7 +333,7 @@ ORIG:
 clock_init:
         clr CLK_CKDIVR
 	bset CLK_SWCR,#CLK_SWCR_SWEN
-.if NUCLEO|DOORBELL
+.if NUCLEO_8S20X|DOORBELL
 	ld a,#CLK_SWR_HSI
 .else ; DISCOVERY as 16Mhz crystal
 	ld a,#CLK_SWR_HSE
@@ -361,20 +344,12 @@ clock_init:
         
 ; initialize UART, 115200 8N1
 uart_init:
-.if NUCLEO 
-	bset CLK_PCKENR1,#CLK_PCKENR1_UART1
+	bset CLK_PCKENR1,#CLK_PCKENR1_UART
 	; configure tx pin
-	bset PA_DDR,#UART1_TX_PIN ; tx pin
-	bset PA_CR1,#UART1_TX_PIN ; push-pull output
-	bset PA_CR2,#UART1_TX_PIN ; fast output
+	bset UART_PORT_DDR,#UART_TX_PIN ; tx pin
+	bset UART_PORT_CR1,#UART_TX_PIN ; push-pull output
+	bset UART_PORT_CR2,#UART_TX_PIN ; fast output
 	; baud rate 115200 Fmaster=16Mhz  16000000/115200=139=0x8b
-.else ; DISCOVERY use UART2 
-	bset CLK_PCKENR1,#CLK_PCKENR1_UART2
-	; configure tx pin
-	bset PD_DDR,#UART2_TX_PIN ; tx pin
-	bset PD_CR1,#UART2_TX_PIN ; push-pull output
-	bset PD_CR2,#UART2_TX_PIN ; fast output
-.endif
 ; baud rate 115200 Fmaster=8Mhz  
 	mov UART_BRR2,#0x0b ; must be loaded first
 	mov UART_BRR1,#0x8
@@ -4479,10 +4454,14 @@ PRINT_VERSION:
         _DOLIT EXT 
         CALL PRINT_VERSION 
         CALL    DOTQP
-.if NUCLEO          
+.if NUCLEO_8S208RB         
         .byte 18
         .ascii  " on NUCLEO-8S208RB"
 .endif
+.if NUCLEO_8S207K8 
+        .byte 18 
+        .ascii  " on NUCLEO-8S207K8" 
+.endif 
 .if DISCOVERY
         .byte 19
         .ascii  " on STM8S-DISCOVERY"

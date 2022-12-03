@@ -4,6 +4,17 @@ AUTHOR: Jacques Deschênes
 DESCRIPTION: project log.
 -->
 
+### 2022-12-02
+
+* Construit le projet pour la carte **NUCLEO_8S207K8** avec succès et flasher la carte.
+
+* Modifié configuration pour ajouter carte NUCLEO-8S207K8.
+    * Ajout du fichier [inc/stm8s207.inc](inc/stm8s207.inc)
+    * Ajout du fichier [inc/nucleo_8s207.inc](inc/nucleo_8s207.inc)
+    * Modifié fichier [inc/config.inc](inc/config.inc)
+    * Ajout du fichier [nucleo_8s207.mk](nucleo_8s207.mk)
+
+
 #### 2022-11-03
 
 * Ajout du mot **COMIPE-ONLY**.

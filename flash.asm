@@ -179,7 +179,7 @@ UPDATVP:
 	call EEPVP 
 	jp EESTORE
 	
-.if NUCLEO
+.if NUCLEO_8S20X
 ;----------------------------------
 ; fetch integer at address over 65535
 ;  F@   ( ud -- n )
@@ -204,7 +204,7 @@ FARAT:
 FARCAT:
     call FPSTOR
 	jp EE_CREAD  
-.endif ; NUCLEO 
+.endif ; NUCLEO_8S20X 
 
 ;----------------------------------
 ; UNLOCK EEPROM/OPT for writing/erasing

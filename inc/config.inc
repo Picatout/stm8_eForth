@@ -22,7 +22,8 @@
 ; to assemble for a specific 
 ; board or MCU set it to 1 and the other
 ; to 0. 
-NUCLEO=1 
+NUCLEO_8S208RB=0
+NUCLEO_8S207K8=1 
 DISCOVERY=0
 DOORBELL=0
 
@@ -60,31 +61,27 @@ CASE_SENSE = 0
 ; by system at EEPROM base.
 EEPROM_RES = 16 
 
-.if NUCLEO 
-	.include "inc/nucleo_8s208.inc"
-	.include "inc/stm8s208.inc"
 
-XMEM_SIZE=96304 ; size in bytes of EXTENDED MEMORY 
-UART_SR=UART1_SR
-UART_DR=UART1_DR
-UART_BRR1=UART1_BRR1
-UART_BRR2=UART1_BRR2
-UART_CR1=UART1_CR1
-UART_CR2=UART1_CR2
+.if NUCLEO_8S208RB 
+NUCLEO_8S20X=1 
+	.include "inc/stm8s208.inc"
+	.include "inc/nucleo_8s208.inc"
 .endif
 
-.if DISCOVERY|DOORBELL
-	.include "inc/stm8s105.inc"
-.if DISCOVERY
-	.include "inc/stm8s_disco.inc"
+.if NUCLEO_8S207K8
+NUCLEO_8S20X=1 
+	.include "inc/stm8s207.inc"
+	.include "inc/nucleo_8s207.inc"
 .endif 
-XMEM_SIZE=0 ; size in bytes of EXTENDED MEMORY 
-UART_SR=UART2_SR
-UART_DR=UART2_DR
-UART_BRR1=UART2_BRR1
-UART_BRR2=UART2_BRR2
-UART_CR1=UART2_CR1
-UART_CR2=UART2_CR2
+
+
+.if DOORBELL
+	.include "inc/stm8s105.inc"
+.endif 
+
+.if DISCOVERY
+	.include "inc/stm8s105.inc"
+	.include "inc/stm8s_disco.inc"
 .endif 
 
 	
