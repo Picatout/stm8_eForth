@@ -49,6 +49,10 @@ Chaque module a une section séparé pour son vocubulaire. Cet index conduit à 
 
 * [constants table](#ctable)  module ctable.asm 
 
+* [double](#double)  module doub.asm 
+
+* [float](#float)  modules float.asm et float24.asm 
+
 <hr>
 <a id="core"></a>
 
@@ -616,3 +620,123 @@ Donc les tables de constantes ne devrait-être créée qu'en mode **TO-FLASH** p
 Pour chaque entier requit l'invite **[n+]?** est affichée au terminal en attente de la saisie par l'utilisateur d'un entier. **n+** est l'indice de table qui recevra l'entier saisie. Ce mot retourne  l'entier saisie **n** et **T** ou **a** et **F** Si la valeur saisie n'est pas un entier. 
 
 [Index](#index)
+
+<hr>
+
+<a id="double"></a>
+## Module double.asm
+Le fichier principal contient quelques opérations sur les entiers double de 32 bits. Ce module en ajoute d'autres. 
+
+* __DBL-VER__&nbsp;&nbsp; ( -- ) imprime la version de la librairie 
+
+* __NUMBER?__&nbsp;nbsp; (a -- s -1 |d -2 | a F ) __a__ pointe une chaîne de caractère qui sera éventuellement convertie en entier simple ou double. 
+    * Si un entier dont la valeur est dans l'intervalle {-32768..32767}, la valeur de cet entier __s__ est retourné avec au sommet de la pile la valeur __-1__. 
+    * Si un entier trop hors de l'intervalle d'un entier simple est trouvé la valeur de l'entier double __d__ est retournée ainsi que __-2__ sommet de la pile. Si aucun entier n'est trouvé l'adresse de la chaîne __a__ et la valeur faux __F__ est retourné. 
+
+* __DABS__&nbsp;&nbsp; ( d -- d ) Retourne la valeur absolue de l'entier double __d__.
+
+* __DSIGN__&nbsp;&nbsp; ( d -- d 0|-1 ) Retourne l'entier double __d__ ainsi que son signe __0|-1__. 
+
+* __DS/MOD__&nbsp;&nbsp; ( ud us -- ur udq ) Divise l'entier double non signé __ud__ par l'entier simple non signé __us__ et retourne le quotient comme entier double non signé __udq__ et le reste comme entier simple non signé __ur__. 
+
+* __D#__&nbsp;&nbsp; ( d1 -- d2 ) dépose dans le tampon pointé par __HOLD__ le caractère représentant le digit le moins significatif de l'entier double __d1__ et retourne le quotient __d2__ 
+
+* __D#S__&nbsp;&nbsp; ( d -- s ) Convertie l'entier double __d__ en déposant les caratères dans le tampon pointé par __HOLD__ jusqu'à ce que le quotient devienne nulle. __s__ est un entier simple de valeur nulle. 
+
+* __D.__&nbsp;&nbsp; (d -- ) Imprime l'entier double __d__ au terminal.
+
+* __UDS*__&nbsp;&nbsp; ( ud us -- uprod ) Effectue le produit d'un entier double non signé __ud__ par un entier simple non signé __us__. Retourne le produit entier double non signé __uprod__.
+
+* __DS*__&nbsp;&nbsp; ( d us -- prod ) Effectue la multiplication d'un entier double __d__ par un entier simple non signé __us__. Retourne le produit double signé __prod__. 
+
+* __2SWAP__&nbsp;&nbsp; ( d1 d2 -- d2 d1 ) inverse l'ordre de 2 entiers double sur la pile.
+
+* __DCLZ__&nbsp;&nbsp; ( d -- u ) Compte le nombre de bits à zéro de l'entier double __d__ en partant du bit le plus significatif . S'arrête au premier bit à **1** rencontré. __u__ est le nombre de bits à zéro {0..32}. 
+
+* __&lt;2ROT__&nbsp;&nbsp; ( d1 d2 d3 -- d3 d2 d1 ) Effectue la rotation des 3 entiers double au sommet de la pile en envoyant le sommet en 3ième position.
+
+* __2ROT__&nbsp;&nbsp; ( d1 d2 d3 -- d2 d3 d1 ) Effectue la rotation des 3 entiers double au sommet de la pile en ramenant le 3ième au sommet de la pile.
+
+* __D0=__&nbsp;&nbsp; ( d -- 0|-1 ) vérifie la valeur de l'entier double __d__ et le remplace par **0** si sa valeur est non nulle et par **-1** si sa valeur est nulle.  
+
+* __D=__&nbsp;&nbsp; ( d1 d2 -- f ) compare les 2 entiers doubles __d1__ et __d2__ et les remplace par un indicateur booléen indiquant s'ils sont égaux. 
+
+* __D&gt;__&nbsp;&nbsp; ( d1 d2 -- f ) compare les 2 entiers doubles __d1__ et __d2__ et les remplace par un indicateur booléen __f__. __f__ est vrai si __d1__ est plus grand que __d2__.
+
+* __D&lt;__&nbsp;&nbsp; ( d1 d2 -- f ) compare les 2 entiers doubles __d1__ et __d2__ et les remplace par un indicateur booléen __f__. __f__ est vrai si __d1__ est plus petit que __d2__. 
+
+* __D0&lt;__&nbsp;&nbsp; ( d -- f ) compare l'entier double __d__ avec zéro et le remplace par l'indicateur booléen __f__. __f__ est vrai si d est plus petit que zéro.
+
+* __2&gt;R__&nbsp;&nbsp; ( d -- R: d ) Retire l'entier double __d__ de la pile des arguments pour le déposé au sommet de la pile des retours. 
+
+* __2R&gt;__&nbsp;&nbsp; ( R: d -- d ) Retire l'entier double __d__ qui du sommet de la pile des retours et le dépose au sommet de la pile des arguments.
+
+* __2R@__&nbsp;&nbsp; ( -- d ) Copie l'entier double qui se trouve au sommet de la pile des retours pour le déposer au sommet de la pile des arguments. Le contenu de __R:__ n'est pas modifié. 
+
+* __2VARIABLE__&nbsp;&nbsp; &lt;name&gt; Crée une variable de type entier double portant le nom __&lt;name&gt;__.
+
+* __2LITERAL__&nbsp;&nbsp; ( d -- ) Compile l'entier double __d__. Ce mot ne peut-être utilisé qu'à l'intérieur d'une définition.
+
+* __2OVER__&nbsp;&nbsp; ( d1 d2 -- d1 d2 d1 ) Copie l'entier double __d1__ au sommet de la pile.
+
+* __D/2__&nbsp;&nbsp; ( d -- d/2 ) Divise l'entier double __d__ par 2. 
+
+* __D*2__&nbsp;&nbsp; ( d -- d2 ) Multiplie l'entier souble __d__ par __d2=d*2__.
+
+* __DLSHIFT__&nbsp;&nbsp; ( d u -- d2 ) Décale vers la gauche l'entier double __d__ de __u__ bits __d2=d*2^u__
+
+* __DRSHIFT__&nbsp;&nbsp; ( d u -- d2 ) Décale vers la droite l'entier double __d__ de __u__ bits le bit le plus significatif est remplacé par zéro. 
+
+* __D*__&nbsp;&nbsp; ( d1 d2 -- d3 ) Produit de 2 entiers double __d3=d1*d2__.
+
+* __UD/MOD__&nbsp;&nbsp; ( ud1 ud2 -- dr udq ) Division de 2 entiers doubles non signés avec quotient et reste retournés. __udq=ud1/ud2__ et __dr=ud1 MOD ud2__.
+
+* __D/MOD__&nbsp;&nbsp; ( d1 d2 -- dr dq ) Division de 2 entiers doubles avec quotient et reste retournés. __dq=d1/d2__ et __dr=d1 MOD d2__
+
+* __D/__&nbsp;&nbsp; ( d1 d2 -- dq ) Division de 2 entiers doubles signés, seul le quotient est retourné. __dq=d1/d2__.
+
+* __D+__&nbsp;&nbsp; ( d1 d2 -- d3 ) Somme de 2 entiers doubles. __d3=d1+d2__.
+
+* __D-__&nbsp;&nbsp; ( d1 d2 -- d3 ) Soustraction de 2 entiers doubles. __d3=d1-d2__.
+
+
+
+[index](#index)
+
+<hr>
+
+<a id="float"></a>
+
+## Modules float.asm et float24.asm 
+L'une ou l'autre des librairies peut-être sélectionnée dans le fichier __inc/config.inc__.
+Le vocabulaire est le même pour les 2 librairies. 
+
+* __FLOAT-VER__&nbsp;&nbsp; ( -- ) Imprime au terminal la version de la librairie.
+
+* __FPSW__&nbsp;&nbsp; ( -- a ) Retourne l'adresse de la variable qui contient les états résultant de la dernière opération sur virgule flottante. Les indicateurs sont. 
+    * résultat nul __Z__ -&gt; bit 0 
+    * résultat négatif __N__ -&gt; bit 1
+    * débordement __v__ -&gt; bit 2 
+
+* __FRESET__&nbsp;&nbsp; ( -- ) Initialise la __FPSW__ avec tous les bits à __0__. 
+
+* __FINIT__&nbsp;&nbsp; ( -- ) Initialise la librairie. Actuellement ne fait rien de plus que d'appeller __FRESET__. 
+
+* __FER__&nbsp;&nbsp; ( -- u ) Retourne la valeur de la variable __FPSW__. 
+
+* __FZE__&nbsp;&nbsp; ( -- Z ) Retourne l'État du bit __Z__ de la variable __FPSW__. 
+
+* __FNE__&nbsp;&nbsp; ( -- N ) Retourne l'état du bit __N__ de la variable __FPSW__. 
+
+* __FOV__&nbsp;&nbsp; ( -- V ) Retourne l'état du bit __V__ de la variable __FPSW__. 
+
+* __SFZ__&nbsp;&nbsp; ( float -- float ) Ajuste l'état du bit __Z__ de la variable __FPSW__ en fonction de la valeur de __float__. 
+
+* __SFN__&nbsp;&nbsp; ( float -- float ) Ajuste la valeur du bit __N__ de la variable __FPSW__ en fonction de la valeur de __float__. 
+
+* __SFV__&nbsp;&nbsp; ( -- ) Met le bit __V__ de la variable __FPSW__ à **1**. 
+
+* __SET-FPSW__&nbsp;&nbsp; ( float -- float ) Ajuste les bits d'état de la variable __FPSW__ en fonction de la valeur de __float__. 
+
+[index](#index)
+

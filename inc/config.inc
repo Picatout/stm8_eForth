@@ -53,7 +53,7 @@ WANT_FLOAT = 0
 ; to include 24 bits 
 ; floating point library
 ; file: float24.asm 
-WANT_FLOAT24 = 1
+WANT_FLOAT24 = 0
 
 ; set to 1 to make vocabulary 
 ; case sensitive 

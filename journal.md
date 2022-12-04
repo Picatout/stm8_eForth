@@ -1,4 +1,10 @@
+### 2022-12-04
+
+* Travail sur [float.asm](float.asm) et [float24.asm](float24.asm)
+
 ### 2022-12-03
+
+* Gestion de la variable **FPSW** dans [float.asm](float.asm) et [float24.asm](float24.asm) à retraivaller. 
 
 * commit tag V4.0R1D2
 

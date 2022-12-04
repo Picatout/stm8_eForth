@@ -4624,9 +4624,6 @@ COLD1:  CALL     DOLIT
         CALL     DOLIT
 	.word      UEND-UZERO
         CALL     CMOVE   ;initialize user area
-.if WANT_FLOAT + WANT_FLOAT24 
-        CALL    FINIT 
-.endif 
 ; if APP_RUN==0 initialize with ca de 'hi'  
         ldw y,APP_RUN 
         jrne 0$

@@ -49,6 +49,11 @@
     FLOAT_MAJOR=1 
     FLOAT_MINOR=0 
 
+; floatting point state bits in FPSW 
+    ZBIT=1 ; zero bit flag
+    NBIT=2 ; negative flag 
+    OVBIT=4 ; overflow flag 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   FLOAT-VER ( -- )
 ;   print library version 
@@ -79,22 +84,12 @@
     RET
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   FRESET ( -- )
-;   reset FPSW variable 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 
-    _HEADER FRESET,6,"FRESET"
-    CALL ZERO  
-    CALL FPSW 
-    CALL STORE 
-    RET 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   FINIT ( -- )
 ;   initialize floating point 
 ;   library 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FINIT,5,"FINIT"
-    CALL FRESET 
+    CLR UFPSW+1 ; reset state bits 
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -189,15 +184,28 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   SFV ( -- )
-;   set overflow flag 
+;   SFV ( e -- )
+;   set overflow flag if e>127 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER SFV,3,"SFV"
+    _DOLIT 127 
+    CALL GREAT
+    _QBRAN 1$
     CALL FER 
     _DOLIT 4 
     CALL ORR 
     CALL FPSW 
     CALL STORE 
+1$:
+    RET 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  SET-FPSW ( f# -- f# )
+;  set float status word 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER SET_FPSW,8,"SET-FPSW"
+    CALL SFZ 
+    CALL SFN 
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -241,9 +249,6 @@ ATEXP2:
     _HEADER STEXP,4,"ME>F"
     CALL DUPP 
     CALL ABSS 
-    _DOLIT 127 
-    CALL GREAT
-    _QBRAN STEXP1
     CALL SFV
 STEXP1:
     LDW Y,X 
@@ -257,9 +262,6 @@ STEXP1:
     CALL DABS
     CALL SWAPP 
     _DROP  
-    _DOLIT 127 
-    CALL GREAT 
-    _QBRAN STEXP2 
     CALL SFV 
 STEXP2: 
     CLR A 

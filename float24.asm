@@ -28,15 +28,27 @@
 ;  the cost of less precision on mantissa. 
 ;  Exponent range is the same. 
 ;
-;  This format is store on the stack as a double, i.e. 32 bits 
+;  This format is stored on the stack as a double, i.e. 32 bits 
 ;  but as 24 bits in memory. 
+;
+;  The original inspiration for this implementation come from 
+;    Forth dimensions Vol. IV #1 
+;    published in  may/june 1982
+; 
+;  STACK frame:
+;      -- m e 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 
     MAX_MANTISSA = 0x7FFF ; absolute value maximum mantissa  
 
     F24_MAJOR=1 
     F24_MINOR=0 
+
+; floatting point state bits in FPSW 
+    ZBIT=0 ; zero bit flag
+    NBIT=1 ; negative flag 
+    OVBIT=2 ; overflow flag 
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   FLOAT-VER ( -- )
@@ -53,10 +65,18 @@
     _DOLIT F24_MINOR 
     JP PRINT_VERSION 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   FINIT ( -- )
+;   initialize floating point 
+;   library 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER FINIT,5,"FINIT"
+    CLR UFPSW+1 ; reset state bits 
+    RET 
 
 ;-------------------------
 ;    FPSW ( -- a )
-;    floating state variable
+;    floating point state variable
 ;    bit 0 zero flag 
 ;    bit 1 negative flag 
 ;    bit 2 overflow/error flag 
@@ -68,31 +88,13 @@
     RET
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   FRESET ( -- )
-;   reset FPSW variable 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 
-    _HEADER FRESET,6,"FRESET"
-    CALL ZERO  
-    CALL FPSW 
-    CALL STORE 
-    RET 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   FINIT ( -- )
-;   initialize floating point 
-;   library 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER FINIT,5,"FINIT"
-    CALL FRESET 
-    RET 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    FER ( -- u )
 ;    return FPSW value 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FER,3,"FER"
-    CALL FPSW 
-    CALL AT 
+    LDW Y,UFPSW 
+    SUBW X,#CELLL  
+    LDW (X),Y 
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -100,11 +102,13 @@
 ;    return FPSW zero flag 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FZE,3,"FZE"
-    CALL FPSW
-    CALL AT  
-    CALL ONE 
-    CALL ANDD
-    CALL NEGAT  
+    LD A,UFPSW+1  
+    AND A,#(1<<ZBIT)
+    CLRW Y  
+    LD YL,A 
+    NEGW Y 
+    SUBW X,#CELLL 
+    LDW (X),Y 
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -112,12 +116,14 @@
 ;    return FPSW negative flag 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FNE,3,"FNE"
-    CALL FPSW 
-    CALL AT 
-    _DOLIT 2 
-    CALL ANDD
-    CALL TWOSL
-    CALL NEGAT   
+    LD A,UFPSW+1 
+    AND A,#(1<<NBIT) 
+    SRL A 
+    CLRW Y 
+    LD YL,A 
+    NEGW Y 
+    SUBW X,#CELLL 
+    LDW (X),Y 
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -125,13 +131,15 @@
 ;   return FPSW overflow flag 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FOV,3,"FOV"
-    CALL FPSW
-    CALL AT  
-    _DOLIT 4 
-    CALL ANDD
-    _DOLIT 2 
-    CALL RSHIFT 
-    CALL NEGAT  
+    LD A,UFPSW+1 
+    AND A,#(1<<OVBIT) 
+    SRL A 
+    SRL A 
+    CLRW Y 
+    LD YL,A
+    NEGW Y    
+    SUBW X,#CELLL 
+    LDW (X),Y 
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -141,73 +149,62 @@
     _HEADER SET_FPSW,8,"SET-FPSW"
     CLR UFPSW+1 
     LDW Y,X 
-    LDW Y,(2,Y) ; m 
+    LDW Y,(2,Y) ; mantissa  
     JRNE 1$
-    BSET UFPSW+1,#0  ; null mantissa 
+    BSET UFPSW+1,#ZBIT  ; null mantissa 
     JRA 4$ 
 1$: JRPL 2$    
-    BSET UFPSW+1,#1  ; negative mantissa 
+    BSET UFPSW+1,#NBIT  ; negative mantissa 
 2$: LDW Y,X 
-    LDW Y,(Y) ; e 
+    LDW Y,(Y) ; exponent  
     CPW Y,#-127  
     JRMI 3$
     CPW Y,#128 
     JRMI 4$ 
 3$:
-    BSET UFPSW+1,#2  ; overflow         
+    BSET UFPSW+1,#OVBIT  ; overflow         
 4$: RET 
 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;    SFZ ( f# -- f# )
+;    SFZ ( f24 -- f24 )
 ;    set FPSW zero flag 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER SFZ,3,"SFZ"
-    CALL FER 
-    _DOLIT 0xfffe 
-    CALL ANDD 
-    CALL TOR    
-    CALL OVER  
-    CALL ZEQUAL 
-    _DOLIT 1 
-    CALL ANDD 
-    CALL RFROM 
-    CALL ORR 
-    CALL FPSW 
-    CALL STORE 
-    RET 
+    BRES UFPSW+1,#ZBIT 
+    LDW Y,X 
+    LDW Y,(2,Y) ; mantissa 
+    JRNE 9$
+    BSET UFPSW+1,#ZBIT 
+9$: RET 
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   SFN ( f# -- f# )
+;   SFN ( f24 -- f24 )
 ;   set FPSW negative flag 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER SFN,3,"SFN"
-    CALL FER 
-    _DOLIT 0xFFFD 
-    CALL ANDD  
-    CALL TOR 
-    CALL OVER 
-    _DOLIT 15 
-    CALL RSHIFT 
-    CALL RFROM 
-    CALL ORR 
-    CALL FPSW 
-    CALL STORE 
-    RET 
+    BRES UFPSW+1,#NBIT 
+    LDW Y,X 
+    LDW Y,(2,Y) ; mantissa    
+    JRPL 9$
+    BSET UFPSW+1,#NBIT 
+9$: RET 
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   SFV ( -- )
+;   SFV ( f24 -- f24 )
 ;   set overflow flag 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER SFV,3,"SFV"
-    CALL FER 
-    _DOLIT 4 
-    CALL ORR 
-    CALL FPSW 
-    CALL STORE 
-    RET 
+    BRES UFPSW+1,#OVBIT
+    LDW Y,X 
+    LDW Y,(Y) ; exponent  
+    CPW Y,#-127  
+    JRMI 3$
+    CPW Y,#128 
+    JRMI 4$ 
+3$: BSET UFPSW+1,#OVBIT ; overflow 
+4$: RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   MSIGN  (m -- m -1|0 )

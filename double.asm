@@ -229,7 +229,7 @@ DSIGN1:
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   DS/MOD ( ud us - ur qud )
+;   DS/MOD ( ud us - ur udq )
 ;   unsigned divide double by single 
 ;   return double quotient 
 ;   and single remainder 
