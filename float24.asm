@@ -55,15 +55,13 @@
 ;   print library version 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FVER,9,"FLOAT-VER"
-    CALL CR 
     CALL DOTQP 
-    .byte  17 
-    .ascii "float24 library, "
-    CALL PRT_LICENCE 
-    CALL COPYRIGHT 
+    .byte  18 
+    .ascii "\nfloat24 library, "
     _DOLIT F24_MAJOR     
     _DOLIT F24_MINOR 
     JP PRINT_VERSION 
+ 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   FINIT ( -- )

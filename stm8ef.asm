@@ -4422,19 +4422,19 @@ WORS2:  RET
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 COPYRIGHT:
     CALL DOTQP 
-    .byte 33 
-    .ascii "Jacques Deschenes, Copyright 2021"
-    JP CR 
+    .byte 40 
+    .ascii "Copyright Jacques Deschenes, 2021, 2022\n"
+    RET 
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;  PRT_LICENSE 
-;  print GPLV3 licence 
+;  PRINT_LICENSE 
+;  print GPL V3 license 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-PRT_LICENSE:
+PRINT_LICENSE:
         CALL DOTQP 
-        .byte  15 
-        .ascii "LICENSE GPLV3\r\n"
+        .byte  16 
+        .ascii "\nLICENSE GPL V3\n"
         RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -4454,8 +4454,8 @@ PRINT_VERSION:
      _DROP 
      CALL DIGS 
      CALL EDIGS 
-     JP TYPES 
-      
+     CALL TYPES 
+     RET  
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       hi      ( -- )
@@ -4469,6 +4469,11 @@ PRINT_VERSION:
 	_DOLIT VER 
         _DOLIT EXT 
         CALL PRINT_VERSION 
+.if WANT_FLOAT|WANT_FLOAT24
+        CALL FVER 
+.endif         
+        CALL PRINT_LICENSE
+        CALL COPYRIGHT
         CALL    DOTQP
 .if NUCLEO_8S208RB         
         .byte 18
@@ -4488,133 +4493,6 @@ PRINT_VERSION:
 .endif
         JP     CR
 
-WANT_DEBUG=0
-.if WANT_DEBUG 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;       DEBUG      ( -- )
-;       Display sign-on message.
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        _HEADER DEBUG,5,"DEBUG"
-	CALL DOLIT
-	.word 0x65
-	CALL EMIT
-	CALL ZERO
- 	CALL ZLESS 
-	CALL DOLIT
-	.word 0xFFFE
-	CALL ZLESS 
-	CALL UPLUS 
- 	_DROP 
-	CALL DOLIT
-	.word 3
-	CALL UPLUS 
-	CALL UPLUS 
- 	_DROP
-	CALL DOLIT
-	.word 0x43
-	CALL UPLUS 
- 	_DROP
-	CALL EMIT
-	CALL DOLIT
-	.word 0x4F
-	CALL DOLIT
-	.word 0x6F
- 	CALL XORR
-	CALL DOLIT
-	.word 0xF0
- 	CALL ANDD
-	CALL DOLIT
-	.word 0x4F
- 	CALL ORR
-	CALL EMIT
-	CALL DOLIT
-	.word 8
-	CALL DOLIT
-	.word 6
- 	CALL SWAPP
-	CALL OVER
-	CALL XORR
-	CALL DOLIT
-	.word 3
-	CALL ANDD 
-	CALL ANDD
-	CALL DOLIT
-	.word 0x70
-	CALL UPLUS 
-	_DROP
-	CALL EMIT
-	CALL ZERO
-	CALL QBRAN
-	.word DEBUG1
-	CALL DOLIT
-	.word 0x3F
-DEBUG1:
-	CALL DOLIT
-	.word 0xFFFF
-	CALL QBRAN
-	.word DEBUG2
-	CALL DOLIT
-	.word 0x74
-	CALL BRAN
-	.word DEBUG3
-DEBUG2:
-	CALL DOLIT
-	.word 0x21
-DEBUG3:
-	CALL EMIT
-	CALL DOLIT
-	.word 0x68
-	CALL DOLIT
-	.word 0x80
-	CALL STORE
-	CALL DOLIT
-	.word 0x80
-	CALL AT
-	CALL EMIT
-	CALL DOLIT
-	.word 0x4D
-	CALL TOR
-	CALL RAT
-	CALL RFROM
-	CALL ANDD
-	CALL EMIT
-	CALL DOLIT
-	.word 0x61
-	CALL DOLIT
-	.word 0xA
-	CALL TOR
-DEBUG4:
-	CALL ONE
-	CALL UPLUS 
-	_DROP
-	CALL DONXT
-	.word DEBUG4
-	CALL EMIT
-	CALL DOLIT
-	.word 0x656D
-	CALL DOLIT
-	.word 0x100
-	CALL UMSTA
-	CALL SWAPP
-	CALL DOLIT
-	.word 0x100
-	CALL UMSTA
-	CALL SWAPP 
-	_DROP
-	CALL EMIT
-	CALL EMIT
-	CALL DOLIT
-	.word 0x2043
-	CALL ZERO
-	CALL DOLIT
-	.word 0x100
-	CALL UMMOD
-	CALL EMIT
-	CALL EMIT
-	;JP ORIG
-	RET
-.endif ; WANT_DEBUG 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       'BOOT   ( -- a )
 ;       The application startup vector.
@@ -4628,9 +4506,6 @@ DEBUG4:
 ;       The hilevel cold start s=ence.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER COLD,4,"COLD"
-.if WANT_DEBUG
-        CALL DEBUG
-.endif ; WANT_DEBUG
 COLD1:  CALL     DOLIT
         .word      UZERO
 	CALL     DOLIT
@@ -4659,7 +4534,7 @@ COLD1:  CALL     DOLIT
 ; if APP_LAST > LAST else do the opposite
         ldw y,APP_LAST 
         cpw y,ULAST 
-        jrugt 3$ 
+        jrugt 2$ 
 ; save LAST at APP_LAST  
         call UPDATLAST 
         jra 3$

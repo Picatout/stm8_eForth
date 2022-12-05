@@ -46,8 +46,8 @@
 
     MAX_MANTISSA = 0x7FFFFF 
 
-    FLOAT_MAJOR=1 
-    FLOAT_MINOR=0 
+    F32_MAJOR=1 
+    F32_MINOR=0 
 
 ; floatting point state bits in FPSW 
     ZBIT=1 ; zero bit flag
@@ -59,16 +59,13 @@
 ;   print library version 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FVER,9,"FLOAT-VER"
-    CALL CR 
     CALL DOTQP 
-    .byte  17 
-    .ascii "float32 library, "
-    CALL PRT_LICENCE 
-    CALL COPYRIGHT 
-    _DOLIT FLOAT_MAJOR     
-    _DOLIT FLOAT_MINOR 
+    .byte  18 
+    .ascii "\nfloat32 library, "
+    _DOLIT F32_MAJOR     
+    _DOLIT F32_MINOR 
     JP PRINT_VERSION 
-
+    
 
 ;-------------------------
 ;    FPSW ( -- a )
