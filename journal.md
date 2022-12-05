@@ -1,3 +1,18 @@
+### 2022-12-05
+
+* bogues:
+    * écrire en mémoire flash|eeprom gèle.
+    * problème avec ABORT lorsque mot pas trouvé, seulement si le mot n'est pas le premier sur la lignne.
+    ```
+    d. D.?
+    eeprom d. �I���?
+
+    ```
+
+* commit 13:42
+
+* Modification motS HI, PRINT_VERSION, COPYRIGHT, FVER.
+
 ### 2022-12-04
 
 * Corrigé bogue dans **COLD** réglant l'issue #1 
