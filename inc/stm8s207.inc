@@ -565,7 +565,6 @@ OFS_UART_PSCR=10
 
 ; uart identifier
  UART1 = 0 
- UART2 = 1
  UART3 = 2
 
 ; pins used by uart 
@@ -574,8 +573,8 @@ UART1_RX_PIN=BIT4
 UART3_TX_PIN=BIT5
 UART3_RX_PIN=BIT6
 ; uart port base address 
-UART1_PORT=PA 
-UART3_PORT=PD
+UART1_PORT=PA_BASE 
+UART3_PORT=PD_BASE  
 
 ; UART1 
  UART1_BASE  = (0x5230)

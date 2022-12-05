@@ -164,8 +164,8 @@ SEEDY = SEEDX+2         ; PRNG seed Y
 ; EEPROM persistant data  
 APP_LAST = EEPROM_BASE ; Application last word pointer  
 APP_RUN = APP_LAST+2   ; application autorun address 
-APP_CP = APP_RUN+2   ; free application space pointer 
-APP_VP = APP_CP+2  ; free data space pointer 
+APP_CP = APP_RUN+2     ; free application space pointer 
+APP_VP = APP_CP+2      ; free data space pointer 
 
 
 ;***********************************************
@@ -334,27 +334,40 @@ clock_init:
         clr CLK_CKDIVR
 	bset CLK_SWCR,#CLK_SWCR_SWEN
 .if NUCLEO_8S20X|DOORBELL
-	ld a,#CLK_SWR_HSI
+	mov CLK_SWR,#CLK_SWR_HSI ; 16 Mhz internal 
 .else ; DISCOVERY as 16Mhz crystal
-	ld a,#CLK_SWR_HSE
+	mov CLK_SWR,#CLK_SWR_HSE
 .endif 
-	ld CLK_SWR,a
+	ld a,CLK_SWR
 1$:	cp a,CLK_CMSR
 	jrne 1$
         
 ; initialize UART, 115200 8N1
 .if NUCLEO_8S20X|DISCOVERY
 uart_init:
-	bset CLK_PCKENR1,#CLK_PCKENR1_UART
+;	bset CLK_PCKENR1,#UART_PCKEN
 	; configure tx pin
 	bset UART_PORT_DDR,#UART_TX_PIN ; tx pin
 	bset UART_PORT_CR1,#UART_TX_PIN ; push-pull output
 	bset UART_PORT_CR2,#UART_TX_PIN ; fast output
-	; baud rate 115200 Fmaster=16Mhz  16000000/115200=139=0x8b
-; baud rate 115200 Fmaster=8Mhz  
+; baud rate 115200 Fmaster=16Mhz  16000000/115200=139=0x8b
+; baud rate 115200 Fmaster=8Mhz  8000000/115200=69=0x45
+; 1) check clock source, HSI at 16Mhz or HSE at 8Mhz  
+	ld a,#CLK_SWR_HSI
+	cp a,CLK_CMSR 
+	jreq 2$ 
+1$: ; 8 Mhz 	
+	mov UART_BRR2,#0x05 ; must be loaded first
+	mov UART_BRR1,#0x4
+	jra 3$
+2$: ; 16 Mhz 	
 	mov UART_BRR2,#0x0b ; must be loaded first
-	mov UART_BRR1,#0x8
-	mov UART_CR2,#((1<<UART_CR2_TEN)|(1<<UART_CR2_REN));|(1<<UART_CR2_RIEN))
+	mov UART_BRR1,#0x08
+3$:
+        clr UART_DR
+	mov UART_CR2,#((1<<UART_CR2_TEN)|(1<<UART_CR2_REN));|(1<<UART_CR2_RIEN));
+	bset UART_CR2,#UART_CR2_SBK
+        btjf UART_SR,#UART_SR_TC,.
 .endif 
 ; initialize timer4, used for millisecond interrupt  
 	mov TIM4_PSCR,#7 ; prescale 128  
@@ -839,6 +852,7 @@ INCH:
         _HEADER EMIT,4,"EMIT"
         LD     A,(1,X)
 	ADDW	X,#2
+putc:         
 OUTPUT: BTJF UART_SR,#UART_SR_TXE,OUTPUT  ;loop until tx empty 
         LD    UART_DR,A   ;send A
         RET
@@ -4414,13 +4428,13 @@ COPYRIGHT:
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;  PRT_LICENCE 
-;  print GPLV2 licence 
+;  PRT_LICENSE 
+;  print GPLV3 licence 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-PRT_LICENCE:
+PRT_LICENSE:
         CALL DOTQP 
         .byte  15 
-        .ascii "LICENCE GPLV3\r\n"
+        .ascii "LICENSE GPLV3\r\n"
         RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -4624,42 +4638,51 @@ COLD1:  CALL     DOLIT
         CALL     DOLIT
 	.word      UEND-UZERO
         CALL     CMOVE   ;initialize user area
-; if APP_RUN==0 initialize with ca de 'hi'  
         ldw y,APP_RUN 
-        jrne 0$
+        jrne 1$
+0$:
+; there is no autorun application
+; initialize EEPROM variables to default  
         subw x,#CELLL 
         ldw y,#HI  
         ldw (x),y
-        call UPDATRUN 
-0$:        
+        call UPDATRUN
+        call UPDATLAST 
+        call UPDATCP 
+        call UPDATVP
+        jra 6$ 
+1$:        
+; if no app at app_space initialize EEPROM with ca of 'HI'  
+        ldw y,app_space
+        jreq 0$ 
 ; update LAST with APP_LAST 
 ; if APP_LAST > LAST else do the opposite
         ldw y,APP_LAST 
         cpw y,ULAST 
-        jrugt 1$ 
+        jrugt 3$ 
 ; save LAST at APP_LAST  
         call UPDATLAST 
-        jra 2$
-1$: ; update LAST with APP_LAST 
+        jra 3$
+2$: ; update LAST with APP_LAST 
         ldw ULAST,y
         ldw UCNTXT,y
-2$:  
+3$:  
 ; update APP_CP if < app_space 
         ldw y,APP_CP  
         cpw y,UCP   
-        jruge 3$ 
+        jruge 4$ 
         call UPDATCP
         ldw y,UCP   
-3$:
+4$:
         ldw UCP,y                 
 ; update UVP with APP_VP  
 ; if APP_VP>UVP else do the opposite 
         ldw y,APP_VP 
         cpw y,UVP 
-        jrugt 4$
+        jrugt 5$
         call UPDATVP 
         jra 6$
-4$: ; update UVP with APP_VP 
+5$: ; update UVP with APP_VP 
         ldw UVP,y 
 6$:      
         CALL     PRESE   ;initialize data stack and TIB
@@ -4693,4 +4716,7 @@ LASTN =	LINK   ;last name defined
 ; application code begin here
 	.bndry 128 ; align on flash block  
 app_space: 
+.word 0,0,0,0
+
+
 

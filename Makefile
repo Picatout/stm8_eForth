@@ -21,7 +21,7 @@ FLASH=stm8flash
 
 .PHONY: all
 
-all: clean $(NAME).rel $(NAME).ihx  eforth clear_eevars 
+all: clean $(NAME).rel $(NAME).ihx  clear_eevars eforth  
 
 $(NAME).rel: $(MAIN_FILE) $(SRC) $(INCLUDES)
 	@echo
@@ -52,7 +52,7 @@ clear_eevars:
 	@echo "**********************"
 	@echo "erase EEPROM variables"
 	@echo "**********************"
-	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -s eeprom -b 16 -w /dev/zero
+	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -u -s eeprom -b 16 -w zero.bin  
 
 .PHONY: erase 
 erase: clear_eevars 
@@ -60,8 +60,7 @@ erase: clear_eevars
 	@echo "************************"
 	@echo "  reset all flash types "
 	@echo "************************"
-	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -u
-	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -s flash -b $(FLASH_SIZE) -w /dev/zero   	
+	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -u -s flash -b 131072 -w zero.bin   	
 
 build:
 	mkdir build

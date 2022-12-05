@@ -1,5 +1,7 @@
 ### 2022-12-04
 
+* Corrigé bogue dans **COLD** réglant l'issue #1 
+
 * Travail sur [float.asm](float.asm) et [float24.asm](float24.asm)
 
 ### 2022-12-03
