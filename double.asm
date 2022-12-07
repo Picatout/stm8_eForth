@@ -37,48 +37,76 @@
     CALL DOTQP 
     .byte  24 
     .ascii "double integer library, "
-    CALL PRT_LICENCE
-    CALL COPYRIGHT  
     _DOLIT DVER_MAJOR 
     _DOLIT DVER_MINOR  
-    JP PRINT_VERSION  
+    JP PRINT_VERSION   
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; uint32 * uint8
+; input:
+;   ud   uint32 
+;   u8   uint8 
+; output:
+;   ud    = uint32*uint8   
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER UDU8STAR,5,"UDU8*"
+;UDU8STAR: ; ( ud u8 -- prod )
+    CALL TOR ; ud r: u8 
+    PUSH #0  ; R: uint8 0 0
+    LD A,(3,X) ; ud bits 7:0
+    LD YL,A    
+    LD A,(3,SP) ; uint8 
+    MUL Y,A
+    LD A,YL   
+    LD (3,X),A  ; product bits 7:0 
+    LD A,YH     ; partial prodcut bits 15:8
+    LD (2,SP),A ; r: uint8 ovf  0 
+    LD A,(2,X)  ; ud bits 15:8 
+    LD YL,A     
+    LD A,(3,SP) ; uint8 
+    MUL Y,A    
+    ADDW Y,(1,SP) ; Y+=overflow 1  
+    LD A,YL        
+    LD (2,X),A  ; product bits 15:8
+    LD A,YH     
+    LD (2,SP),A ; overflow 
+    LD A,(1,X)  ; ud bits 23:16 
+    LD YL,A 
+    LD A,(3,SP) ; uint8 
+    MUL Y,A 
+    ADDW Y,(1,SP) ; Y+=overflow 
+    LD A,YL    
+    LD (1,X),A  ; product bits 23:16
+    LD A,YH     
+    LD (2,SP),A ; overflow 
+    LD A,(X)    
+    LD YL,A     ; ud bits 31:24
+    LD A,(3,SP) ; uint8 
+    MUL Y,A 
+    ADDW Y,(1,SP) ; Y+= overflow 
+    LD A,YL    
+    LD (X),A  ; product bits 31:24 
+    ADD SP,#CELLL+1 ; drop u8 and YH from r: 
+    RET
 
-; check for negative sign 
-; ajust pointer and cntr 
-nsign: ; ( addr cntr -- addr cntr f ) 
-    SUBW X,#CELLL ; a cntr f 
-    LDW Y,X 
-    LDW Y,(4,Y) ; addr 
-    LD A,(Y) ; char=*addr  
-    CP A,#'-' 
-    JREQ NEG_SIGN 
-    CLR A  
-    JRA STO_SIGN 
-NEG_SIGN:
-; increment addr 
-    LDW Y,X 
-    LDW Y,(4,Y)
-    ADDW Y,#1   ;addr+1 
-    LDW (4,X),Y 
-; decrement cntr 
-    LDW Y,X
-    LDW Y,(2,Y)
-    SUBW Y,#1   ;cntr-1 
-    LDW (2,X),Y 
-    LD A,#0XFF
-STO_SIGN:   
-    LD (X),A 
-    LD (1,X),A 
-    RET 
-
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; get all digits in row 
 ; stop at first non-digit or end of string 
-; ( dlo dhi a cntr -- dlo dhi [ a+ cntr- | a+ 0 ] )
-parse_digits:
+; ( dlo dhi a cnt -- dlo dhi a cnt )
+; input:
+;   dlo     low word of integer 
+;   dlhi    high word of integer 
+;   a       string pointer 
+;   cnt     string length 
+; output:
+;   dlo     updated 
+;   dhi     updated 
+;   a       incremented
+;   cnt     decremented 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+parse_digits: ; ( dlo dhi a cnt -- dlo dhi a cnt )
     CALL DUPP 
-    _QBRAN parse_d5  
+    _QBRAN parse_d5  ; end of string 
     CALL TOR   ; dlo dhi a R: cntr 
     CALL COUNT ; dlo dhi a+ char 
     CALL BASE 
@@ -88,7 +116,8 @@ parse_digits:
     CALL DTOR  ; dlo dhi R: cntr a+ c  
     CALL BASE 
     CALL AT 
-    CALL DSSTAR
+;    CALL UDSSTAR
+    CALL UDU8STAR 
     CALL RFROM 
     CALL ZERO 
     CALL DPLUS 
@@ -98,105 +127,119 @@ parse_digits:
     JRA parse_digits ; dlo dhi a+ R: 
 parse_d4:
     LDW Y,X 
-    LDW Y,(2,Y)
+    LDW Y,(CELLL,Y)
     DECW Y  ; dec(a)
-    LDW (2,X),Y 
+    LDW (CELLL,X),Y 
     POPW Y 
-    LDW (X),Y ; dlo dhi a cntr  
+    LDW (X),Y ; dlo dhi a cnt  
 parse_d5:
     RET 
 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   NUMBER? (a -- s -1 |d -2 | a F )
+;   NUMBER? (a -- s -1 |d -2 | a 0 )
 ;   convert string to integer 
-;   double begin with '#' 
+;   double contains a '.' at 
+;   any position except first.
+;   integer format:
+;     decimal ['-']digit+['.'][digit+]
+;     hexadecimal '$'['-']hex_digit+[.][hex_digit+] |
+;       ['-']'$'hex_digit+['.'][hex_digit+]
+;   '+' not allowed at beginning of integer    
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER NUMBQ,7,"NUMBER?"
 ; save current base value 
     CALL BASE 
     CALL AT 
-    CALL TOR  ; R: base 
+    CALL TOR  ; R: base
+; create flags on R: 
+; d? double integer flag 0=int16,-1=int32  
+; s? sign flag 0=positive, -1=negative 
+    _DOLIT 0 
+    CALL TOR ; R: base d?=0 default to single 
+    CALL DUPP 
+    CALL COUNT ; a a+1 cnt 
+; check for hexadecimal format 
+; and minus sign 
+    CALL CHECK_BASE_SIGN
+    CALL TOR ; a a+ cnt- r: base d? sign  
+; now parse digits 
 ; initialize integer to 0     
-    SUBW X,#4 ; create space for a double  
+    CALL DTOR ; send a cnt -> R: 
     CLRW Y 
+    SUBW X,#2*CELLL 
     LDW (X),Y 
-    LDW (2,X),Y ; a 0 0 R: base  
-    _DOLIT 2 
-    CALL PICK  ; a 0 0 a R: base    
-    CALL COUNT ; a 0 0 a+ n 
-; check for '#' double integer 
-    CALL OVER  ; a 0 0 a+ n a+
-    CALL CAT   ; a 0 0 a+ n c 
-    _DOLIT '#' ; a 0 0 a+ n c '#' 
-    CALL EQUAL 
-    CALL TOR   ; a 0 0 a+ n R: base d? 
-    CALL RAT   ; a 0 0 a+ n d? R: base d?
-    _QBRAN NUMQ0
-; update a and count
-    CALL SWAPP 
-    CALL ONEP 
-    CALL SWAPP 
-    CALL ONEM  ; a 0 0 a+ n- R: base d?
-; check for '$' hexadecimal  
-NUMQ0: 
-    CALL OVER   
-    CALL CAT   
-    _DOLIT '$'
-    CALL EQUAL ; a 0 0 a+ n- f  
-    _QBRAN NUMQ1 
-    CALL HEX   ; switch to hexadecimal base 
-; update a and count 
-    CALL SWAPP 
-    CALL ONEP 
-    CALL SWAPP
-    CALL ONEM ; a 0 0 a+ n-  R: base d?
-    CALL QDUP 
-    _QBRAN NUMQ6 
-; check for minus sign 
-NUMQ1: 
-    CALL nsign 
-    CALL TOR ; R: base d? sign  
+    LDW (2,X),Y  
+    CALL DRFROM ; 0 0 a cnt r: base d? s? 
 ; check for end of string     
-    CALL QDUP    ; a dlo dhi a+ cntr R: base d? sign 
-    _QBRAN NUMQ5 ; yes , not a number 
-    CALL parse_digits
-    CALL QDUP 
-    CALL ZEQUAL  
-    _QBRAN NUMQ4 ; error not end of string  ( a dlo dhi a+ R: base d? sign )
-    _DROP  ; a dlo dhi 
+    CALL QDUP ; dlo dhi a cnt R: base d? s? 
+    _TBRAN 5$  ; parse not complete 
+; invalid format clean stack    
+    ADDW X,#3*CELLL ; drop dlo dhi a 
+    ADDW SP,#2*CELLL ; drop d? s? from r: 
+    JP BAD_FORMAT 
+5$:    
+    CALL parse_digits ; 
+    CALL QDUP
+    _QBRAN INTGR_FMT ; end of string 
+; more characters to parse 
+; if next char=='.' set d?=-1 
+; and try for more digits  
+    _DOLIT '.' 
+    CALL ACCEPT_CHAR
+    _QBRAN 6$  
+; it is a double integer set d?=-1
+    CPL (3,SP)
+    CPL (4,SP) ; d?=-1, int32 
+; save cnt on r: to count digits after '.' 
+    CALL DUPP ; ; dlo dhi a cnt cnt 
+    CALL TOR ; save cnt on r: 
+    CALL parse_digits 
+    CALL QDUP     
+    _QBRAN 7$ ; end of string, it is a double integer  
+6$: ; float number or bad format
+.if WANT_FLOAT
+    CALL RFROM ; cnt before last parse_digits 
+    CALL OVER ; dlo dhi a cnt n cnt 
+    CALL SUBB ; dlo dhi a cnt ndec -> how many digits after '.' 
+    CALL RFROM ; dlo dhi a cnt ndec sign  
+    ADDW SP,#CELLL ; drop d? not required by FLOAT? 
+    CALL SWAPP 
+    CALL TOR 
+    CALL TOR  ;  dlo dhi a cnt r: base sign digits 
+    JP FLOATQ 
+.endif 
+; error not a number 
+; stack frame: dlo dhi a cnt r: base d? s? cnt 
+; clean stacks 
+    ADDW X,#4*CELLL ; drop dlo dhi a cnt 
+    ADDW SP,#3*CELLL ; drop d? s? cnt   
+    JP BAD_FORMAT      
+7$:
+    ADDW SP,#CELLL ; drop cnt from r: 
+INTGR_FMT: ; got an integer format 
+; end of string
+    ADDW X,#CELLL ; drop a+
+    CALL ROT 
+    ADDW X,#CELLL ; drop a 
+; stracks: dlo dhi R: base d? sign  
     CALL RFROM  ; a dlo dhi sign 
-    _QBRAN NUMQ3
+    _QBRAN 1$
     CALL DNEGA
-NUMQ3: 
-    CALL ROT ; dlo dhi a  R: base d?
-    _DROP
+1$: 
     _DOLIT -2  ; double return -2 flag 
-    CALL RFROM ; dlo dhi d? R: base 
+    CALL RFROM ; dlo dhi -2 d? R: base 
     _TBRAN NUMQ8 
     CALL SWAPP 
     _DROP
     CALL ONEP   ; single return -1 flag   
-    JRA NUMQ8
-NUMQ4: ; not end of string error , ( a dlo dhi a+ cntr R: base d? sign )
-.if WANT_FLOAT
-    CALL RFROM ; sign 
-    CALL RFROM ; d? 
-    CALL FLOATQ ; ( a dlo dhi a+ cntr sign d? )
-    JRA NUMQ8 
-.endif 
-NUMQ5: 
-    ADDW SP,#2
-NUMQ6:    
-    ADDW SP,#2 
-    ADDW X,#4 
-    CLRW Y 
-    LDW (X),Y 
+    _BRAN NUMQ8 
+BAD_FORMAT: ; a R: base 
+    _DOLIT 0 
 NUMQ8: 
     CALL RFROM 
     CALL BASE 
     JP STORE 
-     
+  
 
 
 

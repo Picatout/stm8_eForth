@@ -2672,18 +2672,100 @@ DGTQ1:  CALL     DUPP
         CALL     RFROM
         JP     ULESS
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; move parse to next char 
+; input:
+;   a    string pointer 
+;   cnt  string length 
+; output:
+;    a    a+1 
+;    cnt  cnt-1
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+NEXT_CHAR:: ; ( a cnt -- a cnt )
+; increment a 
+    INC (CELLL+1,X) 
+    JRNE 1$
+    INC (CELLL,X)
+1$: ; decrement cnt 
+    LDW Y,X 
+    LDW Y,(Y)
+    DECW Y 
+    LDW (X),Y
+    RET 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; check if first character of string
+; is 'c' 
+; if true 
+;     return  a++ cnt-- -1  
+; else 
+;   return a cnt 0 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ACCEPT_CHAR:: ; ( a cnt c -- a cnt 0|-1 )
+    CALL TOR 
+    LDW Y,X 
+    LDW Y,(CELLL,Y) ; a 
+    LD A,(Y)
+    CP A,(2,SP) ; c 
+    JRNE 1$
+; accept c
+    CALL NEXT_CHAR      
+    _DOLIT -1
+    JRA 2$  
+1$: ; ignore char 
+    _DOLIT 0
+2$: ADDW SP,#CELLL ; drop c 
+    RET 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; check if string begin with 
+; one of these substrings:
+;   "$"|"-"|"$-"|"-$"
+; if '$' present set BASE 
+; to 16 
+; if '-' present return -1
+; else 0 
+; input:
+;   a     string pointer 
+;   cnt   string length 
+; output:
+;   a     incremented if found  
+;   cnt   decremented if found
+;   0|-1  0 no '-' | -1 '-' yes 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+CHECK_BASE_SIGN:: ; ( a cnt -- a cnt 0|-1 )
+    _DOLIT '$'
+    CALL ACCEPT_CHAR 
+    _QBRAN 1$ 
+    CALL HEX 
+    _DOLIT '-'
+    CALL ACCEPT_CHAR 
+    RET 
+1$: _DOLIT '-'
+    CALL ACCEPT_CHAR 
+    CALL DUPP 
+    CALL TOR 
+    _QBRAN 2$ 
+    _DOLIT '$' 
+    CALL ACCEPT_CHAR 
+    _QBRAN 2$ 
+    CALL HEX 
+2$: CALL RFROM 
+    RET 
+
 .if  WANT_DOUBLE  
-.iff 
+.iff ; this code included only if WANT_DOUBLE=0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; get all digits in row 
 ; stop at first non-digit or end of string
-; ( n a cntr -- n  a+ cntr-  )
+; ( n a cnt -- n  a+ cnt-  )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 parse_digits:
     CALL DUPP 
     _QBRAN 5$  
-    CALL TOR   ; n a R: cntr 
+    CALL TOR   ; n a R: cnt 
 1$: CALL COUNT ; n a+ char 
     CALL BASE 
     CALL AT 
@@ -2708,6 +2790,7 @@ parse_digits:
 5$:
     RET 
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       NUMBER? ( a -- n T | a F )
 ;       Convert a number string to
@@ -2722,34 +2805,14 @@ parse_digits:
         CALL     OVER
         CALL     COUNT ; string length,  a 0 a+ cnt 
 ;  check hexadecimal character        
-        CALL     OVER           ; a 0 a+ cnt a+ 
-        CALL     CAT
-        _DOLIT   '$'  ; hex?    ; a 0 a+ cnt char '$'
-        CALL     EQUAL
-        _QBRAN   NUMQ1
-        CALL     HEX
-        CALL     SWAPP
-        CALL     ONEP
-        CALL     SWAPP
-        CALL     ONEM
-; check for negative sign         
-NUMQ1:  CALL     OVER
-        CALL     CAT
-        _DOLIT   '-'
-        CALL     EQUAL
-        CALL     TOR    ; a 0 a+ cnt R: base sign 
-; update address and count 
-        CALL     SWAPP
-        CALL     RAT
-        CALL     SUBB
-        CALL     SWAPP
-        CALL     RAT
-        CALL     PLUS  ; a 0 a+ cnt- R: base sign 
+;  and negative sign 
+        CALL    CHECK_BASE_SIGN
+        CALL    TOR ; a 0 a+ cnt- r: base sign 
         CALL     QDUP
         _QBRAN   NUMQ4  ; end of string  a 0 a+ R: base sign 
-        CALL     parse_digits ; a 0 a+ cntr- -- a n a+ cntr-  R: base sign 
+        CALL     parse_digits ; a 0 a+ cnt- -- a n a+ cnt-  R: base sign 
         CALL     DUPP   ; a n a+ cnt cnt -- R: base sign  
-        _TBRAN   NUMQ6
+        _TBRAN   NUMQ6  ; some character left not integer 
         CALL     DDROP   ; a n  R: base sign  
         CALL     RFROM   ; a n sign R: base 
         _QBRAN   NUMQ3
@@ -2763,12 +2826,13 @@ NUMQ4:  CALL     RFROM
         JRA      NUMQ9 
 NUMQ6:  
 .if WANT_FLOAT24 
-.ift 
-        CALL     RFROM ; a n a+ cnt sign R: base 
-        CALL     FLOATQ  
-.iff
+.ift ; float24 installed try floating point number  
+        CALL    RFROM ; a n a+ cnt sign R: base  
+        CALL    FLOATQ 
+        JRA     NUMQ9 
+.iff ; error unknown token 
         ADDW SP,#CELLL ; remove sign from rstack 
-        ADDW  X,#2*CELLL ; drop a+ cnt S: a n  R: sign 
+        ADDW  X,#2*CELLL ; drop a+ cnt S: a n  R: base  
         CLRW Y  
         LDW (X),Y  ;  a 0 R: base 
 .endif 
@@ -3403,7 +3467,8 @@ ACCP4:  CALL     DROP
         CALL     QBRAN
         .word      ABOR2   ;text flag
         CALL     DOSTR
-ABOR1:  CALL     SPACE
+ABOR1:  MOV     BASE,#10 ; reset to default 
+        CALL     SPACE
         CALL     COUNT
         CALL     TYPES
         CALL     DOLIT
@@ -4468,7 +4533,10 @@ PRINT_VERSION:
         .ascii     "stm8eForth"
 	_DOLIT VER 
         _DOLIT EXT 
-        CALL PRINT_VERSION 
+        CALL PRINT_VERSION
+.if WANT_DOUBLE 
+        CALL DBLVER 
+.endif 
 .if WANT_FLOAT|WANT_FLOAT24
         CALL FVER 
 .endif         
@@ -4489,7 +4557,7 @@ PRINT_VERSION:
 .endif
 .if DOORBELL
         .byte 16
-        .ascii " on stm8s105k6b6"
+        .ascii  " on stm8s105k6b6"
 .endif
         JP     CR
 

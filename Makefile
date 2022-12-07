@@ -77,7 +77,7 @@ compile: $(MAIN_FILE)  $(SRC) $(INCLUDES)
 	@echo "******************"
 	@echo "  compiling       "
 	@echo "******************"
-	-rm $(BUILD) 
+	-rm $(BUILD)* 
 	$(SDAS) -g -l -o $(BUILD)$(NAME).rel $(MAIN_FILE)
 	$(SDCC) $(CFLAGS) -Wl-u -o $(BUILD)$(NAME).ihx  $(BUILD)$(NAME).rel
 

@@ -1,8 +1,36 @@
+### 2022-12-07
+
+* Réécriture de __NUMBER?__ dans [stm8ef.asm](stm8ef.asm) et [double.asm](double.asm).
+
+* Création des sous-routines **CHECK_BASE_SIGN**, **ACCEPT_CHAR** et **NEXT_CHAR** dans [stm8ef.asm](stm8ef.asm).
+
+* Réécriture de __NUMBER?__ dans fichier [double.asm](double.asm).
+
+* Ajout de sous-routine __UDU8*__ dans [double.asm](double.asm) plus rapide que __UDS*__. Cette routine est 2 fois plus rapide. Cette routine est appellée par __NUMBER?__ au lieu de __UDS*__. 
+```
+: t1 msec 1000 for 232.32 10 udu8* 2drop next msec swap - . ;  ok
+t1 11 ok
+t1 11 ok
+t1 11 ok
+t1 11 ok
+t1 11 ok
+: t2 msec 1000 for 232.32 10 uds* 2drop next msec swap - . ; ok
+t2 24 ok
+t2 24 ok
+t2 24 ok
+t2 24 ok
+t2 24 ok
+```
+
 ### 2022-12-05
 
+* Nouvelle perspective: NUMBER? devrait analyser tous les nombres comme des entiers doubles mais ne conserver les bits 32..16 que s'il y a un point dans la chaîne. S'il y a une librairie __float__ d'installée et que la chaîne n'est pas terminée au dernier digit rencontré appeller FLOAT? pour compléter l'analyse. 
+
+* Réécriture de __FLOAT?__ dans [float24.asm](float24.asm). 
+
 * bogues:
-    * écrire en mémoire flash|eeprom gèle.
-    * problème avec ABORT lorsque mot pas trouvé, seulement si le mot n'est pas le premier sur la lignne.
+    1. écrire en mémoire flash|eeprom gèle.
+    1. problème avec ABORT lorsque mot pas trouvé, seulement si le mot n'est pas le premier sur la ligne. Ne se produit que si la librairie [float24.asm](float24.asm) est incluse.
     ```
     d. D.?
     eeprom d. �I���?

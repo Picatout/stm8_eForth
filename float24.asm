@@ -336,30 +336,41 @@ FDOT10:
 ;    number parser 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; check for negative sign 
-; ajust pointer and cntr 
-nsign: ; ( addr cntr -- addr cntr f ) 
+; ajust pointer and cntr
+; input:
+;    a        string pointer 
+;    cnt      string length
+; output:
+;    a       adjusted pointer 
+;    cnt     adjusted count
+;    f       boolean flag, true if '-'  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
+nsign: ; ( a cnt -- a cnt f ) 
     SUBW X,#CELLL ; a cntr f 
+    PUSH #0 
     LDW Y,X 
-    LDW Y,(4,Y) ; addr 
-    LD A,(Y) ; char=*addr  
+    LDW Y,(2*CELLL,Y) ; a 
+    LD A,(Y) ; char=*a  
     CP A,#'-' 
-    JREQ NEG_SIGN 
-    CLR A  
-    JRA STO_SIGN 
+    JREQ NEG_SIGN
+    CP A,#'+' 
+    JREQ ADJ_CSTRING 
 NEG_SIGN:
-; increment addr 
+    CPL (1,SP)
+ADJ_CSTRING: 
+; increment a 
     LDW Y,X 
-    LDW Y,(4,Y)
-    ADDW Y,#1   ;addr+1 
-    LDW (4,X),Y 
-; decrement cntr 
+    LDW Y,(2*CELLL,Y)
+    INCW Y ; a++ 
+    LDW (2*CELLL,X),Y 
+; decrement cnt 
     LDW Y,X
-    LDW Y,(2,Y)
-    SUBW Y,#1   ;cntr-1 
-    LDW (2,X),Y 
-    LD A,#0XFF
-STO_SIGN:   
+    LDW Y,(CELLL,Y)
+    DECW Y ; cnt--  
+    LDW (CELLL,X),Y 
+    POP A 
     LD (X),A 
     LD (1,X),A 
     RET 
@@ -368,48 +379,162 @@ STO_SIGN:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; return parsed exponent or 
 ; 0 if failed
-; at entry exprect *a=='E'    
+; at entry exprect *a='E'
+; input:
+;   a   pointer to string 
+;   cnt # characters left in string 
+; ouput:
+;   a+   updated string pointer 
+;   cnt- updated count 
+;   e    exponent    
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-parse_exponent: ; a cntr -- e -1 | 0 
-    CALL TOR   ; R: cntr 
-    CALL DUPP 
-    CALL CAT 
-    _DOLIT 'E' 
-    CALL EQUAL 
-    _QBRAN 1$
-    CALL ONEP 
-    CALL RFROM  ; a cntr 
+parse_exponent: ; a cnt -- a+ cnt- e   
+    ldw y,x
+    LDW Y,(CELLL,Y) ; a 
+    LD A,(Y)
+    cp a,#'E
+    jreq 1$ 
+; invalid format abort 
+0$: 
+    ADDW X,#3*CELLL ; drop  0 a cnt 
+    JP ABOR1     
+1$: ; exponent follow 'E'  
     CALL ONEM
-    CALL DUPP 
-    _QBRAN 2$ ; a cntr 
+    CALL DUPP  
+    _TBRAN 2$
+    JRA 0$ ; error, no more char, abort  
+2$: ; a cnt  
+    CALL SWAPP 
+    CALL ONEP  ; a++ 
+    CALL SWAPP 
     CALL ZERO
     CALL NROT ;  0 a cntr  
     CALL nsign 
     CALL TOR   ; R: esign  
+    CALL DUPP  
+    _QBRAN 0$ ; error, no digits after '-', abort 
     CALL parse_digits
-    _QBRAN PARSEXP_SUCCESS ; parsed to end of string 
-; failed invalid character
-    _DDROP ; 0 a 
-1$: 
-    CALL RFROM ; sign||cntr  
-2$:
-    _DDROP  ; a cntr || a sign || 0 cntr   
-    CALL ZERO   ; return only 0 
-    RET 
-PARSEXP_SUCCESS: ; n a  
-    _DROP ; n  
+    CALL ROT  
     CALL RFROM ; esign  
-    _QBRAN 1$
+    _QBRAN 4$
     CALL NEGAT
-1$:
-    _DOLIT -1 ; -- e -1 
-    RET 
+4$: RET 
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; return integer after decimal point 
+; expect *a='.'
+; input:
+;    u    mantissa part already parsed before '.' 
+;    a    string address should point at '.' 
+;    cnt  characters left in string 
+; output:
+;   a+    updated string pointer 
+;   cnt-  updated char left count 
+;   ndec  number of decimals parsed 
+;   m     mantissa  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+parse_fraction: ; ( a u a cnt -- a a+ cnt- ndec m )
+    LDW Y,X 
+    LDW Y,(CELLL,Y) ; a 
+    LD A,(Y) ; next char in string
+    CP A,#'.
+    JREQ 1$   
+; not a '.' character, no fractional part.    
+    SUBW X,#2*CELLL ; space for ndec and frac 
+    CLRW Y 
+    LDW (X),Y 
+    LDW (CELLL,X),Y  ; -- a a+ cnt m=0  ndec=0  
+    RET 
+1$: ; parse fraction 
+    LDW Y,X 
+    LDW Y,(Y) ; cnt 
+    DECW Y   ; cnt-- 
+    LDW (X),Y 
+    PUSHW Y  ; cnt-- >R 
+    LDW Y,X      
+    LDW Y,(CELLL,Y ) ; a  
+    INCW Y ; a++
+    LDW (CELLL,X),Y  ; 
+    CALL parse_digits ; a u a cnt -- a m a+ cnt-
+    CALL RFROM ; needed to compute ndec 
+    CALL OVER  
+    CALL SUBB ; a frac a+ cnt- ndec 
+    CALL TOR  
+    CALL ROT ; a a+ cnt- frac
+    CALL RFROM ; a a+ cnt- m ndec 
+    CALL SWAPP ; a a+ cnt- ndec m   
+    RET  
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+.if 0
+;;;;;;;;;;;;;;;;;;;;;;;;;
+; fast u16*10 
+; input:
+;   u    uint16 
+; output:
+;   ud   u*10 uint32 
+;;;;;;;;;;;;;;;;;;;;;;;;;
+    VSIZE=2 ; local variables size
+    PROD=1 ; first product  
+umult10: ; ( u -- ud=u*10 )
+    sub sp,#VSIZE 
+    ld a,(x) ; u high byte, bits 15..8 
+    ldw yl,a 
+    ld a,#10
+    mul y,a 
+    ldw (PROD,sp),y 
+    ld a,(1,x) ; u low byte, bits 7..0  
+    ld yl,a 
+    ld a,#10 
+    mul y,a 
+    ld a,yh
+; make space on stack for ud     
+    subw x,#CELLL 
+    clr (x) 
+    add a,(PROD+1,sp) ; yh+low byte of first product 
+    jrnc 1$
+    inc (PROD,sp) ; overflow 
+1$: ld (2,x),a  
+    ld a,(PROD,sp)
+    ld (1,x),a
+    ld a,yl 
+    ld (3,x),a 
+    addw SP,#VSIZE 
+    ret 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; divide u16/10 
+; input:
+;   u    uint16 
+; output:
+;   q    uint16 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+u16div10: ; ( u -- u/10 )
+    ldw y,x 
+    ldw y,(y)
+    ld a,#10
+    divw y,a
+    ldw (x),y  
+    ret 
+.endif 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   FLOAT?  ( a n a+ cnt sign  -- f24 -3 | a 0 )
+;   FLOAT?  ( u a+ cnt sign  -- f24 -3 | ABORT )
 ;   called by NUMBER? 
-;   convert string to float 
+;   parse string to float
+;   clean stack and ABORT if parse fail. 
+; input:
+;   u     already parsed integer digits
+;   a    point to string after last parsed digit 
+;   cnt   number of char left in string 
+;   sign  sign of parsed integer part 
+; ouput:
+;   f24   if format ok 
+;   -3    data type identifier 
+; -------------
+;  ABORT if parse fail 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FLOATQ,5,"FLOAT?"
 ; BASE must be 10 
@@ -417,44 +542,35 @@ PARSEXP_SUCCESS: ; n a
     CALL AT 
     _DOLIT 10 
     CALL EQUAL 
-    _QBRAN FLOAT_ERROR 
-; if float next char is '.' or 'E' 
-    CALL TOR ; R: sign  
-    CALL TOR ; R: sign cntr 
-    CALL DUPP
-    CALL CAT 
-    _DOLIT '.' 
-    CALL EQUAL 
-    _QBRAN FLOATQ1 ; not a dot 
-    CALL ONEP 
-    CALL RFROM  ; a  n a+ cntr R: sign  
-    CALL ONEM 
-    CALL DUPP 
-    CALL TOR  ; R: sign cntr 
-; parse fractional part
-    CALL parse_digits ; a n a+ cntr -- n a cntr 
-    CALL DUPP 
-    CALL RFROM 
-    CALL SWAPP 
-    CALL SUBB ; fd -> fraction digits count 
-    CALL TOR  ; n a cntr R: sign fd 
-    CALL DUPP ; cntr cntr  
-    _QBRAN 1$ ; end of string, no exponent
-    JRA FLOATQ2
-1$: CALL SWAPP 
-    _DROP ; a
-    JRA FLOATQ3        
-FLOATQ1: ; must push fd==0 on RSTACK 
-    CALL RFROM ; cntr 
-    CALL ZERO  ; fd 
-    CALL TOR   ; m a cntr R: sign fd 
-FLOATQ2: 
-    CALL parse_exponent 
-    _QBRAN FLOAT_ERROR0 ; exponent expected 
-FLOATQ3: ; m 0 || m e  
-    CALL RFROM ;  fd  
-    CALL SUBB  ; exp=e-fd 
-    CALL SWAPP  
+    _TBRAN 1$ ; accept only base 10 float.
+; bad float format abort   
+    addw x,#4*CELLL ; drop u a+ cnt sign 
+    JP ABOR1 
+1$: ; first push sign 
+    CALL TOR ; a u a+ cnt R: sign
+    CALL parse_fraction ; -- a a+ cnt- ndec m
+    CALL TOR ; a a+ cnt- ndec r: sign  m
+    CALL TOR ; a a+ cnt- r: sign m ndec  
+    CALL QDUP 
+    _TBRAN 2$
+; end of string, no exponent part 
+    CLRW Y 
+    PUSHW Y ;  a a+ r:sign m ndec exp=0
+    JRA FLOATQ3   
+2$: call parse_exponent ; -- a a+ cnt- e 
+    CALL TOR ; a a+ cnt- r: sign m ndec exp 
+    _QBRAN FLOATQ3 ; build float 
+; if character left in string it's not a float 
+; clean stack and ABORT 
+    ADDW X,#2*CELLL ; drop a+ cnt-  
+    JP ABOR1 
+FLOATQ3: ; build float from part on R: 
+; a a+ r: sign m ndec exp   
+    ADDW X,#2*CELLL ; drop a a+ 
+    CALL RFROM ; exp r: sign m ndec    
+    CALL RFROM ; -- exp ndec r: sign m 
+    CALL SUBB  ; adjusted exponent. 
+    CALL RFROM ; exp  m r: sign 
 ; if m>MAX_MANTISSA then m/10 e++ 
     CALL  DUPP 
     CALL ZLESS 
@@ -476,24 +592,10 @@ FLOATQ34:
     _QBRAN FLOATQ4 
     CALL NEGAT 
 FLOATQ4:
-    CALL ROT   ; e m a 
-    _DROP      ; drop a 
     CALL SWAPP ; m e 
     CALL SET_FPSW 
     _DOLIT -3 
     RET       
-FLOAT_ERROR0: 
-    CALL RFROM ; df 
-    CALL RFROM ; df sign 
-FLOAT_ERROR: 
-    CALL DEPTH 
-    CALL CELLS 
-    CALL SPAT 
-    CALL SWAPP 
-    CALL PLUS  
-    CALL SPSTO 
-    CALL ZERO 
-    RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;  LSCALE ( f24 -- f24 )

@@ -24,7 +24,7 @@
 ;   General usage macros.   
 ;
 ;--------------------------------------
-
+    
     ; reserve space on stack
     ; for local variabls
     .macro _vars n 
