@@ -138,46 +138,49 @@ parse_d5:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   NUMBER? (a -- s -1 |d -2 | a 0 )
 ;   convert string to integer 
-;   double contains a '.' at 
-;   any position.
-;   integer format:
-;     decimal ['-']digit*['.'][digit+]
-;     hexadecimal '$'['-']hex_digit*[.][hex_digit+] |
-;       ['-']'$'hex_digit*['.'][hex_digit+]
-;   '+' not allowed at beginning of integer    
+;  if integer parse fail because of extra 
+;  characters in string and WANT_FLOAT=1 
+;  in config.inc then jump to FLOAT? in
+;  float.asm
+; 
+; accepted integer format:
+;    decimal ::= ['-'|'+']dec_digits+
+;    hexadecimal ::= ['-'|'+']'$'hex_digits+
+;   Optional '.' anywhere in digits 
+;   sequence signal a double integer.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER NUMBQ,7,"NUMBER?"
 ; save current base value 
     CALL BASE 
     CALL AT 
     CALL TOR  ; R: base
-; create flags on R: 
+; create d? flags R: 
 ; d? double integer flag 0=int16,-1=int32  
     _DOLIT 0 
     CALL TOR ; R: base d?=0 default to single 
     CALL DUPP 
-    CALL COUNT ; a a+1 cnt 
-; check for hexadecimal format 
-; and minus sign 
-    CALL CHECK_BASE_SIGN
-; s? sign flag 0=positive, -1=negative 
-    CALL TOR ; a a+ cnt- r: base d? s?  
+    CALL ZERO 
+    CALL DUPP 
+    CALL ROT ; a ud=0 a 
+    CALL COUNT ; a ud a+1 cnt 
+; check for number sign 
+    CALL NSIGN 
+    CALL TOR ; R: base d?=0 s?   
+; check for hexadecimal character '$'
+    _DOLIT '$'
+    CALL ACCEPT_CHAR
+    _QBRAN 1$ 
+    CALL HEX 
+1$:     
 ; now parse digits 
-; initialize integer to 0     
-    CALL DTOR ; send a cnt -> R: 
-    CLRW Y 
-    SUBW X,#2*CELLL 
-    LDW (X),Y 
-    LDW (2,X),Y  
-    CALL DRFROM ; 0 0 a cnt r: base d? s? 
 ; check for end of string     
     CALL QDUP ; dlo dhi a cnt R: base d? s? 
-    _TBRAN 5$  ; parse not complete 
-; invalid format clean stack    
-    ADDW X,#4*CELLL ; drop dlo dhi a 
+    _TBRAN 2$  ; parse not complete 
+; invalid format clean stack     
+    ADDW X,#3*CELLL ; drop ud a 
     ADDW SP,#2*CELLL ; drop d? s? from r: 
     JP BAD_FORMAT 
-5$:    
+2$:    
     CALL parse_digits ; 
     CALL QDUP
     _QBRAN INTGR_FMT ; end of string 
@@ -202,10 +205,9 @@ parse_d5:
     CALL SUBB ; dlo dhi a cnt ndec -> how many digits after '.' 
     CALL RFROM ; dlo dhi a cnt ndec sign  
     ADDW SP,#CELLL ; drop d? not required by FLOAT? 
-    CALL SWAPP 
     CALL TOR 
     CALL TOR  ;  dlo dhi a cnt r: base sign digits 
-    JP FLOATQ 
+    JP FLOATQ ;  dlo dhi a cnt r: base sign digits
 .endif 
 ; error not a number 
 ; stack frame: dlo dhi a cnt r: base d? s? cnt 

@@ -189,6 +189,7 @@ LF      =     10      ;line feed
 CRR     =     13      ;carriage return
 XON     =     17
 XOFF    =     19
+CTRL_X  =     24      ; reboot hotkey 
 ERR     =     27      ;error escape
 TIC     =     39      ;tick
 CALLL   =     0xCD     ;CALL opcodes
@@ -714,6 +715,8 @@ FREEVAR4: ; not variable
 ; REBOOT ( -- )
 ;;;;;;;;;;;;;;;;;;;;;
         _HEADER reboot,6,"REBOOT"
+        CALL CR
+        BTJF UART_SR,#UART_SR_TC,.
         jp NonHandledInterrupt
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -836,12 +839,12 @@ baudrate:
         CLRW Y 
         BTJF UART_SR,#UART_SR_RXNE,INCH   ;check status
         LD    A,UART_DR   ;get char in A
-	SUBW	X,#2
+	SUBW	X,#CELLL 
         LD     (1,X),A
 	CLR	(X)
         CPLW     Y
 INCH:
-		SUBW	X,#2
+	SUBW	X,#CELLL 
         LDW     (X),Y
         RET
 
@@ -2703,55 +2706,68 @@ NEXT_CHAR:: ; ( a cnt -- a cnt )
 ;   return a cnt 0 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ACCEPT_CHAR:: ; ( a cnt c -- a cnt 0|-1 )
-    CALL TOR 
-    LDW Y,X 
+    CALL TOR ; a cnt r: c 
+; exit if end of string, cnt==0? 
+    LD A,(1,X) ; cnt always < 256 
+    JRNE 1$
+    JRA 2$ 
+1$: LDW Y,X 
     LDW Y,(CELLL,Y) ; a 
     LD A,(Y)
     CP A,(2,SP) ; c 
-    JRNE 1$
+    JRNE 2$
 ; accept c
     CALL NEXT_CHAR      
     _DOLIT -1
-    JRA 2$  
-1$: ; ignore char 
+    JRA 4$  
+2$: ; ignore char 
     _DOLIT 0
-2$: ADDW SP,#CELLL ; drop c 
+4$: ADDW SP,#CELLL ; drop c 
     RET 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; check if string begin with 
-; one of these substrings:
-;   "$"|"-"|"$-"|"-$"
-; if '$' present set BASE 
-; to 16 
-; if '-' present return -1
-; else 0 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; check for negative sign 
+; ajust pointer and cnt
 ; input:
-;   a     string pointer 
-;   cnt   string length 
+;    a        string pointer 
+;    cnt      string length
 ; output:
-;   a     incremented if found  
-;   cnt   decremented if found
-;   0|-1  0 no '-' | -1 '-' yes 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-CHECK_BASE_SIGN:: ; ( a cnt -- a cnt 0|-1 )
-    _DOLIT '$'
-    CALL ACCEPT_CHAR 
-    _QBRAN 1$ 
-    CALL HEX 
-    _DOLIT '-'
-    CALL ACCEPT_CHAR 
-    RET 
-1$: _DOLIT '-'
-    CALL ACCEPT_CHAR 
-    CALL DUPP 
-    CALL TOR 
-    _QBRAN 2$ 
-    _DOLIT '$' 
-    CALL ACCEPT_CHAR 
-    _QBRAN 2$ 
-    CALL HEX 
-2$: CALL RFROM 
+;    a       adjusted pointer 
+;    cnt     adjusted count
+;    f       boolean flag, true if '-'  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
+NSIGN: ; ( a cnt -- a cnt f ) 
+    SUBW X,#CELLL ; a cntr f 
+    PUSH #0 
+; if count==0 exit 
+    LDW Y,X 
+    LDW Y,(Y)
+    JREQ NO_ADJ 
+    LDW Y,X 
+    LDW Y,(2*CELLL,Y) ; a 
+    LD A,(Y) ; char=*a  
+    CP A,#'-' 
+    JREQ NEG_SIGN
+    CP A,#'+' 
+    JREQ ADJ_CSTRING
+    JP NO_ADJ  
+NEG_SIGN:
+    CPL (1,SP)
+ADJ_CSTRING: 
+; increment a 
+    LDW Y,X 
+    LDW Y,(2*CELLL,Y)
+    INCW Y ; a++ 
+    LDW (2*CELLL,X),Y 
+; decrement cnt 
+    LDW Y,X
+    LDW Y,(CELLL,Y)
+    DECW Y ; cnt--  
+    LDW (CELLL,X),Y 
+NO_ADJ: 
+    POP A 
+    LD (X),A 
+    LD (1,X),A 
     RET 
 
 .ifeq  WANT_DOUBLE  
@@ -2790,11 +2806,18 @@ parse_digits:
 5$:
     RET 
 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       NUMBER? ( a -- n T | a F )
 ;       Convert a number string to
 ;       integer. Push a flag on tos.
+;  if integer parse fail because of extra 
+;  character in string and WANT_FLOAT24=1 
+;  in config.inc then jump to FLOAT? in
+;  float24.asm
+; 
+; accepted number format:
+;    decimal ::= ['-'|'+']dec_digits+
+;    hexadecimal ::= ['-'|'+']'$'hex_digits+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER NUMBQ,7,"NUMBER?"
 ; save BASE
@@ -2804,12 +2827,15 @@ parse_digits:
         CALL     ZERO
         CALL     OVER
         CALL     COUNT ; string length,  a 0 a+ cnt 
+; check for negative number 
+        CALL    NSIGN 
+        CALL    TOR    ; save number sign 
 ;  check hexadecimal character        
-;  and negative sign 
-        CALL    CHECK_BASE_SIGN
-        CALL    TOR ; a 0 a+ cnt- r: base sign 
-        CALL     QDUP
-        _QBRAN   NUMQ4  ; end of string  a 0 a+ R: base sign 
+        _DOLIT  '$'
+        CALL    ACCEPT_CHAR 
+        _QBRAN  1$ 
+        CALL    HEX 
+1$: ; stack: a 0 a cnt r: base sign 
         CALL     parse_digits ; a 0 a+ cnt- -- a n a+ cnt-  R: base sign 
         CALL     DUPP   ; a n a+ cnt cnt -- R: base sign  
         _TBRAN   NUMQ6  ; some character left not integer 
@@ -2852,8 +2878,11 @@ NUMQ9:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER KEY,3,"KEY"
         btjf UART_SR,#UART_SR_RXNE,. 
-        ld a,UART_DR 
-        subw x,#CELLL 
+        ld a,UART_DR
+        cp a,#CTRL_X 
+        jrne 1$
+        jp reboot 
+1$:     subw x,#CELLL 
         ld (1,x),a 
         clr (x)
         ret 

@@ -212,7 +212,7 @@
 ;  e exponent as a single 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER ATEXP,4,"F>ME"             
-    CALL FRESET
+    CALL FINIT 
     CALL SFN
     CALL SFZ 
     LDW Y,X 
@@ -393,39 +393,34 @@ FDOT10:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; return parsed exponent or 
-; 0 if failed
-; at entry exprect *a=='E'    
+; input:
+;   a     string pointer to first digit 
+;   cnt   digits left in string 
+; output:
+;    e     exponent 
+;    0|-1  parse success flag 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-parse_exponent: ; a cntr -- e -1 | 0 
-    CALL TOR   ; R: cntr 
-    CALL DUPP 
-    CALL CAT 
-    _DOLIT 'E' 
-    CALL EQUAL 
-    _QBRAN 1$
-    CALL ONEP 
-    CALL RFROM  ; a cntr 
-    CALL ONEM
-    CALL DUPP 
-    _QBRAN 2$ ; a cntr 
+parse_exponent: ; a cnt -- e -1 | 0 
+    CALL TOR   ; a R: cnt 
     CALL ZERO
     CALL DUPP 
-    CALL DSWAP ; 0 0 a cntr  
-    CALL nsign 
-    CALL TOR   ; R: esign  
+    CALL ROT  ; 0 0 a r: cnt  
+    CALL RFROM ; 0 0 a cnt 
+    CALL NSIGN  
+    CALL TOR  ; 0 0 a cnt r: esign 
+    CALL QDUP 
+    _QBRAN PARSE_SUCCESS ; no digits e=0
     CALL parse_digits
-    _QBRAN PARSEXP_SUCCESS ; parsed to end of string 
-; failed invalid character
-    _DDROP ; 0 a 
-1$: 
-    CALL RFROM ; sign||cntr  
-2$:
-    _DDROP  ; a cntr || a sign || 0 cntr   
-    CALL ZERO   ; return only 0 
-    RET 
-PARSEXP_SUCCESS: 
+    _QBRAN PARSE_SUCCESS ; parsed to end of string 
+PARSE_FAILED: ; digits left 
+    CALL RFROM ; ud a esign 
+    _DDROP ; ud  
+    _DDROP ; drop ud  
+    CALL ZERO ; 0 
+    RET  
+PARSE_SUCCESS: 
     _DDROP ; drop dhi a 
-    CALL RFROM ; es 
+    CALL RFROM ; esign  
     _QBRAN 1$
     CALL NEGAT
 1$:
@@ -434,80 +429,59 @@ PARSEXP_SUCCESS:
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   FLOAT?  ( a dlo dhi a+ cntr sign d? -- f -3 | a 0 )
-;   called by NUMBER? 
-;   convert string to float 
+;  NUMBER? from double.asm jump here 
+;  if number can't be parsed as an integer 
+;  mantissa already parsed.
+;   FLOAT?  
+; stacks frames at input: 
+;  s: a dlo dhi a cnt
+;     a    adress string token  
+;     dhi:dlo   mantissa already parsed as uint32 
+;     a     moving string pointer 
+;     cnt   # characters in string 
+;  r: base sign digits
+;     base   value of BASE at entry of NUMBER? 
+;     sign   mantissa sign 
+;     digits count of digits after '.'  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER FLOATQ,5,"FLOAT?"
-    _QBRAN FLOATQ0 
-    JP FLOAT_ERROR  ; not a float, string start with '#'
-FLOATQ0:
+    _HEADER FLOATQ,5,"FLOAT?" ; ( -- float32 -3 )
 ; BASE must be 10 
     CALL BASE 
     CALL AT 
     _DOLIT 10 
     CALL EQUAL 
     _QBRAN FLOAT_ERROR 
-; if float next char is '.' or 'E' 
-    CALL TOR ; R: sign  
-    CALL TOR ; R: sign cntr 
-    CALL DUPP
-    CALL CAT 
-    _DOLIT '.' 
-    CALL EQUAL 
-    _QBRAN FLOATQ1 ; not a dot 
-    CALL ONEP 
-    CALL RFROM  ; dlo dhi a cntr R: sign  
-    CALL ONEM 
-    CALL DUPP 
-    CALL TOR  ; R: sign cntr 
-; parse fractional part
-    CALL parse_digits ; dlo dhi a cntr -- dm a cntr 
-    CALL DUPP 
+; next char must be 'E' 
+    _DOLIT 'E' 
+    CALL ACCEPT_CHAR 
+    _QBRAN FLOAT_ERROR
+    CALL parse_exponent ; -- e -1 | 0 
+    _QBRAN FLOAT_ERROR 
     CALL RFROM 
-    CALL SWAPP 
-    CALL SUBB ; fd -> fraction digits count 
-    CALL TOR  ; dlo dhi a cntr R: sign fd 
-    CALL DUPP ; cntr cntr  
-    _QBRAN 1$ ; end of string, no exponent
-    JRA FLOATQ2
-1$: CALL SWAPP 
-    _DROP ; a
-    JRA FLOATQ3        
-FLOATQ1: ; must push fd==0 on RSTACK 
-    CALL RFROM ; cntr 
-    CALL ZERO  ; fd 
-    CALL TOR   ; dm a cntr R: sign fd 
-FLOATQ2: 
-    CALL parse_exponent 
-    _QBRAN FLOAT_ERROR0 ; exponent expected 
-FLOATQ3: ; dm 0 || dm e  
-    CALL RFROM ;  fd  
-    CALL SUBB  ; exp=e-fd 
-    CALL NROT 
-    CALL RFROM  ; sign 
-    _QBRAN FLOATQ4 
-    CALL DNEGA 
-FLOATQ4:
-    CALL ROT 
-    CALL STEXP 
-    CALL ROT 
-    _DROP 
-    CALL SFN 
-    CALL SFZ 
-    _DOLIT -3 
-    RET       
-FLOAT_ERROR0: 
-    CALL DRFROM ; sign df      
-FLOAT_ERROR: 
-    CALL DEPTH 
-    CALL CELLS 
-    CALL SPAT 
-    CALL SWAPP 
-    CALL PLUS  
-    CALL SPSTO 
-    CALL ZERO 
-    RET 
+    CALL SUBB ; e - digits 
+    CALL NROT ; a e ud 
+    CALL RFROM ; a e ud msign 
+    _QBRAN 2$ 
+    CALL DNEGA ; a e -ud 
+2$: CALL ROT   ; ud e 
+    CALL TOR   ; a ud r: base e 
+    CALL ROT   ; ud a r: base e 
+    CALL DROP  ; ud r: base e 
+    CALL RFROM ; ud e r: base 
+    CALL STEXP ; ME>F 
+    _DOLIT -3  ; ud e -3 
+    JP FLOAT_EXIT 
+FLOAT_ERROR: ; a ud a cnt r: base sign digits 
+    CALL DRFROM ; sign digits       
+    _DDROP ; drop sign digits 
+    _DDROP ; drop a cnt 
+    _DDROP ; drop ud 
+    _DOLIT 0  ; a 0 r: base 
+FLOAT_EXIT: 
+    CALL RFROM 
+    CALL BASE 
+    JP STORE
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;  LSCALE ( f# -- f# )

@@ -336,46 +336,6 @@ FDOT10:
 ;    number parser 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; check for negative sign 
-; ajust pointer and cntr
-; input:
-;    a        string pointer 
-;    cnt      string length
-; output:
-;    a       adjusted pointer 
-;    cnt     adjusted count
-;    f       boolean flag, true if '-'  
-;;;;;;;;;;;;;;;;;;;;;;;;;;;
-nsign: ; ( a cnt -- a cnt f ) 
-    SUBW X,#CELLL ; a cntr f 
-    PUSH #0 
-    LDW Y,X 
-    LDW Y,(2*CELLL,Y) ; a 
-    LD A,(Y) ; char=*a  
-    CP A,#'-' 
-    JREQ NEG_SIGN
-    CP A,#'+' 
-    JREQ ADJ_CSTRING 
-NEG_SIGN:
-    CPL (1,SP)
-ADJ_CSTRING: 
-; increment a 
-    LDW Y,X 
-    LDW Y,(2*CELLL,Y)
-    INCW Y ; a++ 
-    LDW (2*CELLL,X),Y 
-; decrement cnt 
-    LDW Y,X
-    LDW Y,(CELLL,Y)
-    DECW Y ; cnt--  
-    LDW (CELLL,X),Y 
-    POP A 
-    LD (X),A 
-    LD (1,X),A 
-    RET 
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; return parsed exponent or 
 ; 0 if failed

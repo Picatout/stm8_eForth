@@ -1,4 +1,16 @@
+### 2022-12-08
+
+* commit 11:50 hre 
+
+* test [float-test.f](float-test.f)  passé avec succès.
+
+* Déboguer [double.asm](double.asm) et [float.asm](float.asm). 
+
 ### 2022-12-07
+
+* Bogue dans __CHECK_BASE_SIGN__ 
+
+* Travail sur __FLOAT?__ du fichier [float.asm](float.asm)
 
 * commit 
 

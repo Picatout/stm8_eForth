@@ -47,7 +47,7 @@ WANT_DOUBLE = 1
 ; to include 32 bits  
 ; floating point library
 ; file: float.asm   
-WANT_FLOAT = 0
+WANT_FLOAT = 1
 .if WANT_FLOAT 
 	WANT_DOUBLE=1 ; required by float32 
 .endif 
