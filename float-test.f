@@ -1,5 +1,14 @@
 \ float.asm library test suite 
 
+decimal 
+
+: cls 
+    27 emit 91 emit 50 emit $4a emit 
+    27 emit 91 emit $48 emit 
+;
+
+cls 
+
 : show-version 
     float-ver 
 ;

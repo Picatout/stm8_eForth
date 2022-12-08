@@ -1,5 +1,11 @@
 ### 2022-12-08
 
+* commit 16:00 hre 
+
+* Mise à jour des readme.md 
+
+* Travail sur [float24.asm](float24.asm)
+
 * commit 11:50 hre 
 
 * test [float-test.f](float-test.f)  passé avec succès.

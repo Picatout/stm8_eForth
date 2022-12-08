@@ -20,8 +20,22 @@
 ;************************************
 ;    doubles integers library 
 ;    doubles are signed 32 bits 
+;
+;  double input formats:
+;    decimal_base::= ['-'|'+']dec_digits+['.'][dec_digits]*
+;    hexadecimal_base::=['-'|'+']'$'hex_digits+['.'][hex_digits]*
+;    The '.' indicate a double number, i.e. 32 bits
+;    The '.' can be placed anywhere in digits sequence: first, middle,last  
+;    otherwise it is a single number, i.e. 16 bits 
+;
+;    if float.asm library is compiled with project a 'e'|'E' character is 
+;    mandatory to differentiate a float from a double.
+;    exmpample:
+;         3.141593  is double 3141593
+;         3.141593e is float32  PI 
+;         0.  is valid null double
+;         0e  is valid null float32  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 
     .module DOUBLE 
 

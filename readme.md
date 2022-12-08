@@ -4,12 +4,34 @@
 
 Le but de ce projet est d'adapter le fichier [stm8ef.asm.org](stm8ef.asm.org) pour la carte **NUCLEO_8S208RB** et l'assembleur **SDASSTM8**.
 
+<a id="index"></a>
+
+[Cartes supportées](#cartes)
+
+[Construction du projet](#build)
+
+[Configuration du terminal](#terminal)
+
+[Documentation](#docs)
+
+[À propos de eForth](#eForth)
+
+[À propos de C.H. Ting](#Ting)
+
+[Historique](#historique)
+
+<hr>
+<a id="cartes"></a>
+
 ## cartes supportées
 
 * **NUCLEO-8S207K8**<br>![nucleo-8s207k8-board.png](docs/images/nucleo-8s207k8-board.png)
 * **NUCLEO_8S208RB**<br>![nucleo-8s208rb-board.png](docs/images/nucleo-8s208rb-board.png)
 * **STM8S-DISCOVERY**<br>![stm8s-discovery-board.png](docs/images/stm8s-discovery-board.png)
 
+[index](#index)
+<hr>
+<a id="build"></a>
 
 ## construire à partir des sources 
 
@@ -66,6 +88,37 @@ Ici **nucleo_8s207.mk**  est le nom du fichier *make* spécifique à la cible ch
 ```
 make -fnucleo_8s207.mk compile 
 ```
+[index](#index)
+<hr>
+
+<a id="terminal"></a>
+
+## Configuration du terminal
+
+Eforth utilise un port sériel UART pour communiquer avec l'utilisateur. Les paramètres du port série sont les suivants:
+
+*  __115200 BAUD__ 
+*  __8 BITS__ 
+*  __1 STOP__ 
+*  __Pas de partité__
+
+Lorsqu'une carte **NUCLEO** est connectée au PC un port série virtuel est créé et sert à la communication avec la carte. 
+
+example avec GTKterm sur Ubuntu/Linux<br>
+![configuration port série GTKterm](docs/images/gtkterm-cfg.png)<br>
+example avec Tera Term sur Windows<br>
+![configuration port série TeraTerm](docs/images/serial-port-setup.png)
+
+Dans le ficher [inc/config.inc](config.inc) Il y a un option pour choisir le caractère de fin de ligne à utiliser. 
+*  __EOL_CR__  Qui est communément utilisé sur les systèmes Linux.
+*  __EOL_LF__  Qui est utilisé sur OSX d'Apple. 
+
+La valeur par défaut est __EOL_CR__ et peut-être laissée tel quel puisque les logiciels émulateur de terminal permette habituellement de configuré ce paramètre pour s'accorder avec la périphérique connecté au port série.<br>
+
+[index](#index)
+<hr>
+
+<a id="docs"></a>
 
 ## documentation 
 
@@ -74,13 +127,23 @@ Les fichiers **PDF** suivants se retrouvent dans le dossier **docs**.
 * [référence du langage eforth](docs/référence_eforth.pdf)
 * [tutoriel eforth](docs/tutoriel.pdf)
 
+[index](#index)
+<hr>
+
+<a id="eForth"></a>
+
 ## À propos de eForth
 
 Eforth est un Forth développé à l'origine par Bill Muench dans le but d'avoir un système Forth qui soit rapidement adaptable d'un système à l'autre. C'était dans les années 80, les années glorieuses du Forth. À cette époque chaque PC 8 bits avait son Forth: Apple II, TRS-80, ZX-SPECTRUM, etc.
 Il y avait aussi un Forth pour le système d'exploitation CP/M.
 
 Par la suite C.H. Ting a repris le travail de Bill Muench et a porté eForth sur de nombreuses architectures 8,16 et 32 bits. **stm8ef** est une de ses dernières adaptations et a été écris pour la carte [stm8s-discovery](https://www.st.com/en/evaluation-tools/stm8s-discovery.html) en 2011.
-Le moderne circuit intégré multi-ordinateurs [GA144](http://www.greenarraychips.com/home/products/) de GreenArrays a même une version de eForth incris dans la ROM d'un de ses 144 ordinateurs.
+Le moderne circuit intégré multi-ordinateurs [GA144](http://www.greenarraychips.com/home/products/) de GreenArrays a même une version de eForth incris dans la ROM d'un de ses 144 ordinateurs.<br>
+
+[index](#index)
+<hr>
+
+<a id="Ting"></a>
 
 ## À propos de C.H. Ting
 
@@ -90,9 +153,14 @@ M. Ting a aussi travaillé sur le développement de processeurs adapté au langa
 
 ## Adaptation
 
-Comme il s'agit de 2 MCU STM8 l'adaptation vers le stm8s208 ne devrait pas nécessité beaucoup de travail. Le plus gros du travail sera l'adaptation pour SDAS.  J'ignore pour quel assembleur le fichier a été créé mais ma tentative d'assemblage avec SDAS a échouée.  Le fichier a moins de 4000 lignes, ce n'est pas la mer à boire.
+Comme il s'agit de 2 MCU STM8 l'adaptation vers le stm8s208 ne devrait pas nécessité beaucoup de travail. Le plus gros du travail sera l'adaptation pour SDAS.  J'ignore pour quel assembleur le fichier a été créé mais ma tentative d'assemblage avec SDAS a échouée.  Le fichier a moins de 4000 lignes, ce n'est pas la mer à boire.<br>
 
-# Historique 
+[index](#index)
+<hr>
+
+<a id="historique"></a>
+
+## Historique 
 
 ## 2021-07-25 
 
@@ -178,3 +246,5 @@ leur valeurs en utilisant la commande hexdump.
 >make -fnucleo.mk eforth
 ```
 **Erase** n'est requis que s'il y a déjà une version de eforth dans la mémoire flash.
+
+[index](#index)
