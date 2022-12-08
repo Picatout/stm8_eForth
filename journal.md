@@ -1,5 +1,9 @@
 ### 2022-12-07
 
+* commit 
+
+* Corrigé bogue dans __NUMBER?__ du fichier [double.asm](double.asm).
+
 * Réécriture de __NUMBER?__ dans [stm8ef.asm](stm8ef.asm) et [double.asm](double.asm).
 
 * Création des sous-routines **CHECK_BASE_SIGN**, **ACCEPT_CHAR** et **NEXT_CHAR** dans [stm8ef.asm](stm8ef.asm).

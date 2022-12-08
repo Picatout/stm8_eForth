@@ -139,11 +139,11 @@ parse_d5:
 ;   NUMBER? (a -- s -1 |d -2 | a 0 )
 ;   convert string to integer 
 ;   double contains a '.' at 
-;   any position except first.
+;   any position.
 ;   integer format:
-;     decimal ['-']digit+['.'][digit+]
-;     hexadecimal '$'['-']hex_digit+[.][hex_digit+] |
-;       ['-']'$'hex_digit+['.'][hex_digit+]
+;     decimal ['-']digit*['.'][digit+]
+;     hexadecimal '$'['-']hex_digit*[.][hex_digit+] |
+;       ['-']'$'hex_digit*['.'][hex_digit+]
 ;   '+' not allowed at beginning of integer    
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER NUMBQ,7,"NUMBER?"
@@ -153,7 +153,6 @@ parse_d5:
     CALL TOR  ; R: base
 ; create flags on R: 
 ; d? double integer flag 0=int16,-1=int32  
-; s? sign flag 0=positive, -1=negative 
     _DOLIT 0 
     CALL TOR ; R: base d?=0 default to single 
     CALL DUPP 
@@ -161,7 +160,8 @@ parse_d5:
 ; check for hexadecimal format 
 ; and minus sign 
     CALL CHECK_BASE_SIGN
-    CALL TOR ; a a+ cnt- r: base d? sign  
+; s? sign flag 0=positive, -1=negative 
+    CALL TOR ; a a+ cnt- r: base d? s?  
 ; now parse digits 
 ; initialize integer to 0     
     CALL DTOR ; send a cnt -> R: 
@@ -174,7 +174,7 @@ parse_d5:
     CALL QDUP ; dlo dhi a cnt R: base d? s? 
     _TBRAN 5$  ; parse not complete 
 ; invalid format clean stack    
-    ADDW X,#3*CELLL ; drop dlo dhi a 
+    ADDW X,#4*CELLL ; drop dlo dhi a 
     ADDW SP,#2*CELLL ; drop d? s? from r: 
     JP BAD_FORMAT 
 5$:    
@@ -186,16 +186,15 @@ parse_d5:
 ; and try for more digits  
     _DOLIT '.' 
     CALL ACCEPT_CHAR
+    CALL OVER 
+    CALL TOR   ; dlo dhi a cnt f  r: base d? s? cnt  
     _QBRAN 6$  
 ; it is a double integer set d?=-1
-    CPL (3,SP)
-    CPL (4,SP) ; d?=-1, int32 
-; save cnt on r: to count digits after '.' 
-    CALL DUPP ; ; dlo dhi a cnt cnt 
-    CALL TOR ; save cnt on r: 
+    CPL (5,SP)
+    CPL (6,SP) ; d?=-1, int32 
     CALL parse_digits 
     CALL QDUP     
-    _QBRAN 7$ ; end of string, it is a double integer  
+    _QBRAN 8$ ; end of string, it is a double integer  
 6$: ; float number or bad format
 .if WANT_FLOAT
     CALL RFROM ; cnt before last parse_digits 
@@ -214,7 +213,7 @@ parse_d5:
     ADDW X,#4*CELLL ; drop dlo dhi a cnt 
     ADDW SP,#3*CELLL ; drop d? s? cnt   
     JP BAD_FORMAT      
-7$:
+8$:
     ADDW SP,#CELLL ; drop cnt from r: 
 INTGR_FMT: ; got an integer format 
 ; end of string
@@ -236,7 +235,7 @@ INTGR_FMT: ; got an integer format
 BAD_FORMAT: ; a R: base 
     _DOLIT 0 
 NUMQ8: 
-    CALL RFROM 
+    CALL RFROM     
     CALL BASE 
     JP STORE 
   

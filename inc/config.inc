@@ -39,10 +39,10 @@ WANT_SCALING_CONST = 0
 ; set to 1 to include 
 ; constants tables vocabulary 
 ; file: ctable.asm 
-WANT_CONST_TABLE=1
+WANT_CONST_TABLE=0
 
 ; include double library 
-WANT_DOUBLE = 0
+WANT_DOUBLE = 1
 
 ; to include 32 bits  
 ; floating point library

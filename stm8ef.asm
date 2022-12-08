@@ -2754,8 +2754,8 @@ CHECK_BASE_SIGN:: ; ( a cnt -- a cnt 0|-1 )
 2$: CALL RFROM 
     RET 
 
-.if  WANT_DOUBLE  
-.iff ; this code included only if WANT_DOUBLE=0
+.ifeq  WANT_DOUBLE  
+; this code included only if WANT_DOUBLE=0
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; get all digits in row 
@@ -2826,11 +2826,11 @@ NUMQ4:  CALL     RFROM
         JRA      NUMQ9 
 NUMQ6:  
 .if WANT_FLOAT24 
-.ift ; float24 installed try floating point number  
+; float24 installed try floating point number  
         CALL    RFROM ; a n a+ cnt sign R: base  
         CALL    FLOATQ 
         JRA     NUMQ9 
-.iff ; error unknown token 
+.else ; error unknown token 
         ADDW SP,#CELLL ; remove sign from rstack 
         ADDW  X,#2*CELLL ; drop a+ cnt S: a n  R: base  
         CLRW Y  
