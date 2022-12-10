@@ -346,7 +346,11 @@ FDOT10:
 ;   e    exponent    
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 parse_exponent: ; a cnt -- a a+ e   
-    _DOLIT 'E 
+    CALL DUPP 
+    _TBRAN 5$
+    CALL ZERO 
+    RET 
+5$: _DOLIT 'E 
     CALL ACCEPT_CHAR
     _TBRAN 1$ 
 ; bad format abort     
@@ -504,7 +508,7 @@ u16div10: ; ( u -- u/10 )
 ; bad float format abort   
     addw x,#4*CELLL ; drop u a+ cnt
     JP ABOR1  
-1$: 
+1$:  
     CALL QDUP  
     _QBRAN 11$
 ; digits skip mantissa full 
@@ -512,8 +516,8 @@ u16div10: ; ( u -- u/10 )
     CALL NEGAT ; must be added to exponent 
     SUB SP,#2*CELLL ; space for m skip 
     LDW Y,X 
-    LDW Y,(Y)
-    LDW (1,SP),Y ; -skip 
+    LDW Y,(Y) ; -skip 
+    LDW (1,SP),Y ; r: base sign x skip  
     _DROP 
     CALL ROT 
     LDW Y,X 
@@ -537,7 +541,8 @@ u16div10: ; ( u -- u/10 )
     CLRW Y 
     PUSHW Y ; r: base sign m ndec 0 
     JRA FLOATQ3 ; a a+ r:base sign m ndec 0   
-2$: call parse_exponent ; -- a a+ e 
+2$: 
+    CALL parse_exponent ; -- a a+ e 
     CALL TOR ; a a+  r: sign m ndec exp 
 FLOATQ3: ; build float from part on R: 
 ; a a+ r: base sign m exp   
@@ -605,7 +610,6 @@ FLOATQ4:
 ;  compile 24 bits literal 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FLITER,COMPO+IMEDD+10,"F24LITERAL"
-CALL DOTS 
     CALL COMPI 
     .word dof24lit 
     CALL CCOMMA 
@@ -740,7 +744,7 @@ DOF24CONST:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;  SCALEUP ( um u1 u2 -- um* u1 u2* )
-;  while (um<=0x1999 && u1<u2 ){
+;  while (um<=0xccc && u1<u2 ){
 ;        um*10;
 ;        u2--;
 ;  }  
@@ -751,7 +755,7 @@ SCALEUP:
     _QBRAN SCALEUP3
     CALL ROT 
     CALL DUPP 
-    _DOLIT 0X1999 
+    _DOLIT 0Xccc 
     CALL GREAT  
     _TBRAN SCALEUP2 
     _DOLIT 10 
@@ -908,26 +912,27 @@ FALGN10: ; m1 m2
 ;  for overflow 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 MPLUS: ; m1 m2 e -- m* e* )  
-    CALL TOR 
+    CALL TOR ; r: e 
     LDW Y,X 
     LDW Y,(Y)
-    PUSHW Y  ; m2 
+    PUSHW Y  ; r: e m2 
+    _DROP ; m1 r: e m2 
     LDW Y,X 
-    LDW Y,(2,Y) ; m1 
+    LDW Y,(Y) ; m1 
     ADDW Y,(1,SP) ; m1 + m2 
-    LDW (2,X),Y ; sum 
-    ADDW SP,#CELLL ; drop local variable m2 
-    JRC 1$
-    JRMI 1$
-    ADDW X,#CELLL
+    _RDROP ; r: e 
+    LDW (X),Y ; sum 
+    JRV 1$
     JRA 3$  
-1$: 
-    inc (2,SP)
+1$: ; scaledown mantissa 
     CLRW Y 
-    LDW (X),Y 
     JRNC 2$
-    inc (1,x)
-2$: _DOLIT 10 
+    CPLW Y 
+2$: INC (2,SP) ; inc e 
+; convert sum to double 
+    SUBW X,#CELLL 
+    LDW (X),Y 
+    _DOLIT 10 
     CALL MSMOD
     CALL SWAPP 
     _DOLIT 5 
@@ -935,7 +940,7 @@ MPLUS: ; m1 m2 e -- m* e* )
     _TBRAN 3$ 
     CALL ONEP 
 3$: 
-    CALL RFROM  ; e 
+    CALL RFROM  ; m* e* 
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -954,19 +959,17 @@ MPLUS: ; m1 m2 e -- m* e* )
 ;  substraction 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FSUB,2,"F-"
-    CALL FALIGN 
-    CALL TOR 
-    CALL SUBB  
-    CALL RFROM 
+    CALL FNEGA 
+    CALL FPLUS
     RET
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   DS/MOD ( ud us - ur qud )
+;   UDS/MOD ( ud us - ur qud )
 ;   unsigned divide double by single 
 ;   return double quotient 
 ;   and single remainder 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER DSLMOD,6,"DS/MOD"
+    _HEADER UDSLMOD,7,"UDS/MOD"
         LDW     Y,X             ; stack pointer to Y
         LDW     X,(X)           ; us
         LDW     YTEMP,X         ; save us
@@ -1029,7 +1032,7 @@ SCAL1:
     _QBRAN SCAL3
 SCAL2:     
     _DOLIT 10 
-    CALL DSLMOD
+    CALL UDSLMOD
     CALL ROT  
 ; save remainder on rstack     
     LDW Y,X 

@@ -2878,7 +2878,8 @@ parse_digits: ; ( n a cnt -- n  a+ cnt- skip )
 ; but don't integrate them in UINT 
 ; round last value of UINT 
     _DROP  ; ud low word 
-    CALL BASE 
+    CALL BASE
+    CALL AT  
     CALL TWOSL 
     CALL LESS ; last_digit < BASE/2 ? 
     _TBRAN 2$  ; no rounding 
@@ -2952,10 +2953,10 @@ parse_digits: ; ( n a cnt -- n  a+ cnt- skip )
         _QBRAN  1$ 
         CALL    HEX 
 1$: ; stack: a 0 a cnt r: base sign 
-        CALL     parse_digits ; a 0 a+ cnt- -- a n a+ cnt- skip R: base sign 
+        CALL     parse_digits ; a 0 a+ cnt- -- a n a+ cnt- skip R: base sign
         CALL    OVER 
         _TBRAN  NUMQ6 
-        _DDROP   ; a n  R: base sign 
+        _DROPN 3   ; a n  R: base sign 
         CALL     RFROM   ; a n sign R: base 
         _QBRAN   NUMQ3
         CALL     NEGAT ; a n R: base 

@@ -54,7 +54,7 @@ f24var v1
     3.1416 .014 f- 3.1276 result 
     cr ." 3.1416 .14 f+ "
     3.1416 .14 f+ 3.282 result 
-    cr ." -31416. -1400. f+ "
+    cr ." -31416. -1400. f+"
     -31416. -1400. f+ -3282e1 result  
 ;
 
@@ -103,7 +103,7 @@ f24var v1
     . ."  msec for 1000 F/" cr
     msec 1000 for 3.1416 414.2 f+ 2drop next msec swap - 
     . ."  msec for 1000 F+" cr 
-    msec 1000 for 3.1416 5.143 f- 2drop next msec swap - 
+    msec 1000 for 3.1416 51.43 f- 2drop next msec swap - 
     . ."  msec for 1000 F-" cr  
 ;
 

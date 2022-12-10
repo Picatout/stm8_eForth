@@ -102,6 +102,11 @@
    ADDW X,#2*CELLL 
    .endm 
 
+    ; drop n CELLS
+    .macro _DROPN n 
+    ADDW X,#n*CELLL 
+    .endm 
+
    ; drop from rstack 
    .macro _RDROP 
    ADDW SP,#CELLL

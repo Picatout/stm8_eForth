@@ -1,3 +1,11 @@
+### 2022-12-10
+
+* commit 16:50 
+
+* [float24-test.f](float24-test.f)  passé avec succès.
+
+* Débogage de __NUMBER?__ et __FLOAT?__.
+
 ### 2022-12-09
 
 * Travail sur __NUMBER?__   du fichier [stm8ef.asm](stm8ef.asm). Après réflexion j'ai décidé de modifier la stratégie de conversion de chaîne en entier simple, Sîtôt qu'il y a débordement, **parse_digits** met le bit __OVF__ la variable __UFPSW__ à __1__ et cesse d'accmuler les digits. Mais __NUMBER?__ va continuer à compter les digits. Si [float24.asm](float24.asm) est installé le cumul et le nombre de digits sont transmis à __FLOAT?__.
