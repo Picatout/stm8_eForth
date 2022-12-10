@@ -42,12 +42,12 @@ WANT_SCALING_CONST = 0
 WANT_CONST_TABLE=0
 
 ; include double library 
-WANT_DOUBLE = 1
+WANT_DOUBLE = 0
 
 ; to include 32 bits  
 ; floating point library
 ; file: float.asm   
-WANT_FLOAT = 1
+WANT_FLOAT = 0
 .if WANT_FLOAT 
 	WANT_DOUBLE=1 ; required by float32 
 .endif 
@@ -55,8 +55,9 @@ WANT_FLOAT = 1
 ; to include 24 bits 
 ; floating point library
 ; file: float24.asm 
-WANT_FLOAT24 = 0
-.if WANT_FLOAT24 
+WANT_FLOAT24 = 1
+.if WANT_FLOAT24
+	WANT_FLOAT= 0 
 	WANT_DOUBLE=0 ; not compatible with float24 
 .endif
 

@@ -25,12 +25,18 @@
 ;
 ;--------------------------------------
     
-    ; reserve space on stack
+    ; reserve space on rstack
     ; for local variabls
-    .macro _vars n 
+    .macro _VARS n 
     sub sp,#n 
     .endm 
     
+    ; discard space reserved 
+    ; for local vars on rstack 
+    .macro _DROP_VARS n 
+    addw sp,#n
+    .endm 
+
     ; declare ARG_OFS for arguments 
     ; displacement on stack. This 
     ; value depend on local variables 
@@ -94,5 +100,15 @@
    ; drop a double 
    .macro _DDROP 
    ADDW X,#2*CELLL 
+   .endm 
+
+   ; drop from rstack 
+   .macro _RDROP 
+   ADDW SP,#CELLL
+   .endm 
+
+   ; drop double from rstack
+   .macro _DRDROP
+   ADDW SP,#2*CELLL 
    .endm 
 

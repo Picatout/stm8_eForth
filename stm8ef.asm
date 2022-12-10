@@ -118,6 +118,12 @@ TBUFFBASE =     0x680  ; flash read/write transaction buffer address
 TIBBASE =       0X700  ; transaction input buffer addr.
 .endif
 
+; floatting point state bits in UFPSW 
+ZBIT=0 ; zero bit flag
+NBIT=1 ; negative flag 
+OVBIT=2 ; overflow flag 
+
+
 ;; Memory allocation
 UPP     =     RAMBASE+6          ; systeme variables base address 
 SPP     =     RAMBASE+DATSTK     ; data stack bottom 
@@ -2045,7 +2051,7 @@ SLMOD8:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER STAR,1,"*"
 	CALL	UMSTA
-	JP	DROP
+        JP	DROP
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       M*      ( n n -- d )
@@ -2773,37 +2779,147 @@ NO_ADJ:
 .ifeq  WANT_DOUBLE  
 ; this code included only if WANT_DOUBLE=0
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; skip digits,stop at first non digit.
+; count skipped digits 
+; input:
+;    a     string address 
+;    cnt   charaters left in string 
+; output:
+;    a+         updated a 
+;    cnt-       updated cnt
+;    skip       digits skipped 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
+; local variables
+        CNT = 1 ; byte
+        SKIP = 2 ; byte 
+        VARS_SIZE=2        
+SKIP_DIGITS: ; ( a cnt -- a+ cnt- skip )
+        _VARS VARS_SIZE ; space on rstack for local vars 
+        CLR (SKIP,SP)
+        LD A,(1,X); cnt 
+        LD (CNT,SP),A 
+        _DROP ; drop cnt from stack 
+1$:     TNZ (CNT,SP)
+        JREQ 8$
+        CALL COUNT  
+        CALL BASE 
+        CALL AT 
+        CALL DIGTQ 
+        _QBRAN 6$ ; not a digit
+        INC (SKIP,SP)
+        DEC (CNT,SP)
+        _DROP ; c 
+        JRA 1$ 
+6$:     _DROP ; c 
+        CALL ONEM ; a--         
+8$:     SUBW X,#2*CELLL ; space for cnt- 
+        CLRW Y 
+        LD A,(SKIP,SP)
+        LD YL,A 
+        LDW (X),Y 
+        LD A,(CNT,SP)
+        LD YL,A 
+        LDW (CELLL,X),Y ;  
+        _DROP_VARS VARS_SIZE ; discard local vars 
+        RET 
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; get all digits in row 
 ; stop at first non-digit or end of string
-; ( n a cnt -- n  a+ cnt-  )
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-parse_digits:
-    CALL DUPP 
-    _QBRAN 5$  
-    CALL TOR   ; n a R: cnt 
+; ( n a cnt -- n  a+ cnt- digits )
+; input:
+;   n    initial value of integer 
+;   a    string address 
+;   cnt  # chars in string 
+; output:
+;   n    integer value after parse 
+;   a+   incremented a 
+;   cnt- decremented cnt 
+;   f_skip  -1 ->       some digits have been skip  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; local variables 
+        SKIP=4 ;byte # digits skipped   
+        UINT=2   ;word 
+        CNT=1    ; byte 
+        VARS_SIZE=4
+parse_digits: ; ( n a cnt -- n  a+ cnt- skip )
+    SUB SP,#VARS_SIZE
+    CLR (SKIP,SP)
+    LD A,(1,X) ; count 
+    LD (CNT,SP),A 
+    _DROP ; drop cnt from stack 
+    LDW Y,X 
+    LDW Y,(CELLL,Y) ; n 
+    LDW (UINT,SP),Y  
+0$:
+    TNZ (CNT,SP)
+    JREQ 9$ 
 1$: CALL COUNT ; n a+ char 
     CALL BASE 
     CALL AT 
     CALL DIGTQ 
-    _QBRAN 4$ ; not a digit
-    CALL ROT 
+    _QBRAN 8$ ; not a digit
+    DEC (CNT,SP)
+    SUBW X,#CELLL 
+    LDW Y,(UINT,SP)
+    LDW (X),Y 
     CALL BASE 
     CALL AT 
-    CALL STAR
-    CALL PLUS
-    CALL SWAPP  
-    CALL RFROM  ; n a+ cntr 
-    CALL ONEM 
-    JRA parse_digits ; n a+ cntr  
-4$: ; n a+ char R: cntr 
+    CALL UMSTA ; u u -- ud 
+; check for overflow 
     LDW Y,X 
-    LDW Y,(2,Y)
-    DECW Y  ; dec(a)
-    LDW (2,X),Y 
-    POPW Y 
-    LDW (X),Y ; n a cntr  
-5$:
+    LDW Y,(Y)
+    _DROP ; ud hi word 
+    TNZW Y 
+    JREQ 4$ ; no overflow yet 
+; when overflow count following digits 
+; but don't integrate them in UINT 
+; round last value of UINT 
+    _DROP  ; ud low word 
+    CALL BASE 
+    CALL TWOSL 
+    CALL LESS ; last_digit < BASE/2 ? 
+    _TBRAN 2$  ; no rounding 
+; round up UINT 
+    LDW Y,(UINT,SP)
+    INCW Y 
+    LDW (UINT,SP),Y 
+2$: CALL ONEM ; a-- 
+    INC (CNT,SP) ; cnt++
+    LDW Y,(UINT,SP)
+    LDW (CELLL,X),Y 
+    SUBW X,#CELLL ; space for count 
+    LD A,(CNT,SP)
+    CLRW Y 
+    LD YL,A 
+    LDW (X),Y ; n a+ cnt- 
+    CALL SKIP_DIGITS ; n a+ cnt- skip  
+    JRA 10$     
+4$: 
+    CALL PLUS ; udlo+digit  
+    LDW Y,X 
+    LDW Y,(Y) ; n 
+    LDW (UINT,SP),Y 
+    _DROP ; sum from stack 
+    JRA 0$ 
+8$: ; n a+ char
+    _DROP ; drop char 
+    CALL ONEM ; decrement a 
+9$: ; no more digits 
+    LDW Y,(UINT,SP)
+    LDW (CELLL,X),Y ; 
+    SUBW X,#2*CELLL ; make space for cnt- digits 
+    LD A,(CNT,SP)
+    CLRW Y 
+    LD YL,A 
+    LDW (CELLL,X),Y ; u a+ cnt- 
+    LD A,(SKIP,SP)
+    LD YL,A 
+    LDW (X),Y ; u a+ cnt- digits 
+10$:
+    _DROP_VARS VARS_SIZE  ; dicard local variables 
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2836,29 +2952,25 @@ parse_digits:
         _QBRAN  1$ 
         CALL    HEX 
 1$: ; stack: a 0 a cnt r: base sign 
-        CALL     parse_digits ; a 0 a+ cnt- -- a n a+ cnt-  R: base sign 
-        CALL     DUPP   ; a n a+ cnt cnt -- R: base sign  
-        _TBRAN   NUMQ6  ; some character left not integer 
-        CALL     DDROP   ; a n  R: base sign  
+        CALL     parse_digits ; a 0 a+ cnt- -- a n a+ cnt- skip R: base sign 
+        CALL    OVER 
+        _TBRAN  NUMQ6 
+        _DDROP   ; a n  R: base sign 
         CALL     RFROM   ; a n sign R: base 
         _QBRAN   NUMQ3
         CALL     NEGAT ; a n R: base 
-NUMQ3:  CALL     SWAPP
+NUMQ3:  
+        CALL    SWAPP ; n a 
         LDW  Y, #-1 
         LDW (X),Y     ; n -1 R: base 
         JRA      NUMQ9
-NUMQ4:  CALL     RFROM
-        CALL     DDROP
-        JRA      NUMQ9 
 NUMQ6:  
 .if WANT_FLOAT24 
 ; float24 installed try floating point number  
-        CALL    RFROM ; a n a+ cnt sign R: base  
-        CALL    FLOATQ 
-        JRA     NUMQ9 
+        JP    FLOATQ  ; a n a+ cnt- skip R: base sign   
 .else ; error unknown token 
-        ADDW SP,#CELLL ; remove sign from rstack 
-        ADDW  X,#2*CELLL ; drop a+ cnt S: a n  R: base  
+        _RDROP ; remove sign from rstack 
+        ADDW  X,#3*CELLL ; drop a+ cnt skip S: a n  R: base  
         CLRW Y  
         LDW (X),Y  ;  a 0 R: base 
 .endif 

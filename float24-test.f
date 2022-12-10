@@ -22,7 +22,7 @@ f24var v1
 ;
 
 : const-test
-    cr ." f24const test" 
+    cr ." f24 const test" 
     cr ." c1 f. "    
     cr c1 2.2046 result
 ; 

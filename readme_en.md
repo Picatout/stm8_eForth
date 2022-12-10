@@ -161,6 +161,7 @@ Aside from recoding large parts of the project, I expanded by adding many module
 
 * [float24.asm](float24.asm) Define words for arithmetics operations on 24 bits floatting point numbers. 
 
+* [flash.asm](flash.asm) Define words to write to FLASH en EEPROM memory.
 
 [index](#index)
 
