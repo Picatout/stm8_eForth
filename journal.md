@@ -1,3 +1,9 @@
+### 2022-12-11 
+
+* Retravaillé __F*__, __F/__ et __F&gt;S__.
+
+* Déboguer [float24.asm](float24.asm).
+
 ### 2022-12-10
 
 * commit 22:02
