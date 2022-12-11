@@ -59,6 +59,14 @@
     _DOLIT F24_MINOR 
     JP PRINT_VERSION 
  
+; matissa scaling factors 
+m_scaler: 
+    .word 1 ; 0 
+    .word 10 ; 1 
+    .word 100 ; 2
+    .word 1000 ; 3 
+    .word 10000 ; 4 
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   FINIT ( -- )
@@ -333,6 +341,49 @@ FDOT10:
 ;    number parser 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; maximize mantissa value 
+;  input: 
+;    m     mantissa 
+;  output:
+;    m     scaled up mantissa 
+;    n     log10(multiplier) 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    PWR10=3 ; log10(multipler ) 
+    PROD=1  ; partial product 
+    VARS_SIZE=3 
+max_mantissa: ; ( m -- m n )
+    _VARS VARS_SIZE 
+    CLR (PWR10,SP)   
+1$: LD A,(X) ; mantissa high byte 
+    LD YL,A 
+    LD A,#10 
+    MUL Y,A 
+    LDW (PROD,SP),Y ; high product 
+    LD YL,A 
+    LD A,(1,X) ; mantissa low byte 
+    MUL Y,A ; low product 
+    CLR A 
+    RRWA Y 
+    ADDW Y,(PROD,SP)
+    RLWA Y 
+    JRMI 2$ 
+    TNZ A 
+    JRNE 2$ 
+    LDW (X),Y 
+    INC (PWR10,SP)
+    JRA 1$ 
+2$: 
+    SUBW X,#CELLL ; space for n 
+    CLR (X)
+    LD A,(PWR10,SP)
+    LD (1,X),A 
+    _DROP_VARS VARS_SIZE 
+    RET 
+
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; first char must be 'E' 
 ; otherwise abort 
@@ -550,7 +601,12 @@ FLOATQ3: ; build float from part on R:
     CALL RFROM ; exp r: sign m ndec    
     CALL RFROM ; -- exp ndec r: sign m 
     CALL SUBB  ; adjusted exponent. 
-    CALL RFROM ; exp  m r: base sign      
+    CALL RFROM ; exp  m r: base sign
+    CALL max_mantissa
+    CALL ROT
+    CALL SWAPP  
+    CALL SUBB   
+    CALL SWAPP 
 ; if m>MAX_MANTISSA then m/10 e++ 
     CALL  DUPP 
     CALL ZLESS 

@@ -1,5 +1,20 @@
 ### 2022-12-10
 
+* commit 22:02
+
+* bogues:
+```
+9e6 9e0 f+ f. 9000000. ok
+9e5 9e0 f+ f. 900000. ok
+9e4 9. f+ f. 90000. ok  ??? devrait-être 90001. 
+9e3 9. f+ f. 9009. ok
+9e4 90. f+ f. 90090. ok
+9e4 9. f+ f. 90000. ok
+9e4 9. f- f. -90000. ok  ????
+```
+
+* Ajouter et déboguer routine *max_mantissa* dans [float24-test.f](float24-test.f).  __FLOAT?__ appel cette routine pour maximisé la valeur de la mantisse.
+
 * commit 16:50 
 
 * [float24-test.f](float24-test.f)  passé avec succès.
