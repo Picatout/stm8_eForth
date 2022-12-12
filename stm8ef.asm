@@ -2147,6 +2147,7 @@ MSTA1:	RET
 ;       Multiply tos by 2.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER CELLS,2,"2*"
+TWOSTAR:        
         LDW Y,X
 	LDW Y,(Y)
         SLAW Y

@@ -117,3 +117,12 @@
    ADDW SP,#2*CELLL 
    .endm 
 
+   ; test point, print character 
+   ; and stack contain
+   .macro _TP c 
+   .if DEBUG 
+   LD A,#c 
+   CALL putc
+   CALL DOTS 
+   .endif  
+   .endm 

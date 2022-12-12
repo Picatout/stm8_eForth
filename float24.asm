@@ -454,45 +454,54 @@ max_mantissa: ; ( m -- m n )
 ;   a    tokebn strin addres 
 ;   a+   pointer to string 
 ;   cnt- # characters left in string 
+;   e1    exponent up to now 
 ; ouput:
 ;   a+   updated string pointer 
 ;   cnt- updated count 
-;   e    exponent    
+;   e    final exponent    
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-parse_exponent: ; a cnt -- a a+ e   
-    CALL DUPP 
+parse_exponent: ; a a+ cnt- e1 -- a a+ e   
+    CALL OVER  
     _TBRAN 5$
+; end of string     
+    CALL SWAPP 
+    _DROP ; a a+ e1 
     RET 
-5$: _DOLIT 'E 
+5$: 
+    CALL TOR ; e1 -> r: 
+    _DOLIT 'E
     CALL ACCEPT_CHAR
     _TBRAN 1$ 
-; bad format abort     
+; bad format abort
 0$: ADDW X,#2*CELLL ; drop  a+ cnt- 
     JP ABOR1     
 1$: ; exponent follow 'E'  
     CALL QDUP  
     _TBRAN 2$
-; no digit after 'E' set e=0 
-    CALL ZERO 
-    RET  ; a a+ e=0     
-2$: ; a a+ cnt-  
+; no digit after 'E' e=R> 
+    CALL RFROM  
+    RET  ; a a+ e1    
+2$: ; a a+ cnt- r: e1  
     CALL NSIGN 
-    CALL TOR ; exponent sign 
+    CALL TOR ; exponent sign  r: e1 esign  
     CALL DUPP   
     _QBRAN 0$ ; error, no digits after '-', abort 
     CALL ZERO 
     CALL NROT ; a 0 a+ cnt- 
-    CALL parse_digits
-    _DROP ; skip count 
+    CALL parse_digits ; -- a e a+ cnt- skip
+    _DROP ; skip -- a e a+ cnt- r: e1 esign 
     _TBRAN 0$ ; error cnt not 0   
     CALL SWAPP ; a a+ u 
+    CALL DUPP 
     _DOLIT 127 
     CALL GREAT
-    _TBRAN 0$ ; exp to bign   
-    CALL RFROM ; esign  
-    _QBRAN 4$
-    CALL NEGAT
-4$: RET 
+    _TBRAN 0$ ; exp to big   
+    CALL RFROM ; esign
+    _QBRAN 3$
+    CALL NEGAT ; a a+ e2 
+3$: CALL RFROM ; a a+ e2 e1  
+    CALL PLUS  ; a a+ e 
+4$: RET ; a a+ e 
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -500,40 +509,53 @@ parse_exponent: ; a cnt -- a a+ e
 ; if next char is '.' parse fraction
 ; else exit. 
 ; input:
+;    a    original token address 
 ;    u    mantissa part already parsed before '.' 
 ;    a    string address should point at '.' 
 ;    cnt  characters left in string 
+;    e1   exponent of integer part  
 ; output:
 ;   a+    updated string pointer 
 ;   cnt-  updated char left count 
-;   digits  number of digits parsed 
-;   m     mantissa  
+;   f_digits  number of fractional digits parsed 
+;   m     mantissa
+;   efrac  exponent after fraction parsing    
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-parse_fraction: ; ( a u a cnt -- a a+ cnt- digits m )
+parse_fraction: ; ( a u a cnt e1 -- a a+ cnt- efrac m )
+    CALL TOR ; e1 -> r: 
     _DOLIT '.' 
     CALL ACCEPT_CHAR 
     _TBRAN 1$ 
 ; not a '.' character, no fractional part.    
-    CALL ROT ; a a+ cnt- u 
-    CALL ZERO 
-    CALL SWAPP ; a a+ cnt- 0 m  
+0$: CALL ROT ; a a+ cnt- u 
+    CALL RFROM  
+    CALL SWAPP ; a a+ cnt- efrac m  
     RET 
-1$: ; parse fraction 
-    CALL DUPP 
-    CALL TOR 
+1$: CALL RAT 
+    _QBRAN 2$
+; maximm digits already parsed 
+; skip all fractional digits 
+    CALL SKIP_DIGITS
+    _DROP 
+    JRA 0$ 
+2$: ; parse fraction 
+    CALL DUPP
+    CALL TOR  ; copy cnt  -> r: 
     CALL parse_digits ; a u a cnt -- a m a+ cnt- skip
-; how digit have parsed ?
-    CALL OVER 
-    CALL RFROM
+; how many digits parsed ?
+    CALL OVER  ; cnt- skip cnt-
+    CALL RFROM ; cnt- skip cnt- cnt 
     CALL SWAPP  
-    CALL SUBB   ; digit parsed 
-    CALL SWAPP 
-    CALL SUBB   ; f_digits=parsed-skip 
+    CALL SUBB   ; digits parsed
+    CALL SWAPP  ;  
+    CALL SUBB   ; efrac=parsed-skip   
     CALL TOR ;  
-    CALL ROT ; a a+ cnt- frac
-    CALL RFROM ; a a+ cnt- m f_digits  
-    
-    CALL SWAPP ; a a+ cnt- f_digits m   
+    CALL ROT ; a a+ cnt- m 
+    CALL RFROM ; a a+ cnt- m efrac   
+    CALL NEGAT ; -efrac
+    CALL RFROM ; e1 
+    CALL PLUS  ; adjusted efrac  
+    CALL SWAPP ; a a+ cnt- efrac m   
     RET  
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -590,6 +612,27 @@ u16div10: ; ( u -- u/10 )
 .endif 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  round float mantissa 
+; input:
+;   m    mantissa 
+;   r    remainder
+;   div  divisor used 
+; output:
+;   m2   rounded mantissa
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 
+FLOAT_ROUNDING: ; -- m1 r div -- m2 
+    CALL SWAPP 
+    CALL TWOSTAR 
+    CALL GREAT ; div > 2*r ? 
+    _TBRAN 1$ 
+    LDW Y,X 
+    LDW Y,(Y)
+    INCW Y 
+    LDW (X),Y 
+1$: RET 
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   FLOAT?  ( a u a+ cnt- r: base sign -- f24 -3 | ABORT )
 ;   NUMBER? jump here if extra character after last digit.
@@ -623,83 +666,53 @@ FLOATQ:
     CALL EQUAL 
     _TBRAN 1$ ; accept only base 10 for float.
 ; bad float format abort   
-    addw x,#4*CELLL ; drop u a+ cnt
+    _DROPN 4  ; drop u a+ cnt skip 
     JP ABOR1  
 1$:  
-    CALL QDUP  
-    _QBRAN 11$
-; digits skip mantissa full 
-; skip will be added to exponent .
-    CALL NEGAT ; must be added to exponent 
-    SUB SP,#2*CELLL ; space for m skip 
-    LDW Y,X 
-    LDW Y,(Y) ; -skip 
-    LDW (1,SP),Y ; r: base sign x skip  
-    _DROP 
-    CALL ROT 
-    LDW Y,X 
-    LDW Y,(Y) ; m 
-    LDW (3,SP),Y ; r: base sign m -skip 
-    _DROP ; m  
-    _DOLIT '.'
-    CALL ACCEPT_CHAR
-    _QBRAN 2$  
-    CALL SKIP_DIGITS ; -- a a+ cnt- skip 
-    _DROP ; skip not needed
-    _BRAN 2$       
-11$: ; no digits skip     
-    ; parse fraction if any   
-    CALL parse_fraction ; -- a a+ cnt- f_digits m
-    CALL TOR ; a a+ cnt- f_digits r: base sign m
-    CALL TOR ; a a+ cnt- r: base sign m f_digits  
-    CALL QDUP 
-    _TBRAN 2$
-; end of string, no exponent part 
-    CLRW Y 
-    PUSHW Y ; r: base sign m ndec 0 
-    JRA FLOATQ3 ; a a+ r:base sign m ndec 0   
-2$: 
-    CALL parse_exponent ; -- a a+ e 
-    CALL TOR ; a a+ cnt- r: sign m ndec exp 
-FLOATQ3: ; build float from part on R: 
-; a a+ r: base sign m exp   
-    ADDW X,#2*CELLL ; drop a a+ 
+_TP 'A 
+    CALL parse_fraction ; a u a+ cnt- skip r: base sign -- a a+ cnt- digits m r: base sign  
+_TP 'B  
+    CALL TOR ; a a+ cnt- e1 r: base sign m 
+_TP 'C  
+    CALL parse_exponent ; -- a a+ e r: base sign m 
+_TP 'D  
+    CALL TOR ;  a a+ r: base sign m e 
+; build float from part on R: 
+    _DROPN 2 ; drop a a+ 
     CALL RFROM ; exp r: sign m ndec    
-    CALL RFROM ; -- exp ndec r: sign m 
-    CALL SUBB  ; adjusted exponent. 
     CALL RFROM ; exp  m r: base sign
+    CALL DUPP 
+    CALL ZLESS 
+    _TBRAN 2$
+_TP 'E      
     CALL max_mantissa
+_TP 'F 
     CALL ROT
     CALL SWAPP  
     CALL SUBB   
     CALL SWAPP 
-; if m>MAX_MANTISSA then m/10 e++ 
-    CALL  DUPP 
-    CALL ZLESS 
-    _QBRAN FLOATQ34
+    _BRAN 4$
+2$: 
+_TP 'G 
     _DOLIT 10 
+_TP 'H     
     CALL USLMOD 
+_TP 'I 
 ; round to nearest integer 
     CALL SWAPP 
-    _DOLIT 5 
-    CALL GREAT 
-    _QBRAN FLOATQ31
-    CALL ONEP 
-FLOATQ31: 
-    CALL SWAPP
-    CALL ONEP 
-    CALL SWAPP      
-FLOATQ34:     
+    _DOLIT 10 
+    CALL FLOAT_ROUNDING 
+4$:     
     CALL RFROM  ; sign 
-    _QBRAN FLOATQ4 
+    _QBRAN 5$ 
     CALL NEGAT 
-FLOATQ4:
+5$:
 ; if m==0 then e=0 
     CALL DUPP  
-    _TBRAN FLOATQ5 
+    _TBRAN 6$ 
     CLRW Y 
     LDW (CELLL,X),Y 
-FLOATQ5:
+6$:
     CALL SWAPP ; m e 
     CALL SET_FPSW 
     _DOLIT -3 

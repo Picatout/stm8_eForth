@@ -1,5 +1,9 @@
 ### 2022-12-11 
 
+* commit 16:49 hre 
+
+* Réécriture de _FLOAT?__ dans [float24.asm](float24.asm).
+
 * commit 22:26 hre.
 
 * Modification à __F*__ pour améliorer la performance. 

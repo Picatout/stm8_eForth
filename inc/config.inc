@@ -17,6 +17,9 @@
 ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+; to enable _TP macro 
+; set to 1 
+DEBUG=0
 
 ; constants to select board
 ; to assemble for a specific 
