@@ -713,30 +713,52 @@ Le vocabulaire est le même pour les 2 librairies.
 
 * __FLOAT-VER__&nbsp;&nbsp; ( -- ) Imprime au terminal la version de la librairie.
 
-* __FPSW__&nbsp;&nbsp; ( -- a ) Retourne l'adresse de la variable qui contient les états résultant de la dernière opération sur virgule flottante. Les indicateurs sont. 
-    * résultat nul __Z__ -&gt; bit 0 
-    * résultat négatif __N__ -&gt; bit 1
-    * débordement __v__ -&gt; bit 2 
-
-* __FRESET__&nbsp;&nbsp; ( -- ) Initialise la __FPSW__ avec tous les bits à __0__. 
-
-* __FINIT__&nbsp;&nbsp; ( -- ) Initialise la librairie. Actuellement ne fait rien de plus que d'appeller __FRESET__. 
-
-* __FER__&nbsp;&nbsp; ( -- u ) Retourne la valeur de la variable __FPSW__. 
-
 * __FZE__&nbsp;&nbsp; ( -- Z ) Retourne l'État du bit __Z__ de la variable __FPSW__. 
 
 * __FNE__&nbsp;&nbsp; ( -- N ) Retourne l'état du bit __N__ de la variable __FPSW__. 
 
 * __FOV__&nbsp;&nbsp; ( -- V ) Retourne l'état du bit __V__ de la variable __FPSW__. 
 
-* __SFZ__&nbsp;&nbsp; ( float -- float ) Ajuste l'état du bit __Z__ de la variable __FPSW__ en fonction de la valeur de __float__. 
+ FABS 
 
-* __SFN__&nbsp;&nbsp; ( float -- float ) Ajuste la valeur du bit __N__ de la variable __FPSW__ en fonction de la valeur de __float__. 
+ FNEGATE
 
-* __SFV__&nbsp;&nbsp; ( -- ) Met le bit __V__ de la variable __FPSW__ à **1**. 
+ F0=
 
-* __SET-FPSW__&nbsp;&nbsp; ( float -- float ) Ajuste les bits d'état de la variable __FPSW__ en fonction de la valeur de __float__. 
+ F=
+
+ F>
+
+ F<
+
+ F0<
+
+ F>S
+
+ S>F
+
+ F/ 
+
+ F*
+
+ F-
+
+ F+
+
+ F@ 
+
+ F!
+
+ FVAR 
+
+ FCONST
+
+ FLITERAL
+
+ F.
+
+ E.
+
 
 [index](#index)
 

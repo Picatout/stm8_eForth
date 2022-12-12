@@ -42,6 +42,90 @@
 ;      -- m e 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  DSWAP and UDS/MOD  
+;  required by this library 
+;  but are for double operations
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; DSWAP ( d1 d2 -- d2 d1 )
+; swap double numbers 
+; floats or double integers 
+; input:
+;   d1   2 cells value 
+;   d2   2 cells value 
+; output:
+;   d2
+;   d1  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER DSWAP,5,"DSWAP"
+    LDW Y,X 
+    LDW Y,(Y)
+    PUSHW Y 
+    LDW Y,X 
+    LDW Y,(2,Y)
+    PUSHW Y 
+    LDW Y,X 
+    LDW Y,(4,Y)
+    LDW (X),Y 
+    LDW Y,X 
+    LDW Y,(6,Y)
+    LDW (2,X),Y 
+    POPW Y 
+    LDW (6,X),Y 
+    POPW Y 
+    LDW (4,X),Y 
+    JP SET_FPSW  ; reflect state of top float 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   UDS/MOD ( ud us - ur qud )
+;   unsigned divide double by single 
+;   return double quotient 
+;   and single remainder 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    _HEADER UDSLMOD,7,"UDS/MOD"
+        LDW     Y,X             ; stack pointer to Y
+        LDW     X,(X)           ; us
+        LDW     YTEMP,X         ; save us
+        LDW     X,Y
+        PUSHW   X               ; save stack pointer
+        PUSHW   Y 
+        LDW     X,(2,X)           ; X=udh
+        LDW     Y,YTEMP         ; divisor 
+        DIVW    X,Y 
+        LDW     XTEMP,X         ; QUOTIENT hi 
+        LDW     X,Y             ; remainder in X 
+        POPW    Y 
+        LDW     Y,(4,Y)         ; Y=udl (offset before drop)
+        LD      A,#16           ; loop count
+        SLLW    Y               ; udl shift udl into udh
+DSLMOD3:
+        RLCW    X               ; rotate udl bit into uhdh (= remainder)
+        JRC     DSLMODa         ; if carry out of rotate
+        CPW     X,YTEMP         ; compare udh to un
+        JRULT   DSLMOD4         ; can't subtract
+DSLMODa:
+        SUBW    X,YTEMP         ; can subtract
+        RCF
+DSLMOD4:
+        CCF                     ; quotient bit
+        RLCW    Y               ; rotate into quotient, rotate out udl
+        DEC     A               ; repeat
+        JRNE    DSLMOD3           ; if A == 0
+DSLMODb:
+        LDW     YTEMP,X         ; done, save remainder
+        POPW    X               ; restore stack pointer
+        LDW     (2,X),Y           ; save quotient low 
+        LDW     Y,XTEMP         ; quotient hi 
+        LDW     (X),Y           ; save quotient hi 
+        LDW     Y,YTEMP         ; remainder onto stack
+        LDW     (4,X),Y
+        RET 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
     MAX_MANTISSA = 0x7FFF ; absolute value maximum mantissa  
 
     F24_MAJOR=1 
@@ -65,7 +149,8 @@
 ;   initialize floating point 
 ;   library 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER FINIT,5,"FINIT"
+;    _HEADER FINIT,5,"FINIT"
+FINIT:
     CLR UFPSW+1 ; reset state bits 
     RET 
 
@@ -76,21 +161,12 @@
 ;    bit 1 negative flag 
 ;    bit 2 overflow/error flag 
 ;---------------------------
-    _HEADER FPSW,4,"FPSW"
+;    _HEADER FPSW,4,"FPSW"
+FPSW:
 	LDW Y,#UFPSW  
 	SUBW X,#2
     LDW (X),Y
     RET
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;    FER ( -- u )
-;    return FPSW value 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER FER,3,"FER"
-    LDW Y,UFPSW 
-    SUBW X,#CELLL  
-    LDW (X),Y 
-    RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    FZE  ( -- 0|-1 )
@@ -141,13 +217,14 @@
 ;  SET-FPSW ( f24 -- f24 )
 ;  set float status word 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER SET_FPSW,8,"SET-FPSW"
+;    _HEADER SET_FPSW,8,"SET-FPSW"
+SET_FPSW: 
     CLR UFPSW+1 
     LDW Y,X 
-    LDW Y,(2,Y) ; mantissa  
+    LDW Y,(CELLL,Y) ; mantissa  
     JRNE 1$
     BSET UFPSW+1,#ZBIT  ; null mantissa 
-    JRA 4$ 
+    JRA 2$ 
 1$: JRPL 2$    
     BSET UFPSW+1,#NBIT  ; negative mantissa 
 2$: LDW Y,X 
@@ -160,11 +237,13 @@
     BSET UFPSW+1,#OVBIT  ; overflow         
 4$: RET 
 
+.if 0
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    SFZ ( f24 -- f24 )
 ;    set FPSW zero flag 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER SFZ,3,"SFZ"
+;    _HEADER SFZ,3,"SFZ"
+SFZ:
     BRES UFPSW+1,#ZBIT 
     LDW Y,X 
     LDW Y,(2,Y) ; mantissa 
@@ -177,7 +256,8 @@
 ;   SFN ( f24 -- f24 )
 ;   set FPSW negative flag 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER SFN,3,"SFN"
+;    _HEADER SFN,3,"SFN"
+SFN:
     BRES UFPSW+1,#NBIT 
     LDW Y,X 
     LDW Y,(2,Y) ; mantissa    
@@ -190,7 +270,8 @@
 ;   SFV ( f24 -- f24 )
 ;   set overflow flag 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER SFV,3,"SFV"
+;    _HEADER SFV,3,"SFV"
+SFV: 
     BRES UFPSW+1,#OVBIT
     LDW Y,X 
     LDW Y,(Y) ; exponent  
@@ -200,6 +281,7 @@
     JRMI 4$ 
 3$: BSET UFPSW+1,#OVBIT ; overflow 
 4$: RET 
+.endif 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   E. ( f# -- )
@@ -260,11 +342,11 @@ EDOT5:
     CALL BASE 
     CALL AT 
     CALL TOR 
-    CALL DECIM 
+    CALL DECIM
     CALL    SET_FPSW 
     CALL    DUPP  
     CALL    ABSS 
-    _DOLIT  8
+    _DOLIT  4
     CALL    GREAT 
     _QBRAN  FDOT1 
     JP      EDOT0 
@@ -380,7 +462,6 @@ max_mantissa: ; ( m -- m n )
 parse_exponent: ; a cnt -- a a+ e   
     CALL DUPP 
     _TBRAN 5$
-    CALL ZERO 
     RET 
 5$: _DOLIT 'E 
     CALL ACCEPT_CHAR
@@ -402,9 +483,12 @@ parse_exponent: ; a cnt -- a a+ e
     CALL ZERO 
     CALL NROT ; a 0 a+ cnt- 
     CALL parse_digits
-    _DROP ; digits count 
+    _DROP ; skip count 
     _TBRAN 0$ ; error cnt not 0   
-    CALL SWAPP 
+    CALL SWAPP ; a a+ u 
+    _DOLIT 127 
+    CALL GREAT
+    _TBRAN 0$ ; exp to bign   
     CALL RFROM ; esign  
     _QBRAN 4$
     CALL NEGAT
@@ -529,7 +613,8 @@ u16div10: ; ( u -- u/10 )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; vars on R: 
 
-    _HEADER FLOATQ,5,"FLOAT?"
+;    _HEADER FLOATQ,6,"FLOAT?"
+FLOATQ: 
 ; BASE must be 10 
 ; check BASE value 
     CALL BASE 
@@ -559,7 +644,7 @@ u16div10: ; ( u -- u/10 )
     _DOLIT '.'
     CALL ACCEPT_CHAR
     _QBRAN 2$  
-    CALL SKIP_DIGITS ; -- a u a+ cnt- skip 
+    CALL SKIP_DIGITS ; -- a a+ cnt- skip 
     _DROP ; skip not needed
     _BRAN 2$       
 11$: ; no digits skip     
@@ -575,7 +660,7 @@ u16div10: ; ( u -- u/10 )
     JRA FLOATQ3 ; a a+ r:base sign m ndec 0   
 2$: 
     CALL parse_exponent ; -- a a+ e 
-    CALL TOR ; a a+  r: sign m ndec exp 
+    CALL TOR ; a a+ cnt- r: sign m ndec exp 
 FLOATQ3: ; build float from part on R: 
 ; a a+ r: base sign m exp   
     ADDW X,#2*CELLL ; drop a a+ 
@@ -622,44 +707,18 @@ FLOATQ5:
     CALL BASE 
     JP STORE       
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;  LSCALE ( f24 -- f24 )
-;  m *=10 , e -= 1
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER LSCALE,6,"LSCALE"
-    CALL ONE 
-    CALL SUBB 
-    CALL TOR
-    _DOLIT 10 
-    CALL STAR
-    CALL RFROM 
-    RET  
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;  RSCALE ( f# -- f# )
-;  m /=10 , e+=1 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER RSCALE,6,"RSCALE"
-    CALL ONE 
-    CALL PLUS 
-    CALL TOR 
-    _DOLIT 10 
-    CALL SLASH  
-    CALL RFROM 
-    RET 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;  F24LITERAL ( f24 -- )
+;  FLITERAL ( f24 -- )
 ;  compile 24 bits literal 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER FLITER,COMPO+IMEDD+10,"F24LITERAL"
+    _HEADER FLITER,COMPO+IMEDD+8,"FLITERAL"
     CALL COMPI 
     .word dof24lit 
     CALL CCOMMA 
     JP   COMMA 
 
 
-; runtime for F24LITERAL
+; runtime for FLITERAL
 ; 24 bits literal 
 dof24lit:
     SUBW X,#4 
@@ -680,10 +739,10 @@ dof24lit:
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   F24CONST ( f24 -- )
+;   FCONST ( f24 -- )
 ;   create a float24 constant 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER F24CONST,8,"F24CONST" 
+    _HEADER FCONST,6,"FCONST" 
         CALL TOKEN
         CALL SNAME 
         CALL OVERT 
@@ -717,10 +776,10 @@ DOF24CONST:
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   F24VAR "name" ( -- )
+;   FVAR "name" ( -- )
 ;   create a float24 variable 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER F24VAR,6,"F24VAR"
+    _HEADER F24VAR,4,"FVAR"
     CALL HERE
     CALL DUPP
     _DOLIT 3  
@@ -746,10 +805,10 @@ DOF24CONST:
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   F24! ( f24 a -- )
+;   F! ( f24 a -- )
 ;   store float24 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER F24STO,4,"F24!"
+    _HEADER F24STO,2,"F!"
     LDW Y,X 
     LDW Y,(Y) ; a 
     LD A,(3,X) ; e low  
@@ -763,10 +822,10 @@ DOF24CONST:
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   F24@ ( a -- f24 )
+;   F@ ( a -- f24 )
 ;   stack float24 variable 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER F24AT,4,"F24@"
+    _HEADER F24AT,2,"F@"
     LDW Y,X 
     LDW Y,(Y) ; a 
     PUSHW Y 
@@ -783,59 +842,6 @@ DOF24CONST:
     LD YH,A 
 1$: LDW (X),Y ; m e -- 
     JP SET_FPSW 
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;  SCALEUP ( um u1 u2 -- um* u1 u2* )
-;  while (um<=0xccc && u1<u2 ){
-;        um*10;
-;        u2--;
-;  }  
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-SCALEUP:
-    CALL DDUP
-    CALL LESS  
-    _QBRAN SCALEUP3
-    CALL ROT 
-    CALL DUPP 
-    _DOLIT 0Xccc 
-    CALL GREAT  
-    _TBRAN SCALEUP2 
-    _DOLIT 10 
-    CALL STAR 
-    CALL NROT 
-    CALL ONEM
-    JRA SCALEUP
-SCALEUP2:
-    CALL NROT 
-SCALEUP3: 
-    RET 
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; SCALEDOWN ( um u1 u2 -- um* u1 u2* )
-;  whhile (um && u1>u2 ){ 
-;     um/10;
-;     u2++;
-;  } 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-SCALEDOWN: 
-    CALL DDUP 
-    CALL GREAT 
-    _QBRAN SCALDN3 
-    CALL ROT  
-    CALL DUPP 
-    CALL ZEQUAL 
-    _TBRAN SCALDN2  
-    _DOLIT 10
-    CALL SLASH 
-    CALL NROT  
-    CALL ONEP  
-    JRA SCALEDOWN 
-SCALDN2:
-    CALL NROT  
-SCALDN3:
-    RET 
 
 ;;;;;;;;;;;;;;;;;;;;
 ; 10's powers  
@@ -906,6 +912,7 @@ delta_exp: ; ( m1 e1 m2 e2 -- m1 e1 m2 delta )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; return absolute value of m 
 ; and its sign 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ABS_MSIGN: ; ( m -- abs(m) msign )
     CLRW Y 
     LD A,(X)
@@ -922,7 +929,8 @@ ABS_MSIGN: ; ( m -- abs(m) msign )
 ;  F-ALIGN ( f#1 f#2 -- m1 m2 e )
 ;  align to same exponent 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER FALIGN,7,"F-ALIGN"
+;    _HEADER FALIGN,7,"F-ALIGN"
+FALIGN: 
     CALL sort_floats 
     CALL delta_exp 
     CALL QDUP 
@@ -1034,52 +1042,6 @@ MPLUS: ; m1 m2 e -- m* e* )
     CALL FPLUS
     RET
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   UDS/MOD ( ud us - ur qud )
-;   unsigned divide double by single 
-;   return double quotient 
-;   and single remainder 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER UDSLMOD,7,"UDS/MOD"
-        LDW     Y,X             ; stack pointer to Y
-        LDW     X,(X)           ; us
-        LDW     YTEMP,X         ; save us
-        LDW     X,Y
-        PUSHW   X               ; save stack pointer
-        PUSHW   Y 
-        LDW     X,(2,X)           ; X=udh
-        LDW     Y,YTEMP         ; divisor 
-        DIVW    X,Y 
-        LDW     XTEMP,X         ; QUOTIENT hi 
-        LDW     X,Y             ; remainder in X 
-        POPW    Y 
-        LDW     Y,(4,Y)         ; Y=udl (offset before drop)
-        LD      A,#16           ; loop count
-        SLLW    Y               ; udl shift udl into udh
-DSLMOD3:
-        RLCW    X               ; rotate udl bit into uhdh (= remainder)
-        JRC     DSLMODa         ; if carry out of rotate
-        CPW     X,YTEMP         ; compare udh to un
-        JRULT   DSLMOD4         ; can't subtract
-DSLMODa:
-        SUBW    X,YTEMP         ; can subtract
-        RCF
-DSLMOD4:
-        CCF                     ; quotient bit
-        RLCW    Y               ; rotate into quotient, rotate out udl
-        DEC     A               ; repeat
-        JRNE    DSLMOD3           ; if A == 0
-DSLMODb:
-        LDW     YTEMP,X         ; done, save remainder
-        POPW    X               ; restore stack pointer
-        LDW     (2,X),Y           ; save quotient low 
-        LDW     Y,XTEMP         ; quotient hi 
-        LDW     (X),Y           ; save quotient hi 
-        LDW     Y,YTEMP         ; remainder onto stack
-        LDW     (4,X),Y
-        RET 
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   SCALE>M ( ud1 -- e u )
 ;   scale down a double  
@@ -1088,7 +1050,8 @@ DSLMODb:
 ;   e is log10 exponent of scaled down
 ;   u is scaled down ud1 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER SCALETOM,7,"SCALE>M"
+;    _HEADER SCALETOM,7,"SCALE>M"
+SCALETOM:
     CLRW Y 
     PUSHW Y  ; local variable to save last remainder 
     CALL ZERO 
@@ -1284,36 +1247,13 @@ FTOS8:
 FTOS4:
 ; positive exponent
 ; imply overflow 
-; return -1  
+; return -32768 
     _DROP ; sign 
-    LDW Y,#-1 
-    LDW (X),Y 
+    LDW Y,#0x8000
+    LDW (X),Y
+    BSET UFPSW+1,#OVBIT 
 FTOS9:          
     RET 
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; DSWAP ( f#1 f#2 -- f#2 f#1 )
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER DSWAP,5,"DSWAP"
-    LDW Y,X 
-    LDW Y,(Y)
-    PUSHW Y 
-    LDW Y,X 
-    LDW Y,(2,Y)
-    PUSHW Y 
-    LDW Y,X 
-    LDW Y,(4,Y)
-    LDW (X),Y 
-    LDW Y,X 
-    LDW Y,(6,Y)
-    LDW (2,X),Y 
-    POPW Y 
-    LDW (6,X),Y 
-    POPW Y 
-    LDW (4,X),Y 
-    JP SET_FPSW  ; reflect state of top float 
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
 ;   F0< ( f# -- f )

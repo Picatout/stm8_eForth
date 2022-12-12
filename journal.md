@@ -1,5 +1,21 @@
 ### 2022-12-11 
 
+* bogue précédent corrigé. 
+
+* bogue dans FLOAT? de [float24.asm](float24.asm):
+```
+3276722. .s
+ 130 32767 2 <sp  ok
+
+```
+
+* Modifié *onHandledInterrupt* dans le fichier [stm8ef.asm](stm8ef.asm). Maintenant ne fait qu'un __IRET__ au lieu de réinitialiser le MCU.
+
+* Ajouter un gestionnaire d'interruption sur réception UART. Ajout de 2 variables système. 
+    * RX_CHAR    où est déposé le caractère reçu.
+    * CHAR_RDY   Indicateur booléen pour indiquer qu'un caractère est en attente.
+    * CTRL+X   Réinitialise le MCU 
+
 * Retravaillé __F*__, __F/__ et __F&gt;S__.
 
 * Déboguer [float24.asm](float24.asm).

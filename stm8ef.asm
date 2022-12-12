@@ -166,6 +166,8 @@ PTR16 = FPTR+1          ; middle byte of farptr
 PTR8 = FPTR+2           ; least byte of farptr 
 SEEDX = PTR8+2          ; PRNG seed X 
 SEEDY = SEEDX+2         ; PRNG seed Y 
+RX_CHAR = SEEDY+2       ; last char received from UART 
+CHAR_RDY = RX_CHAR+1    ; boolean flag TRUE if char received 
 
 ; EEPROM persistant data  
 APP_LAST = EEPROM_BASE ; Application last word pointer  
@@ -246,10 +248,10 @@ JPIMM   =     0xCC    ; JP addr opcode
 	int NonHandledInterrupt	; irq15
 	int NonHandledInterrupt	; irq16
 	int NonHandledInterrupt	; irq17
-	int NonHandledInterrupt	; irq18
+	int UartRxHandler	; irq18
 	int NonHandledInterrupt	; irq19
 	int NonHandledInterrupt	; irq20
-	int NonHandledInterrupt	; irq21
+	int UartRxHandler	; irq21
 	int NonHandledInterrupt	; irq22
 	int Timer4Handler	; irq23
 	int NonHandledInterrupt	; irq24
@@ -265,9 +267,9 @@ JPIMM   =     0xCC    ; JP addr opcode
 
 ; non handled interrupt reset MCU
 NonHandledInterrupt:
-        ld a, #0x80
-        ld WWDG_CR,a ; WWDG_CR used to reset mcu
-	;iret
+        iret 
+;        ld a, #0x80
+;        ld WWDG_CR,a ; WWDG_CR used to reset mcu
 
 ; used for milliseconds counter 
 ; MS is 16 bits counter 
@@ -282,6 +284,21 @@ Timer4Handler:
         ldw CNTDWN,x 
 1$:         
         iret 
+
+UartRxHandler:
+        btjf UART_SR,#UART_SR_RXNE,1$
+        LD A,UART_DR 
+        JREQ 1$ 
+        CP A,#CTRL_X 
+        JREQ reset_mcu 
+; accept this character 
+        LD RX_CHAR,A 
+        MOV CHAR_RDY,#255 
+1$:     IRET         
+reset_mcu: 
+        LD A, #0x80
+        LD WWDG_CR,A ; WWDG_CR used to reset mcu
+        JRA . 
 
 
 ;; Main entry points and COLD start data
@@ -372,7 +389,7 @@ uart_init:
 	mov UART_BRR1,#0x08
 3$:
         clr UART_DR
-	mov UART_CR2,#((1<<UART_CR2_TEN)|(1<<UART_CR2_REN));|(1<<UART_CR2_RIEN));
+	mov UART_CR2,#((1<<UART_CR2_TEN)|(1<<UART_CR2_REN)|(1<<UART_CR2_RIEN));
 	bset UART_CR2,#UART_CR2_SBK
         btjf UART_SR,#UART_SR_TC,.
 .endif 
@@ -723,7 +740,7 @@ FREEVAR4: ; not variable
         _HEADER reboot,6,"REBOOT"
         CALL CR
         BTJF UART_SR,#UART_SR_TC,.
-        jp NonHandledInterrupt
+        jp reset_mcu
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; compile to flash memory 
@@ -839,20 +856,27 @@ baudrate:
 ;; Device dependent I/O
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       ?RX     ( -- c T | F )
-;         Return input byte and true, or false.
+;         Return input character and true, or only false.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER QKEY,4,"?KEY"
-        CLRW Y 
-        BTJF UART_SR,#UART_SR_RXNE,INCH   ;check status
-        LD    A,UART_DR   ;get char in A
-	SUBW	X,#CELLL 
-        LD     (1,X),A
-	CLR	(X)
-        CPLW     Y
-INCH:
-	SUBW	X,#CELLL 
-        LDW     (X),Y
-        RET
+        TNZ CHAR_RDY 
+        JRNE  INCH 
+	SUBW	X,#CELLL
+        CLRW    Y 
+        LDW (X),Y
+        RET 
+INCH:         
+        SIM
+        SUBW X, #2*CELLL 
+        LD A,   RX_CHAR  
+        CLR     (CELLL,X)
+        LD     (CELLL+1,X),A
+	LDW     Y,#-1
+        LDw     (X),Y 
+        CLR     CHAR_RDY 
+        RIM 
+        RET 
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       TX!     ( c -- )
@@ -2990,15 +3014,16 @@ NUMQ9:
 ;       input character.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER KEY,3,"KEY"
-        btjf UART_SR,#UART_SR_RXNE,. 
-        ld a,UART_DR
-        cp a,#CTRL_X 
-        jrne 1$
-        jp reboot 
-1$:     subw x,#CELLL 
-        ld (1,x),a 
-        clr (x)
-        ret 
+0$:     TNZ CHAR_RDY 
+        JREQ 0$         
+        SIM 
+        SUBW X,#CELLL 
+        CLR (X)
+        LD A,RX_CHAR 
+        LD (1,X),A 
+        CLR CHAR_RDY 
+        RIM 
+        RET  
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       NUF?    ( -- t )
