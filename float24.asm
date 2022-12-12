@@ -857,7 +857,7 @@ m_scaler:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; return 10^log 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
-power10: ; ( log -- power10 )
+POWER10: ; ( log -- power10 )
     LDW Y,#m_scaler 
     LD A,(1,X)
     SLL A
@@ -969,7 +969,7 @@ FALIGN:
     LDW Y,#4 
     LDW (X),Y ; delta=4      
 6$: ; delta -> {1..4} -- m1 e1 m2 delta
-    CALL power10 
+    CALL POWER10 
     CALL DUPP 
     CALL TWOSL 
     CALL TOR 
@@ -1042,6 +1042,25 @@ MPLUS: ; m1 m2 e -- m* e* )
     CALL FPLUS
     RET
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; return an approximation 
+; of log10(u)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
+LOG10: ; ( u -- ~log10(u) )
+    LDW Y,X 
+    LDW Y,(Y)
+    CLR (X)
+    CLR (1,X)
+1$: TNZW Y 
+    JREQ 2$ 
+    SLLW Y
+    INC (1,X) 
+    JRA 1$
+2$: ; here TOS~=log2(u)
+    _DOLIT 3 ; log10(u) ~=log2(u)/3
+    CALL SLASH 
+    RET 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   SCALE>M ( ud1 -- e u )
 ;   scale down a double  
@@ -1054,8 +1073,16 @@ MPLUS: ; m1 m2 e -- m* e* )
 SCALETOM:
     CLRW Y 
     PUSHW Y  ; local variable to save last remainder 
-    CALL ZERO 
+    CALL OVER 
+    CALL LOG10
+    CALL DUPP 
+    CALL POWER10 
+    CALL TOR
+    CALL ONEM  
     CALL NROT ;  e ud 
+    CALL RFROM  
+    CALL UDSLMOD
+    JRA SCAL21 
 SCAL1:
     CALL DUPP 
     CALL ZEQUAL  
@@ -1067,6 +1094,7 @@ SCAL1:
 SCAL2:     
     _DOLIT 10 
     CALL UDSLMOD
+SCAL21:
     CALL ROT  
 ; save remainder on rstack     
     LDW Y,X 
@@ -1228,7 +1256,7 @@ FSLASH9:
     LDW Y,#4 
     LDW (X),Y 
 FTOS3:   
-    CALL power10 
+    CALL POWER10 
     CALL DUPP 
     CALL TOR 
     CALL USLMOD 

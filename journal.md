@@ -1,5 +1,13 @@
 ### 2022-12-11 
 
+* commit 22:26 hre.
+
+* Modification à __F*__ pour améliorer la performance. 
+
+* À faire: Améliorer performance de __F*__ et __F/__. 
+
+* commit 21:43
+
 * bogue précédent corrigé. 
 
 * bogue dans FLOAT? de [float24.asm](float24.asm):

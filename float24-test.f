@@ -1,9 +1,9 @@
 \ float24 library test 
 
 
-2.2046 f24const c1 
+2.2046 fconst c1 
 
-f24var v1
+fvar v1
 
 \ display expected result f2, and result f1 
 : result ( f1 f2 -- )
@@ -13,16 +13,16 @@ f24var v1
 ; 
 
 : var-test
-    cr ." 3.1416 v1 f24! "
-    3.1416 v1 f24! 
-    cr ." v1 f24@  f. "
-    cr v1 f24@  f.
-    cr ." v1 f24@  e. " 
-    cr v1 f24@  e. 
+    cr ." 3.1416 v1 f! "
+    3.1416 v1 f! 
+    cr ." v1 f@  f. "
+    cr v1 f@  f.
+    cr ." v1 f@  e. " 
+    cr v1 f@  e. 
 ;
 
 : const-test
-    cr ." f24 const test" 
+    cr ." fconst test" 
     cr ." c1 f. "    
     cr c1 2.2046 result
 ; 
