@@ -693,6 +693,8 @@ _TP 'F
     CALL SWAPP 
     _BRAN 4$
 2$: 
+LD A,'R 
+CALL putc 
 _TP 'G 
     _DOLIT 10 
 _TP 'H     
