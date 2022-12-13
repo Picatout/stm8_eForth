@@ -1,4 +1,18 @@
-### 2022-12-11 
+### 2022-12-13
+
+* commit 16:07 hre 
+
+* Corrigé routine __LOG10__ et __F*__ test float24-test.f passé avec succès. Améliorationde la vitesse d'exécution de __F*__.
+```
+performance test
+ 114 msec 3.1416 2.51 f*, 1000 times.
+ 115 msec 32.767 327.67 f*, 1000 times.
+ 180 msec 3.1416 2.51 f/, 1000 times.
+ 74 msec 3.1416 414.2 f+, 1000 times.
+ 80 msec 3.1416 51.43 f-, 1000 times.
+```
+
+### 2022-12-12 
 
 * commit 22:03 hre 
 
@@ -11,6 +25,8 @@
 * commit 16:49 hre 
 
 * Réécriture de _FLOAT?__ dans [float24.asm](float24.asm).
+
+### 2022-12-11
 
 * commit 22:26 hre.
 

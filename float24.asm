@@ -569,13 +569,9 @@ FLOATQ:
     _DROPN 4  ; drop u a+ cnt skip 
     JP ABOR1  
 1$:  
-_TP 'A 
     CALL parse_fraction ; a u a+ cnt- skip r: base sign -- a a+ cnt- digits m r: base sign  
-_TP 'B  
     CALL TOR ; a a+ cnt- e1 r: base sign m 
-_TP 'C  
     CALL parse_exponent ; -- a a+ e r: base sign m 
-_TP 'D  
     CALL TOR ;  a a+ r: base sign m e 
 ; build float from part on R: 
     _DROPN 2 ; drop a a+ 
@@ -584,20 +580,15 @@ _TP 'D
     CALL DUPP 
     CALL ZLESS 
     _TBRAN 2$
-_TP 'E      
     CALL max_mantissa
-_TP 'F 
     CALL ROT
     CALL SWAPP  
     CALL SUBB   
     CALL SWAPP 
     _BRAN 4$
 2$: 
-_TP 'G 
     _DOLIT 10 
-_TP 'H     
     CALL USLMOD 
-_TP 'I 
 ; round to nearest integer 
     CALL SWAPP 
     _DOLIT 10 
@@ -955,19 +946,35 @@ MPLUS: ; m1 m2 e -- m* e* )
 ; return an approximation 
 ; of log10(u)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
-LOG10: ; ( u -- ~log10(u) )
-    LDW Y,X 
-    LDW Y,(Y)
+LOG10: ; ( ud  -- ud ~log10(ud) )
+    SUBW X,#CELLL 
     CLR (X)
+    LD A,#32 
+    LD (1,X),A 
+    LD A,(2*CELLL,X) 
+    SLL A 
+    LDW Y,X 
+    LDW Y,(CELLL,Y)
+    RLCW Y 
+    JRC 2$ 
+    TNZW Y 
+    JRNE 1$ 
     CLR (1,X)
-1$: TNZW Y 
-    JREQ 2$ 
-    SLLW Y
-    INC (1,X) 
-    JRA 1$
-2$: ; here TOS~=log2(u)
-    _DOLIT 3 ; log10(u) ~=log2(u)/3
-    CALL SLASH 
+    RET 
+1$:  
+    DEC (1,X)
+    SLLW Y 
+    JRNC 1$
+2$: LD A,(1,X)
+    CLRW Y 
+    LD YL,A 
+    LD A,#3 
+    DIV Y,A 
+    CP A,#2 
+    JRMI 3$ 
+    INCW Y 
+3$: SUBW Y,#5 
+    LDW (X),Y 
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -979,57 +986,55 @@ LOG10: ; ( u -- ~log10(u) )
 ;   u is scaled down ud1 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    _HEADER SCALETOM,7,"SCALE>M"
+    DIVSR=1 
+    LOG=3
+    EXP=4
+    VARS_SIZE=4   
 SCALETOM:
-; check if scaling needed 
-    LDW Y,X 
-    LDW Y,(Y) ; ud high 
-    JRNE 1$ 
-    LD A,(CELLL,X); bits 15..8 
-    JRMI 1$ 
-    CALL SWAPP 
+    _VARS VARS_SIZE 
+    CALL LOG10   
+    CALL DUPP 
+    _TBRAN 0$ 
+    CALL SWAPP
+    _DROP  
+    _DROP_VARS VARS_SIZE
     RET 
-1$: CLRW Y 
-    PUSHW Y  ; local variable to save last remainder 
-    CALL OVER 
-    CALL LOG10
+0$:    
+    LD A,(1,X) 
+    LD (LOG,SP),A 
     _DOLIT 4 
     CALL MIN 
-    CALL DUPP 
-    CALL TOR
-    CALL ONEM  
-    CALL NROT ;  e ud 
-    CALL RFROM  
-    CALL POWER10 
-    CALL UDSLMOD
-    JRA SCAL21 
-SCAL1:
-    CALL DUPP 
-    CALL ZEQUAL  
-    _QBRAN SCAL2  
-    CALL OVER 
-    _DOLIT MAX_MANTISSA
-    CALL UGREAT 
-    _QBRAN SCAL3
-SCAL2:     
-    _DOLIT 10 
-    CALL UDSLMOD
-SCAL21:
-    CALL ROT  ; remainder on top 
-; save remainder on rstack     
+    LD A,(1,X) ; <=4
+    LD (EXP,SP),A  
+1$:
+ CALL POWER10 
+_TP 'A 
     LDW Y,X 
-    LDW Y,(Y)
-    LDW (1,SP),Y 
-    ADDW X,#CELLL ; drop it from dstack 
-    CALL ROT 
-    CALL ONEP 
-    CALL NROT  
-    JRA SCAL1 
-SCAL3: 
-    _DROP ; drop ud high
-    CALL RFROM ; last remainder  
-    _DOLIT 10 
+    LDW Y,(Y) 
+    LDW (DIVSR,SP),Y
+    CALL UDSLMOD
+_TP 'B 
+    LD A,(LOG,SP)
+    SUB A,(EXP,SP)
+    JREQ 2$
+    CALL ROT ; qud r  
+    CLRW Y 
+    LD YL,A 
+    LDW (X),Y ; log10  
+    LD A,YL 
+    ADD A,(EXP,SP)
+    LD (EXP,SP),A 
+    JRA 1$ 
+2$: ; r q
+_TP 'Y  
+    _DROP ; quotient high word 
+    CALL SWAPP ; q r 
+    CALL RFROM ; DIVISR 
     CALL M_ROUNDING
-SCAL4:      
+    CALL RFROM ; LOG:EXP 
+    CLR (X) ; 
+    CALL SWAPP 
+_TP 'Z  
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
