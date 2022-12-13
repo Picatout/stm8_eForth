@@ -182,12 +182,12 @@ UPDATVP:
 .if NUCLEO_8S20X
 ;----------------------------------
 ; fetch integer at address over 65535
-;  F@   ( ud -- n )
+;  FAR@   ( ud -- n )
 ;----------------------------------
     .word LINK 
 LINK=.
-    .byte 2
-    .ascii "F@"
+    .byte 4
+    .ascii "FAR@"
 FARAT:
     call FPSTOR
 	jp EE_READ 
@@ -195,12 +195,12 @@ FARAT:
 
 ;-------------------------------------
 ; fetch C at address over 65535 
-; FC@ ( ud -- c)
+; FARC@ ( ud -- c)
 ;-------------------------------------
     .word LINK
     LINK=.
-    .byte 3 
-    .ascii "FC@" 
+    .byte 5 
+    .ascii "FARC@" 
 FARCAT:
     call FPSTOR
 	jp EE_CREAD  

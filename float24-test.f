@@ -95,16 +95,21 @@ fvar v1
 
 ; 
 
+: reps  ( n -- )
+    ." ," . ."  times." cr 
+;
 : performance 
     cr ." performance test" cr
     msec 1000 for 3.1416 2.51 f* 2drop next msec swap -  
-    . ."  msec for 1000 F*" cr 
+    . ."  msec 3.1416 2.51 f*" 1000 reps 
+    msec 1000 for 32.767 327.67 f* 2drop next msec swap -
+    . ."  msec 32.767 327.67 f*" 1000 reps  
     msec 1000 for 3.1416 2.51 f/ 2drop next msec swap -  
-    . ."  msec for 1000 F/" cr
+    . ."  msec 3.1416 2.51 f/" 1000 reps
     msec 1000 for 3.1416 414.2 f+ 2drop next msec swap - 
-    . ."  msec for 1000 F+" cr 
+    . ."  msec 3.1416 414.2 f+" 1000 reps 
     msec 1000 for 3.1416 51.43 f- 2drop next msec swap - 
-    . ."  msec for 1000 F-" cr  
+    . ."  msec 3.1416 51.43 f-" 1000 reps   
 ;
 
 : all-test

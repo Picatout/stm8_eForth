@@ -1,5 +1,13 @@
 ### 2022-12-11 
 
+* commit 22:03 hre 
+
+* Retravaillé __SCALETOM__ dans [float24.asm](float24.asm). Encore place à l'amélioration.
+
+* Modifier et déboguer __F!__ et __F@__ dans [float24.asm](float24.asm).
+
+* Renommé   __F@__ __FAR@__ et __FC@__ __FARC@__ dans [flash.asm](flash.asm) 
+
 * commit 16:49 hre 
 
 * Réécriture de _FLOAT?__ dans [float24.asm](float24.asm).

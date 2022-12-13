@@ -237,52 +237,6 @@ SET_FPSW:
     BSET UFPSW+1,#OVBIT  ; overflow         
 4$: RET 
 
-.if 0
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;    SFZ ( f24 -- f24 )
-;    set FPSW zero flag 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;    _HEADER SFZ,3,"SFZ"
-SFZ:
-    BRES UFPSW+1,#ZBIT 
-    LDW Y,X 
-    LDW Y,(2,Y) ; mantissa 
-    JRNE 9$
-    BSET UFPSW+1,#ZBIT 
-9$: RET 
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   SFN ( f24 -- f24 )
-;   set FPSW negative flag 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;    _HEADER SFN,3,"SFN"
-SFN:
-    BRES UFPSW+1,#NBIT 
-    LDW Y,X 
-    LDW Y,(2,Y) ; mantissa    
-    JRPL 9$
-    BSET UFPSW+1,#NBIT 
-9$: RET 
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   SFV ( f24 -- f24 )
-;   set overflow flag 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;    _HEADER SFV,3,"SFV"
-SFV: 
-    BRES UFPSW+1,#OVBIT
-    LDW Y,X 
-    LDW Y,(Y) ; exponent  
-    CPW Y,#-127  
-    JRMI 3$
-    CPW Y,#128 
-    JRMI 4$ 
-3$: BSET UFPSW+1,#OVBIT ; overflow 
-4$: RET 
-.endif 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   E. ( f# -- )
 ;   print float24 in scientific 
@@ -558,60 +512,6 @@ parse_fraction: ; ( a u a cnt e1 -- a a+ cnt- efrac m )
     CALL SWAPP ; a a+ cnt- efrac m   
     RET  
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-.if 0
-;;;;;;;;;;;;;;;;;;;;;;;;;
-; fast u16*10 
-; input:
-;   u    uint16 
-; output:
-;   ud   u*10 uint32 
-;;;;;;;;;;;;;;;;;;;;;;;;;
-    VSIZE=2 ; local variables size
-    PROD=1 ; first product  
-umult10: ; ( u -- ud=u*10 )
-    sub sp,#VSIZE 
-    ld a,(x) ; u high byte, bits 15..8 
-    ldw yl,a 
-    ld a,#10
-    mul y,a 
-    ldw (PROD,sp),y 
-    ld a,(1,x) ; u low byte, bits 7..0  
-    ld yl,a 
-    ld a,#10 
-    mul y,a 
-    ld a,yh
-; make space on stack for ud     
-    subw x,#CELLL 
-    clr (x) 
-    add a,(PROD+1,sp) ; yh+low byte of first product 
-    jrnc 1$
-    inc (PROD,sp) ; overflow 
-1$: ld (2,x),a  
-    ld a,(PROD,sp)
-    ld (1,x),a
-    ld a,yl 
-    ld (3,x),a 
-    addw SP,#VSIZE 
-    ret 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; divide u16/10 
-; input:
-;   u    uint16 
-; output:
-;   q    uint16 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-u16div10: ; ( u -- u/10 )
-    ldw y,x 
-    ldw y,(y)
-    ld a,#10
-    divw y,a
-    ldw (x),y  
-    ret 
-.endif 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;  round float mantissa 
 ; input:
@@ -621,7 +521,7 @@ u16div10: ; ( u -- u/10 )
 ; output:
 ;   m2   rounded mantissa
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 
-FLOAT_ROUNDING: ; -- m1 r div -- m2 
+M_ROUNDING: ; -- m1 r div -- m2 
     CALL SWAPP 
     CALL TWOSTAR 
     CALL GREAT ; div > 2*r ? 
@@ -693,8 +593,6 @@ _TP 'F
     CALL SWAPP 
     _BRAN 4$
 2$: 
-LD A,'R 
-CALL putc 
 _TP 'G 
     _DOLIT 10 
 _TP 'H     
@@ -703,7 +601,7 @@ _TP 'I
 ; round to nearest integer 
     CALL SWAPP 
     _DOLIT 10 
-    CALL FLOAT_ROUNDING 
+    CALL M_ROUNDING 
 4$:     
     CALL RFROM  ; sign 
     _QBRAN 5$ 
@@ -736,7 +634,7 @@ _TP 'I
 ; runtime for FLITERAL
 ; 24 bits literal 
 dof24lit:
-    SUBW X,#4 
+    SUBW X,#2*CELLL  
     LDW Y,(1,SP)
     LD A,(Y)
     CLRW Y 
@@ -748,7 +646,7 @@ dof24lit:
 1$: LDW (X),Y 
     LDW Y,(1,SP)
     LDW Y,(1,Y)
-    LDW (2,X),Y 
+    LDW (CELLL,X),Y 
     POPW Y 
     JP (3,Y)
 
@@ -763,8 +661,9 @@ dof24lit:
         CALL OVERT 
         CALL COMPI 
         .word DOF24CONST 
-        CALL CCOMMA
-        CALL COMMA  
+        CALL SWAPP 
+        CALL COMMA ; compile m 
+        CALL CCOMMA ; compile e  
         CALL FMOVE
         CALL QDUP 
         CALL QBRAN 
@@ -774,8 +673,8 @@ dof24lit:
 
 DOF24CONST:
     LDW Y,(1,SP) 
-    SUBW x,#2*CELLL 
-    LD A,(Y)
+    SUBW x,#2*CELLL ; space for float 
+    LD A,(2,Y) ; e 
     CLRW Y 
     LD YL,A
     TNZ A 
@@ -784,9 +683,9 @@ DOF24CONST:
     LD YH,A 
 1$:      
     LDW (X),Y 
-    POPW Y 
-    LDW Y,(1,Y)
-    LDW (2,X),Y 
+    POPW Y  
+    LDW Y,(Y) ; m 
+    LDW (CELLL,X),Y 
     RET 
 
 
@@ -822,18 +721,19 @@ DOF24CONST:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   F! ( f24 a -- )
 ;   store float24 
+;  stored in VAR as: mlo mhi e 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER F24STO,2,"F!"
     LDW Y,X 
-    LDW Y,(Y) ; a 
-    LD A,(3,X) ; e low  
-    LD (Y),A
-    ADDW Y,#1  
-    LDW YTEMP,Y 
-    LDW Y,X 
-    LDW Y,(4,Y) ; m 
-    LDW [YTEMP],Y 
-    ADDW X,#3*CELLL 
+    LDW Y,(Y) ; address 
+    _DROP ; a 
+    LD A,(1,X) ; e 
+    LD (2,Y),A 
+    LD A,(2,X) ; m high byte 
+    LD (Y),A 
+    LD A,(3,X) ; m low byte 
+    LD (1,Y),A 
+    _DDROP ; m  
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -842,20 +742,16 @@ DOF24CONST:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER F24AT,2,"F@"
     LDW Y,X 
-    LDW Y,(Y) ; a 
-    PUSHW Y 
+    LDW Y,(Y) ; address 
+    LD A,(2,Y); e 
     SUBW X,#CELLL 
-    LDW Y,(1,Y) ; m 
-    LDW (2,X),Y 
-    POPW Y   ; a 
-    LD A,(Y) ; e 
-    CLRW Y 
-    LD YL,A 
+    CLR (X)
     TNZ A 
-    JRPL 1$
-    LD A,#255 
-    LD YH,A 
-1$: LDW (X),Y ; m e -- 
+    JRPL 1$ 
+    CPL (X)
+1$: LD (1,X),A 
+    LDW Y,(Y)
+    LDW (CELLL,X),Y ; m 
     JP SET_FPSW 
 
 ;;;;;;;;;;;;;;;;;;;;
@@ -1028,11 +924,9 @@ MPLUS: ; m1 m2 e -- m* e* )
     LDW (X),Y 
     _DOLIT 10 
     CALL MSMOD
-    CALL SWAPP 
-    _DOLIT 5 
-    CALL LESS 
-    _TBRAN 3$ 
-    CALL ONEP 
+    CALL SWAPP ; remainder on top 
+    _DOLIT 10 
+    CALL M_ROUNDING 
 3$: 
     CALL RFROM  ; m* e* 
     RET 
@@ -1086,16 +980,26 @@ LOG10: ; ( u -- ~log10(u) )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    _HEADER SCALETOM,7,"SCALE>M"
 SCALETOM:
-    CLRW Y 
+; check if scaling needed 
+    LDW Y,X 
+    LDW Y,(Y) ; ud high 
+    JRNE 1$ 
+    LD A,(CELLL,X); bits 15..8 
+    JRMI 1$ 
+    CALL SWAPP 
+    RET 
+1$: CLRW Y 
     PUSHW Y  ; local variable to save last remainder 
     CALL OVER 
     CALL LOG10
+    _DOLIT 4 
+    CALL MIN 
     CALL DUPP 
-    CALL POWER10 
     CALL TOR
     CALL ONEM  
     CALL NROT ;  e ud 
     CALL RFROM  
+    CALL POWER10 
     CALL UDSLMOD
     JRA SCAL21 
 SCAL1:
@@ -1110,7 +1014,7 @@ SCAL2:
     _DOLIT 10 
     CALL UDSLMOD
 SCAL21:
-    CALL ROT  
+    CALL ROT  ; remainder on top 
 ; save remainder on rstack     
     LDW Y,X 
     LDW Y,(Y)
@@ -1123,10 +1027,8 @@ SCAL21:
 SCAL3: 
     _DROP ; drop ud high
     CALL RFROM ; last remainder  
-    _DOLIT 5 
-    CALL LESS 
-    _TBRAN SCAL4
-    CALL ONEP 
+    _DOLIT 10 
+    CALL M_ROUNDING
 SCAL4:      
     RET 
 
