@@ -1,66 +1,0 @@
-ASxxxx Linker V03.00 + NoICE + sdld,  page 1.
-Hexadecimal  [32-Bits]
-
-Area                                    Addr        Size        Decimal Bytes (Attributes)
---------------------------------        ----        ----        ------- ----- ------------
-.  .ABS.                            00000000    00000000 =           0. bytes (ABS,CON)
-
-      Value  Global                              Global Defined In Module
-      -----  --------------------------------   ------------------------
-     FFFFFFFF  s_SSEG                          
-     00000000  .__.ABS.                           EFORTH
-     00000000  l_DATA                          
-     00000000  l_DATA0                         
-     00000000  l_SSEG                          
-     00000000  l__CODE                         
-     00000000  s_DATA0                         
-     00000000  s_SSEG1                         
-     00000000  s__CODE                         
-     00000001  s_DATA                          
-     00000080  l_HOME                          
-     00000100  l_SSEG1                         
-     00002300  l_CODE                          
-     00008000  s_HOME                          
-     00008080  s_CODE                          
-ASxxxx Linker V03.00 + NoICE + sdld,  page 2.
-Hexadecimal  [32-Bits]
-
-Area                                    Addr        Size        Decimal Bytes (Attributes)
---------------------------------        ----        ----        ------- ----- ------------
-SSEG1                               00000000    00000100 =         256. bytes (ABS,CON)
-
-      Value  Global                              Global Defined In Module
-      -----  --------------------------------   ------------------------
-ASxxxx Linker V03.00 + NoICE + sdld,  page 3.
-Hexadecimal  [32-Bits]
-
-Area                                    Addr        Size        Decimal Bytes (Attributes)
---------------------------------        ----        ----        ------- ----- ------------
-HOME                                00008000    00000080 =         128. bytes (REL,CON)
-
-      Value  Global                              Global Defined In Module
-      -----  --------------------------------   ------------------------
-ASxxxx Linker V03.00 + NoICE + sdld,  page 4.
-Hexadecimal  [32-Bits]
-
-Area                                    Addr        Size        Decimal Bytes (Attributes)
---------------------------------        ----        ----        ------- ----- ------------
-CODE                                00008080    00002300 =        8960. bytes (REL,CON)
-
-      Value  Global                              Global Defined In Module
-      -----  --------------------------------   ------------------------
-ASxxxx Linker V03.00 + NoICE + sdld,  page 5.
-
-Files Linked                              [ module(s) ]
-
-build/.rel                                [ EFORTH ]
-
-ASxxxx Linker V03.00 + NoICE + sdld,  page 6.
-
-User Base Address Definitions
-
-HOME = 0x8000
-DATA = 0x0001
-SSEG = 0xffffffff
-
-
