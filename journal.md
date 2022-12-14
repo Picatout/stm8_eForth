@@ -1,6 +1,28 @@
+### 2022-12-14
+
+* Modification à __F/__ pour améliorer la performance.
+```
+performance test
+ 114 msec 3.1416 2.51 f*, 1000 times.
+ 114 msec 32.767 327.67 f*, 1000 times.
+ 205 msec 3.1416 2.51 f/, 1000 times.
+ 74 msec 3.1416 414.2 f+, 1000 times.
+ 80 msec 3.1416 51.43 f-, 1000 times.
+ ok
+```
+
 ### 2022-12-13
 
 * commit 20:55 hre  correction de plusieurs bogues dans [float24.asm](float24.asm).
+```
+performance test
+ 114 msec 3.1416 2.51 f*, 1000 times.
+ 115 msec 32.767 327.67 f*, 1000 times.
+ 321 msec 3.1416 2.51 f/, 1000 times.
+ 74 msec 3.1416 414.2 f+, 1000 times.
+ 80 msec 3.1416 51.43 f-, 1000 times.
+ ok
+```
 
 * Corrigé bogue dans __S&gt;F__ et __F&gt;S__ 
 

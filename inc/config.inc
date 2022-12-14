@@ -26,18 +26,19 @@ DEBUG=0
 ; board or MCU set it to 1 and the other
 ; to 0. 
 NUCLEO_8S207K8=1
+NUCLEO_8S208RB=0
+DISCOVERY=0
+DOORBELL=0
+
 .if NUCLEO_8S207K8 
 NUCLEO_8S208RB=0
 .endif 
-NUCLEO_8S208RB=0
 .if NUCLEO_8S207K8|NUCLEO_8S208RB
 DISCOVERY=0
 .endif 
-DISCOVERY=0
 .if NUCLEO_8S207K8|NUCLEO_8S208RB|DISCOVERY
 DOORBELL=0
 .endif 
-DOORBELL=0
 
 
 ; select end of line character
@@ -68,7 +69,7 @@ WANT_FLOAT = 0
 ; to include 24 bits 
 ; floating point library
 ; file: float24.asm 
-WANT_FLOAT24 = 0
+WANT_FLOAT24 = 1
 .if WANT_FLOAT24
 	WANT_FLOAT= 0 
 	WANT_DOUBLE=0 ; not compatible with float24 

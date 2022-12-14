@@ -1103,12 +1103,17 @@ FSLASH1: ; fraction loop
     _TBRAN FSLASH8 ; another loop would result in mantissa overflow 
 ; multiply mantissa by 10 
     _DOLIT 10 
-    CALL STAR 
-; mutliply remainder by 10/um2       
+    CALL STAR  
+; to get next decimal digit 
+; remainder*10/um2
+; then quotient is digit        
     CALL SWAPP
     _DOLIT 10  
+    CALL UMSTA 
+FSLASH6:
+; too big for single precision product use */MOD     
     CALL RAT 
-    CALL SSMOD  ; r q  
+    CALL UMMOD  ; r q  
     CALL SWAPP ; mantissa frac_digit remainder R:  e divisor  
     CALL TOR  ; mantissa frac_digit R: e divisor remainder 
     CALL PLUS ; mantissa+frac_digit 
