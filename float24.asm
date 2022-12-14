@@ -1072,6 +1072,8 @@ _TP 'Z
 ;  float division
 ;  f#3 = f#1/f#2
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    EXP=3  ; exponent 
+    DIVSR=1 ; divisor 
     _HEADER FSLASH,2,"F/"
     CALL TOR    ; m1 e1 m2   R: e2 
     CALL SWAPP
@@ -1089,7 +1091,7 @@ _TP 'Z
     CALL DUPP 
     CALL TOR   ; qsign um1 um2 R: e um2 
     CALL USLMOD ; qsign ur q R: e um2 
-FSLASH1: ; fraction loop 
+; fraction loop 
 ; check for null remainder 
     LD A,(CELLL,X)
     OR A,(CELLL+1,X)
@@ -1102,48 +1104,54 @@ FSLASH1: ; fraction loop
     CALL UGREAT
     _TBRAN FSLASH8 ; another loop would result in mantissa overflow 
 ; select multiplicator 
-; if <=327 use 100 
-; else use 10 
-    CALL DUPP 
-     _DOLIT 327 
-    CALL UGREAT 
-    _TBRAN FSLASH2 
-; multiply mantissa by 100
-    _DOLIT 100
-    LDW Y,(3,SP)
-    DECW Y
-    LDW (3,SP),Y 
-    _BRAN FSLASH3 
-FSLASH2: 
-; multiply mantissa by 10 
-    _DOLIT 10 
-FSLASH3:
-    CALL DUPP      
-    CALL TOR 
+; use the largest possible 
+    LDW Y,X
+    LDW Y,(Y)  
+    CPW Y,#3 
+    JRUGT 1$ 
+    LDW Y,#10000
+    LD A,#-4 
+    JRA 5$
+1$: CPW Y,#32  
+    JRUGT 2$
+    LDW Y,#1000
+    LD A,#-3 
+    JRA 5$ 
+2$: CPW Y,#327
+    JRUGT 3$ 
+    LDW Y,#100
+    LD A,#-2 
+    JRA 5$ 
+3$: LDW Y,#10 
+    LD A,#-1
+5$: ; adjust exponent 
+    ADD A,(EXP+1,SP)
+    LD (EXP+1,SP),A
+    LD A,#-1 
+    ADC A,(EXP,SP) 
+    LD (EXP,SP),A 
+; push multiplier on stack 
+    SUBW X,#CELLL ; space on s: for multiplier
+    LDW (X),Y 
+    SUB SP,#CELLL ; space on r: for multiplier  
+    LDW (1,SP),Y ; multiplier -> r: 
     CALL STAR  
 ; to get next decimal digit 
-; remainder*10/um2
-; then quotient is digit        
+; remainder*multiplier/um2
+; then quotient is fractional digits        
     CALL SWAPP
     CALL RFROM   
     CALL UMSTA 
-FSLASH6:
-; too big for single precision product use */MOD     
     CALL RAT 
     CALL UMMOD  ; r q  
     CALL SWAPP ; mantissa frac_digit remainder R:  e divisor  
     CALL TOR  ; mantissa frac_digit R: e divisor remainder 
     CALL PLUS ; mantissa+frac_digit 
-    CALL RFROM ; mantissa remainder R: e divisor  
-    CALL SWAPP  ; remainder mantissa  
-; decrement e 
-    LDW Y,(3,SP) ; e 
-    DECW Y 
-    LDW (3,SP),Y 
-    JRA FSLASH1
-FSLASH8: ; qsign remainder mantissa R: qs e divisor 
+    CALL RFROM ; mantissa remainder R: e divisor
+    CALL SWAPP   
+FSLASH8: ; qsign remainder mantissa R: e divisor 
 ; round to nearest digit, i.e r>=divisor/2
-    CALL SWAPP  
+    CALL SWAPP 
     CALL RFROM 
     CALL TWOSL 
     CALL ULESS  
