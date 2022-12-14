@@ -1098,17 +1098,34 @@ FSLASH1: ; fraction loop
 ; qsign remainder mantissa R: e divisor 
 ; check for mantissa saturation 
     CALL DUPP 
-    _DOLIT 0xCCC 
+    _DOLIT 3276
     CALL UGREAT
     _TBRAN FSLASH8 ; another loop would result in mantissa overflow 
+; select multiplicator 
+; if <=327 use 100 
+; else use 10 
+    CALL DUPP 
+     _DOLIT 327 
+    CALL UGREAT 
+    _TBRAN FSLASH2 
+; multiply mantissa by 100
+    _DOLIT 100
+    LDW Y,(3,SP)
+    DECW Y
+    LDW (3,SP),Y 
+    _BRAN FSLASH3 
+FSLASH2: 
 ; multiply mantissa by 10 
     _DOLIT 10 
+FSLASH3:
+    CALL DUPP      
+    CALL TOR 
     CALL STAR  
 ; to get next decimal digit 
 ; remainder*10/um2
 ; then quotient is digit        
     CALL SWAPP
-    _DOLIT 10  
+    CALL RFROM   
     CALL UMSTA 
 FSLASH6:
 ; too big for single precision product use */MOD     

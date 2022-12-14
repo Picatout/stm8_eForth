@@ -1,5 +1,17 @@
 ### 2022-12-14
 
+* Encore amélioré la performance de __F/__.
+```
+performance test
+ 115 msec 3.1416 2.51 f*, 1000 times.
+ 114 msec 32.767 327.67 f*, 1000 times.
+ 157 msec 3.1416 2.51 f/, 1000 times.
+ 74 msec 3.1416 414.2 f+, 1000 times.
+ 80 msec 3.1416 51.43 f-, 1000 times.
+ ok
+```
+* commit 11:33 hre 
+
 * Modification à __F/__ pour améliorer la performance.
 ```
 performance test

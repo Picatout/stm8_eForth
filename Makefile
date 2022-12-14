@@ -80,6 +80,7 @@ compile: $(MAIN_FILE)  $(SRC) $(INCLUDES)
 	-rm $(BUILD)* 
 	$(SDAS) -g -l -o $(BUILD)$(NAME).rel $(MAIN_FILE)
 	$(SDCC) $(CFLAGS) -Wl-u -o $(BUILD)$(NAME).ihx  $(BUILD)$(NAME).rel
+	objcopy -Iihex -Obinary  $(BUILD)$(NAME).ihx $(BUILD)$(NAME).bin 
 
 eforth: compile flash 
 	
