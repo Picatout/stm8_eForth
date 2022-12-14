@@ -27,6 +27,24 @@ fvar v1
     cr c1 2.2046 result
 ; 
 
+: convert  
+    cr ." type conversion test"
+    cr ." 32767 S>F "
+    32767 S>F  32767. result 
+    cr ." -12 S>F "
+    -12 S>F -12.000 result
+    cr ." -1.2 F>S "
+    -1.2 F>S  ." expected " -1 . ."  result " .
+    cr ." 21e-1 F>S "
+    21e-1 f>s  ." expected " 2 . ."  result " . 
+    cr ." 21e-2 F>S "
+    21e-2 f>s  ." expected " 0 . ."  result " . 
+    cr ." 2e6 F>S " 
+    2e6 f>s  ." expected" -32768 . ."  result " .
+    cr ." 2e23 F>S "
+    2e23 f>s ." expected" -32768 . ."  result " . 
+;
+
 : fabs-test
     cr ." FABS test" 
     cr ." 0.0 FABS " 
@@ -60,11 +78,19 @@ fvar v1
 
 \ f* f/ test 
 : prod-test
-    cr ." F* F/ test"
+    cr ." F* test"
     cr ." 3.1416e3 15.0 f* "  
     3.1416e3 15. f* 4.712e4 result 
     cr ." 3.1416e3 5.4 f* "
-    3.1416e3 5.4 f* 16965. result 
+    3.1416e3 5.4 f* 16965. result
+    cr ." -45.23e6 123. f* "
+    -45.23e6 123. f* -5.563e9 result 
+;
+
+: div-test
+    cr ." F/ test "
+    cr ." 32767. 2. f/  "
+    32767. 2. f/ 16384. result 
     cr ." 6.022e23 5.1e10 f/ "
     6.022e23 5.1e10 f/  1.1808e13 result 
     cr ." -6.022e23 5.1e10 f/ "
@@ -115,10 +141,12 @@ fvar v1
 : all-test
     var-test cr 
     const-test cr 
+    convert cr 
     fabs-test cr 
     fnegate-test cr
     add-test cr
     prod-test cr
+    div-test cr 
     compare cr
     performance cr
 ; 

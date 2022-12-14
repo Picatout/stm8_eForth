@@ -1,5 +1,9 @@
 ### 2022-12-13
 
+* commit 20:55 hre  correction de plusieurs bogues dans [float24.asm](float24.asm).
+
+* Corrigé bogue dans __S&gt;F__ et __F&gt;S__ 
+
 * commit 16:07 hre 
 
 * Corrigé routine __LOG10__ et __F*__ test float24-test.f passé avec succès. Améliorationde la vitesse d'exécution de __F*__.

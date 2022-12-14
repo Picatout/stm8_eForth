@@ -1067,7 +1067,6 @@ _TP 'Z
 1$: CALL RFROM  
     JP SET_FPSW 
 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;  F/ ( f#1 f#2 -- f#3 )
 ;  float division
@@ -1089,11 +1088,11 @@ _TP 'Z
     CALL SWAPP ; qsign um1 um2 R: e  
     CALL DUPP 
     CALL TOR   ; qsign um1 um2 R: e um2 
-    CALL USLMOD ; qsign ur uq R: e um2 
+    CALL USLMOD ; qsign ur q R: e um2 
 FSLASH1: ; fraction loop 
 ; check for null remainder 
-    LD A,(2,X)
-    OR A,(3,X)
+    LD A,(CELLL,X)
+    OR A,(CELLL+1,X)
     JREQ FSLASH8 
 ; get fractional digits from remainder until mantissa saturate
 ; qsign remainder mantissa R: e divisor 
@@ -1105,13 +1104,11 @@ FSLASH1: ; fraction loop
 ; multiply mantissa by 10 
     _DOLIT 10 
     CALL STAR 
-; mutliply remainder by 10     
+; mutliply remainder by 10/um2       
     CALL SWAPP
     _DOLIT 10  
-    CALL STAR 
-; divide remainder by um2     
-    CALL RAT  ; mantissa remainder divisor R: e divisor 
-    CALL USLMOD ; mantissa dr dq R: e divisor 
+    CALL RAT 
+    CALL SSMOD  ; r q  
     CALL SWAPP ; mantissa frac_digit remainder R:  e divisor  
     CALL TOR  ; mantissa frac_digit R: e divisor remainder 
     CALL PLUS ; mantissa+frac_digit 
@@ -1141,11 +1138,21 @@ FSLASH9:
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   S>F  ( # -- f# )
+;   S>F  ( n -- f# )
 ;   convert double to float 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER STOF,3,"S>F"
-    CALL max_mantissa 
+    CALL ABS_MSIGN 
+    CALL SWAPP 
+    CALL max_mantissa
+    CALL ZERO 
+    CALL SWAPP 
+    CALL SUBB 
+    CALL TOR  
+    CALL SWAPP 
+    _QBRAN 1$ 
+    CALL NEGAT  
+1$: CALL RFROM 
     JP SET_FPSW
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
