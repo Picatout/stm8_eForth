@@ -1,5 +1,17 @@
 ### 2022-12-14
 
+* commit 20:53
+
+* Retravaillé __F*__ pour améliorer la performance. Gain de 7 msec sur la version précédente.
+```
+performance test
+ 108 msec 3.1416 2.51 f*, 1000 times.
+ 108 msec 32.767 327.67 f*, 1000 times.
+ 94 msec 3.1416 2.51 f/, 1000 times.
+ 74 msec 3.1416 414.2 f+, 1000 times.
+ 80 msec 3.1416 51.43 f-, 1000 times.
+```
+
 * Écriture de la section __float__ du fichier [référence_eforth.md](référence_eforth.md). 
 
 * bogue dans __FLOAT?__ exposant incorrect. Corrigée, était causé par __NUMBER?__ accumulant les digits au delà de 32767, résultant en un entier négatif passé à __FLOAT?__. Cependant la correction est faite au début de __FLOAT?__ car il est accepté que NUMBER? déborde dans le négatif. 

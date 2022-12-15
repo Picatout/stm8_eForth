@@ -961,34 +961,28 @@ MPLUS: ; m1 m2 e -- m* e* )
 ; of log10(u)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 LOG10: ; ( ud  -- ud ~log10(ud) )
-    SUBW X,#CELLL 
-    CLR (X)
-    LD A,#32 
-    LD (1,X),A 
-    LD A,(2*CELLL,X) 
-    SLL A 
+    LD A,#5  ; 100000
     LDW Y,X 
-    LDW Y,(CELLL,Y)
-    RLCW Y 
-    JRC 2$ 
-    TNZW Y 
-    JRNE 1$ 
-    CLR (1,X)
-    RET 
-1$:  
-    DEC (1,X)
-    SLLW Y 
-    JRNC 1$
-2$: LD A,(1,X)
-    CLRW Y 
-    LD YL,A 
-    LD A,#3 
-    DIV Y,A 
-    CP A,#2 
-    JRMI 3$ 
-    INCW Y 
-3$: SUBW Y,#5 
-    LDW (X),Y 
+    LDW Y,(Y)
+    CPW Y,#5000 
+    JRPL 5$ 
+    DEC A    ; 10000
+    CPW Y,#500 
+    JRPL 5$ 
+    DEC A    ; 1000
+    CPW Y,#50 
+    JRPL 5$
+    DEC A    ; 100
+    JRA 5$
+    CPW Y,#5 
+    JRPL 5$
+    DEC A    ; 10 
+    TNZ (CELLL,X) ; ud low word 
+    JRPL 5$
+    DEC A    ; 1 
+5$: SUBW X,#CELLL 
+    CLR (X)
+    LD (1,X),A 
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1020,27 +1014,21 @@ SCALETOM:
     CALL MIN 
     LD A,(1,X) ; <=4
     LD (EXP,SP),A  
-1$:
- CALL POWER10 
-_TP 'A 
+    CALL POWER10 
     LDW Y,X 
     LDW Y,(Y) 
     LDW (DIVSR,SP),Y
     CALL UDSLMOD
-_TP 'B 
     LD A,(LOG,SP)
-    SUB A,(EXP,SP)
-    JREQ 2$
-    CALL ROT ; qud r  
-    CLRW Y 
-    LD YL,A 
-    LDW (X),Y ; log10  
-    LD A,YL 
-    ADD A,(EXP,SP)
-    LD (EXP,SP),A 
-    JRA 1$ 
+    CP A,#5 
+    JRMI 2$ 
+    CALL ROT   ; ud r  
+    INC (EXP,SP)
+    LDW Y,#10 
+    LDW (DIVSR,SP),Y 
+    LDW (X),Y 
+    CALL UDSLMOD 
 2$: ; r q
-_TP 'Y  
     _DROP ; quotient high word 
     CALL SWAPP ; q r 
     CALL RFROM ; DIVISR 
@@ -1048,7 +1036,6 @@ _TP 'Y
     CALL RFROM ; LOG:EXP 
     CLR (X) ; 
     CALL SWAPP 
-_TP 'Z  
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
