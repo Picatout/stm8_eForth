@@ -569,6 +569,20 @@ FLOATQ:
     _DROPN 4  ; drop u a+ cnt skip 
     JP ABOR1  
 1$:  
+; NUMBER? may have accumulate over 32767
+; check for it 
+    LDW Y,X 
+    LDW Y,(3*CELLL,Y)
+    JRPL 14$ 
+    LD A,#10 
+    DIV Y,A 
+    CP A,#5 
+    JRMI 12$ 
+    INCW Y 
+12$:
+    LDW (3*CELLL,X),Y 
+    INC (1,X) ; skip++
+14$:    
     CALL parse_fraction ; a u a+ cnt- skip r: base sign -- a a+ cnt- digits m r: base sign  
     CALL TOR ; a a+ cnt- e1 r: base sign m 
     CALL parse_exponent ; -- a a+ e r: base sign m 

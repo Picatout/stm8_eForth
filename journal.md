@@ -1,5 +1,21 @@
 ### 2022-12-14
 
+* Écriture de la section __float__ du fichier [référence_eforth.md](référence_eforth.md). 
+
+* bogue dans __FLOAT?__ exposant incorrect. Corrigée, était causé par __NUMBER?__ accumulant les digits au delà de 32767, résultant en un entier négatif passé à __FLOAT?__. Cependant la correction est faite au début de __FLOAT?__ car il est accepté que NUMBER? déborde dans le négatif. 
+```
+32768. e. 3.277E3 ok
+32768. .s
+ 3277 0 <sp  ok
+
+32768e0 .s
+ 3277 0 <sp  ok
+f. 3277. ok
+
+```
+
+* commit 14:44 hre 
+
 * Encore amélioré la performance de __F/__.
 ```
 performance test

@@ -12,7 +12,7 @@
 
 **f** Indicateur booléen 0 indique faux tout autre valeur est considérée comme vrai.
 
-**i** Entier 16 bits signé
+**i** Entier 16 bits signé {-32767...32767}, -32768 utilisé comme indicateur de débordement.
 
 **id** Entier double (32 bits) signé
 
@@ -713,51 +713,51 @@ Le vocabulaire est le même pour les 2 librairies.
 
 * __FLOAT-VER__&nbsp;&nbsp; ( -- ) Imprime au terminal la version de la librairie.
 
-* __FZE__&nbsp;&nbsp; ( -- Z ) Retourne l'État du bit __Z__ de la variable __FPSW__. 
+* __FZE__&nbsp;&nbsp; ( -- Z ) Retourne l'État du bit __Z__ indiquant un résulat nul lors de la dernière opération. 
 
-* __FNE__&nbsp;&nbsp; ( -- N ) Retourne l'état du bit __N__ de la variable __FPSW__. 
+* __FNE__&nbsp;&nbsp; ( -- N ) Retourne l'état du bit __N__ indiquant un résultat négatif lors de la dernière opération. 
 
-* __FOV__&nbsp;&nbsp; ( -- V ) Retourne l'état du bit __V__ de la variable __FPSW__. 
+* __FOV__&nbsp;&nbsp; ( -- f ) Retourne l'état du bit __V__ indiquant un débordement lors de la dernière opération.
 
- FABS 
+* __FABS__ &nbsp;&nbsp; ( f#1 -- f#2 ) Retourne la valeur absolue de __f#1__ .
 
- FNEGATE
+* __FNEGATE__&nbsp;&nbsp; (f#1 -- f#2 )  Retourne l'inverse numérique de __f#1__.
 
- F0=
+* __F0=__&nbsp;&nbsp; ( f#1 -- f ) Retourne VRAI si __f#1__ est nul. 
 
- F=
+* __F=__&nbsp;&nbsp; ( f#1 f#2 -- f )  compare __f#1__ et __f#2__ retourne vrai s'ils sont égaux.
 
- F>
+* __F>__&nbsp;&nbsp; ( f#1 f#2 -- f ) Retourne VRAI si __f#1 &gt; __f#2__.
 
- F<
+* __F<__&nbsp;&nbsp; ( f#1 f#2 -- f ) Retourne VRAI si __f#1 &lt; __f#2__. 
 
- F0<
+* __F0<__&nbsp;&nbsp; ( f#1 -- f ) Retourne VRAI si __f#1__ est négatif. 
 
- F>S
+* __F>S__&nbsp;&nbsp; ( f# -- s ) Convertie un nombre en virgule flottante en entier. Les décimales sont tronquées. Si l'entier est plus grand que **32767** retourne **-32768**
 
- S>F
+* __S>F__&nbsp;&nbsp; ( s -- f# ) Convertie un entier en nombre à virgule flottante. 
 
- F/ 
+* __F/__&nbsp;&nbsp; ( f#1 f#2 -- f#3 )  __f#3__ = __f#1__ / __f#2__. 
 
- F*
+* __F*__&nbsp;&nbsp; ( f#1 f#2 -- f#3 )  __f#3__ = __f#1__ * __f#2__.
 
- F-
+* __F-__&nbsp;&nbsp; ( f#1 f#2 -- f#3 ) __f#3__ = __f#1__ - __f#2__.
 
- F+
+* __F+__&nbsp;&nbsp; ( f#1 f#2 -- f#3 ) __f#3__ = __f#1__ + __f#2__.
 
- F@ 
+* __F@__&nbsp;&nbsp; ( a -- f# ) Empile la valeur d'une variable de type __FVAR__ située à l'adresse __a__. 
 
- F!
+* __F!__&nbsp;&nbsp; ( f# a -- ) Initialise la variable de type __FVAR__ située à l'adresse __a__ avec la valeur __f#__. 
 
- FVAR 
+* __FVAR__&nbsp;&nbsp; ( &lt;var_name&gt; ) Création d'une variable de type virgule flottante portant le nom **var_name**. 
 
- FCONST
+* __FCONST__&nbsp;&nbsp; (  &lt;var_name&gt; ) Création d'une constante de type virgule flottante portant le nom **var_name**. 
 
- FLITERAL
+* __FLITERAL__&nbsp;&nbsp; ( f# -- ) Compile le nombre en virgule flottante __f#__. 
 
- F.
+* __F.__&nbsp;&nbsp; ( f# -- ) Imprime le nombre en virgule flottante __f#__. Si l'exposant est négatif ou si le nombre ne peut-être représenté avec moins de 10 décimales alog il est imprimé en format scientifique.
 
- E.
+* __E.__&nbsp;&nbsp; ( f# -- ) Imprime un nombre en format scientifique  à moins qu'il est moins de 6 décimales.
 
 
 [index](#index)
