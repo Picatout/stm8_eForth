@@ -34,6 +34,10 @@
 ;  This format is stored on the stack as a double, i.e. 32 bits 
 ;  but as 24 bits in memory. 
 ;
+;  specials float values: 
+;       m=0 e=-128 +INF  +overflow or float/0.0
+;       m=-1 e=-128 -INF -overflow
+;
 ;  The original inspiration for this implementation come from 
 ;    Forth dimensions Vol. IV #1 
 ;    published in  may/june 1982
@@ -213,13 +217,35 @@ FPSW:
     LDW (X),Y 
     RET 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;  SET-FPSW ( f24 -- f24 )
-;  set float status word 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  set float status word
+;  en cas de débordement 
+;  l'exposant est remplacé par -128  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    _HEADER SET_FPSW,8,"SET-FPSW"
 SET_FPSW: 
-    CLR UFPSW+1 
+    CLR UFPSW+1
+    LDW Y,X 
+    LDW Y,(Y)
+    CPW Y,#128 
+    JRULT 0$
+    CPW Y,#-127 
+    JRSGE 0$   
+; infinite overflow 
+   BSET UFPSW+1,#OVBIT
+   LD A,(X)
+   JRMI 3$
+   CLRW Y 
+   LDW (CELLL,X),Y 
+   JRA 4$ 
+3$: LDW Y,#0X8000
+    LDW (CELLL,X),Y 
+4$:
+   LDW Y,#-128
+   LDW (X),Y ; E=-128 
+   RET  
+0$:
     LDW Y,X 
     LDW Y,(CELLL,Y) ; mantissa  
     JRNE 1$
@@ -227,22 +253,28 @@ SET_FPSW:
     JRA 2$ 
 1$: JRPL 2$    
     BSET UFPSW+1,#NBIT  ; negative mantissa 
-2$: LDW Y,X 
-    LDW Y,(Y) ; exponent  
-    CPW Y,#-127  
-    JRMI 3$
-    CPW Y,#128 
-    JRMI 4$ 
-3$:
-    BSET UFPSW+1,#OVBIT  ; overflow         
-4$: RET 
+2$: RET 
+
+
+PLUS_INF:
+    CALL ABORQ
+    .byte 5 
+    .ascii "+INF " 
+    RET 
+
+MINUS_INF:
+    CALL ABORQ 
+    .byte 5
+    .ascii "-INF " 
+    RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   E. ( f# -- )
 ;   print float24 in scientific 
 ;   format 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER EDOT,2,"E."
+;    _HEADER EDOT,2,"E."
+EDOT: 
     CALL BASE 
     CALL AT 
     CALL TOR 
@@ -293,6 +325,15 @@ EDOT5:
 ;   point format. 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FDOT,2,"F."
+    LD A,(1,X) ; e 
+    JRPL 2$ 
+; débordement 
+    LDW Y,X 
+    LDW Y,(CELLL,Y)
+    JRPL 1$ 
+    JP MINUS_INF 
+1$: JP PLUS_INF 
+2$:    
     CALL BASE 
     CALL AT 
     CALL TOR 
@@ -961,15 +1002,16 @@ MPLUS: ; m1 m2 e -- m* e* )
 ; of log10(u)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 LOG10: ; ( ud  -- ud ~log10(ud) )
-    LD A,#5  ; 100000
+    LD A,#5  ; /100000
     LDW Y,X 
     LDW Y,(Y)
     CPW Y,#5000 
     JRPL 5$ 
-    DEC A    ; 10000
+    DEC A    ; /10000
     CPW Y,#500 
     JRPL 5$ 
-    DEC A    ; 1000
+    DEC A    ; /1000
+.if 0 ; log10 is never < 3
     CPW Y,#50 
     JRPL 5$
     DEC A    ; 100
@@ -980,6 +1022,7 @@ LOG10: ; ( ud  -- ud ~log10(ud) )
     TNZ (CELLL,X) ; ud low word 
     JRPL 5$
     DEC A    ; 1 
+.endif     
 5$: SUBW X,#CELLL 
     CLR (X)
     LD (1,X),A 
@@ -1001,12 +1044,14 @@ LOG10: ; ( ud  -- ud ~log10(ud) )
 SCALETOM:
     _VARS VARS_SIZE 
     CALL LOG10   
+.if 0
     CALL DUPP 
     _TBRAN 0$ 
     CALL SWAPP
     _DROP  
     _DROP_VARS VARS_SIZE
-    RET 
+    RET
+.endif  
 0$:    
     LD A,(1,X) 
     LD (LOG,SP),A 
@@ -1068,6 +1113,8 @@ SCALETOM:
 1$: CALL RFROM  
     JP SET_FPSW 
 
+DIV_0:
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;  F/ ( f#1 f#2 -- f#3 )
 ;  float division
@@ -1076,6 +1123,18 @@ SCALETOM:
     EXP=3  ; exponent 
     DIVSR=1 ; divisor 
     _HEADER FSLASH,2,"F/"
+; check for /0 
+    LDW Y,X 
+    LDW Y,(1,Y) ; m2 
+    JRNE 0$ 
+; division by 0.0 ABORT  
+    _DROPN 3  
+    CALL ABORQ 
+    .byte 15
+    .ascii  " division by 0 "
+    CALL PRESE 
+    JP QUIT 
+0$:
     CALL TOR    ; m1 e1 m2   R: e2 
     CALL SWAPP
     CALL RFROM 

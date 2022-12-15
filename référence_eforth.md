@@ -757,8 +757,6 @@ Le vocabulaire est le même pour les 2 librairies.
 
 * __F.__&nbsp;&nbsp; ( f# -- ) Imprime le nombre en virgule flottante __f#__. Si l'exposant est négatif ou si le nombre ne peut-être représenté avec moins de 10 décimales alog il est imprimé en format scientifique.
 
-* __E.__&nbsp;&nbsp; ( f# -- ) Imprime un nombre en format scientifique  à moins qu'il est moins de 6 décimales.
-
 
 [index](#index)
 

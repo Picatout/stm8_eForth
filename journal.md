@@ -1,4 +1,50 @@
+### 2022-12-15
+
+* commit 12:02 hre 
+
+* Supprimer __E.__ et modifié __F.__ pour imprimer les débordements comme __-INF__ ou __+INF__.
+
+* Modifié routine _SET_FPSW_, maintenant modifié le float en cas de débordement pour __-INF__ ou __+INF__.
+
+* Modifié __F/__ afin d'avorter lorsqu'une division par 0 est tentée.
+```
+performance test
+ 104 msec 3.1416 2.51 f*, 1000 times.
+ 105 msec 32.767 327.67 f*, 1000 times.
+ 94 msec 3.1416 2.51 f/, 1000 times.
+ 73 msec 3.1416 414.2 f+, 1000 times.
+ 79 msec 3.1416 51.43 f-, 1000 times.
+```
+
+* Retour sur [float24.asm](float24.asm), enccore une idée pour améliorer la performance de __F*__.
+```
+performance test
+ 106 msec 3.1416 2.51 f*, 1000 times.
+ 105 msec 32.767 327.67 f*, 1000 times.
+ 93 msec 3.1416 2.51 f/, 1000 times.
+ 75 msec 3.1416 414.2 f+, 1000 times.
+ 80 msec 3.1416 51.43 f-, 1000 times.
+```
+
+* bogue dans __NUMBER?__ du fichier [stm8ef.asm](stm8ef.asm)
+```
+-9 -9?
+-8 -8?
+-7 -7?
+-6 -6?
+-5 -5?
+-4 -4?
+-3 -3?
+-2 -2?
+-1 ok
+-10 ok
+-11 ok
+```
+Bogue corrigé le problème était dans la routine __NSIGN__. La vérification pour cnt==0 au début référençait la mauvaise cellule sur la pile.
+
 ### 2022-12-14
+
+* débuté travail sur [float.asm](float.asm)
 
 * commit 20:53
 

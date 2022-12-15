@@ -84,7 +84,8 @@
 ;    bit 1 negative flag 
 ;    bit 2 overflow/error flag 
 ;---------------------------
-    _HEADER FPSW,4,"FPSW"
+;    _HEADER FPSW,4,"FPSW"
+FPSW:
 	LDW Y,#UFPSW  
 	SUBW X,#2
     LDW (X),Y
@@ -95,7 +96,8 @@
 ;   initialize floating point 
 ;   library 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER FINIT,5,"FINIT"
+;    _HEADER FINIT,5,"FINIT"
+FINIT:
     CLR UFPSW+1 ; reset state bits 
     RET 
 
@@ -103,10 +105,12 @@
 ;    FER ( -- u )
 ;    return FPSW value 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER FER,3,"FER"
+;    _HEADER FER,3,"FER"
+FER:
     CALL FPSW 
     CALL AT 
     RET 
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    FZE  ( -- 0|-1 )
@@ -147,11 +151,13 @@
     CALL NEGAT  
     RET 
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    SFZ ( f# -- f# )
 ;    set FPSW zero flag 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER SFZ,3,"SFZ"
+;    _HEADER SFZ,3,"SFZ"
+SFZ:
     CALL FER 
     _DOLIT 0xfffe 
     CALL ANDD 
@@ -173,7 +179,8 @@
 ;   SFN ( f# -- f# )
 ;   set FPSW negative flag 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER SFN,3,"SFN"
+;    _HEADER SFN,3,"SFN"
+SFN:
     CALL FER 
     _DOLIT 0xFFFD 
     CALL ANDD  
@@ -194,7 +201,8 @@
 ;   SFV ( e -- )
 ;   set overflow flag if e>127 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER SFV,3,"SFV"
+;    _HEADER SFV,3,"SFV"
+SFV:
     _DOLIT 127 
     CALL GREAT
     _QBRAN 1$
@@ -206,14 +214,17 @@
 1$:
     RET 
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;  SET-FPSW ( f# -- f# )
 ;  set float status word 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER SET_FPSW,8,"SET-FPSW"
+;    _HEADER SET_FPSW,8,"SET-FPSW"
+SET_FPSW:
     CALL SFZ 
     CALL SFN 
     RET 
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;  F>ME ( f# -- m e )
@@ -221,7 +232,8 @@
 ;  m mantissa as a double 
 ;  e exponent as a single 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER ATEXP,4,"F>ME"             
+;    _HEADER ATEXP,4,"F>ME"             
+ATEXP:
     CALL FINIT 
     CALL SFN
     CALL SFZ 
@@ -253,7 +265,8 @@ ATEXP2:
 ;    ME>F ( m e -- f# )
 ;    built float from mantissa/exponent 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER STEXP,4,"ME>F"
+;   _HEADER STEXP,4,"ME>F"
+STEXP:
     CALL DUPP 
     CALL ABSS 
     CALL SFV
@@ -454,7 +467,8 @@ PARSE_SUCCESS:
 ;     sign   mantissa sign 
 ;     digits count of digits after '.'  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER FLOATQ,5,"FLOAT?" ; ( -- float32 -3 )
+;    _HEADER FLOATQ,5,"FLOAT?" ; ( -- float32 -3 )
+FLOATQ:
 ; BASE must be 10 
     CALL BASE 
     CALL AT 
@@ -497,7 +511,8 @@ FLOAT_EXIT:
 ;  LSCALE ( f# -- f# )
 ;  m *=10 , e -= 1
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER LSCALE,6,"LSCALE"
+;    _HEADER LSCALE,6,"LSCALE"
+LSCALE:
     CALL ATEXP 
     CALL ONE 
     CALL SUBB 
@@ -512,7 +527,8 @@ FLOAT_EXIT:
 ;  RSCALE ( f# -- f# )
 ;  m /=10 , e+=1 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER RSCALE,6,"RSCALE"
+;    _HEADER RSCALE,6,"RSCALE"
+RSCALE:
     CALL ATEXP 
     CALL ONE 
     CALL PLUS 
@@ -583,7 +599,8 @@ SCALDN3:
 ;  F-ALIGN ( f#1 f#2 -- m1 m2 e )
 ;  align to same exponent 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER FALIGN,7,"F-ALIGN"
+;    _HEADER FALIGN,7,"F-ALIGN"
+FALIGN:
     CALL ATEXP 
     CALL TOR 
     CALL DSWAP 
@@ -720,7 +737,8 @@ UMOD10:
 ;   e is log10 exponent of scaled down
 ;   ud2 is scaled down ud1 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER SCALETOM,7,"SCALE>M"
+;    _HEADER SCALETOM,7,"SCALE>M"
+SCALETOM: 
     CALL ZERO 
     CALL NROT 
 SCAL1:
@@ -787,7 +805,8 @@ UDIV10:
 ;   before scaling is 46 bits .
 ;   UDIV10 is used to scale down.  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER MMSTAR,3,"MM*"
+;    _HEADER MMSTAR,3,"MM*"
+MMSTAR:
     CALL DDUP
     CALL DZEQUAL
     _TBRAN MMSTA2

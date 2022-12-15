@@ -2771,8 +2771,7 @@ NSIGN: ; ( a cnt -- a cnt f )
     SUBW X,#CELLL ; a cntr f 
     PUSH #0 
 ; if count==0 exit 
-    LDW Y,X 
-    LDW Y,(Y)
+    LD A,(CELLL+1,X)
     JREQ NO_ADJ 
     LDW Y,X 
     LDW Y,(2*CELLL,Y) ; a 
@@ -2786,15 +2785,10 @@ NEG_SIGN:
     CPL (1,SP)
 ADJ_CSTRING: 
 ; increment a 
-    LDW Y,X 
-    LDW Y,(2*CELLL,Y)
     INCW Y ; a++ 
     LDW (2*CELLL,X),Y 
 ; decrement cnt 
-    LDW Y,X
-    LDW Y,(CELLL,Y)
-    DECW Y ; cnt--  
-    LDW (CELLL,X),Y 
+    DEC (CELLL+1,X)    
 NO_ADJ: 
     POP A 
     LD (X),A 
