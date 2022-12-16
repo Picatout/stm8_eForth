@@ -274,35 +274,71 @@ MINUS_INF:
 ;   format 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    _HEADER EDOT,2,"E."
-EDOT: 
+;EDOT: 
+    _HEADER FDOT,2,"F."    
+    LD A,(1,X) ; e 
+    CP A,#-128 
+    JRNE 2$ 
+; débordement 
+    LDW Y,X 
+    LDW Y,(CELLL,Y)
+    JRPL 1$ 
+    JP MINUS_INF 
+1$: JP PLUS_INF
+2$:    
     CALL BASE 
     CALL AT 
     CALL TOR 
     CALL DECIM 
-    CALL SET_FPSW
 EDOT0: 
-    CALL TOR   ; R: e 
-    CALL ABSS 
-    CALL SPACE 
-    CALL BDIGS     
-EDOT2: 
-    CALL DUPP 
-    _DOLIT 10 
-    CALL LESS 
-    _TBRAN EDOT3 
-    CALL DIG
-    CALL RFROM 
-    CALL ONEP 
+    CALL DDUP 
+    _DOLIT -32767
+    CALL ZERO 
+    CALL FLESS 
+    _TBRAN 2$
+    CALL DDUP 
+    _DOLIT 32767
+    CALL ZERO 
+    CALL FGREAT 
+    _TBRAN 2$
     CALL TOR 
+0$: CALL RAT 
+    CALL ZLESS 
+    _QBRAN 1$
+    LDW Y,(1,SP)
+    INCW Y 
+    LDW (1,SP),Y 
+    _DOLIT 10 
+    CALL SLASH  
+    _BRAN 0$ 
+1$:
+     _RDROP 
+    CALL DOT
+    JP EDOT5 
+2$:    
+    CALL TOR   ; R: e 
+    CALL SPACE 
+    LD A,(X)
+    JRPL EDOT1
+    LD A,#'- 
+    CALL putc  
+    CALL ABSS 
+EDOT1: 
+    CALL BDIGS 
+EDOT2:
+    LDW Y,X 
+    LDW Y,(Y)
+    CPW Y,#10 
+    JRMI EDOT3 
+    CALL DIG
+    LDW Y,(1,SP)
+    INCW Y  ; E++ 
+    LDW (1,SP),Y 
     _BRAN EDOT2 
 EDOT3: 
     _DOLIT '.'
     CALL HOLD  
     CALL DIG
-    CALL FNE 
-    _QBRAN EDOT4 
-    _DOLIT '-'
-    CALL HOLD 
 EDOT4:       
     CALL EDIGS 
     CALL TYPES
@@ -317,79 +353,6 @@ EDOT5:
     CALL RFROM 
     CALL BASE 
     CALL STORE  
-    RET 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;
-;   F. (f# -- )
-;   print float in fixed
-;   point format. 
-;;;;;;;;;;;;;;;;;;;;;;;;;
-    _HEADER FDOT,2,"F."
-    LD A,(1,X) ; e 
-    JRPL 2$ 
-; débordement 
-    LDW Y,X 
-    LDW Y,(CELLL,Y)
-    JRPL 1$ 
-    JP MINUS_INF 
-1$: JP PLUS_INF 
-2$:    
-    CALL BASE 
-    CALL AT 
-    CALL TOR 
-    CALL DECIM
-    CALL    SET_FPSW 
-    CALL    DUPP  
-    CALL    ABSS 
-    _DOLIT  4
-    CALL    GREAT 
-    _QBRAN  FDOT1 
-    JP      EDOT0 
-FDOT1:
-    CALL    SPACE 
-    CALL    TOR 
-    CALL    FNE 
-    _QBRAN  FDOT0 
-    CALL    NEGAT 
-FDOT0: 
-    CALL    BDIGS
-    CALL    RAT  
-    CALL    ZLESS 
-    _QBRAN  FDOT6 
-FDOT2: ; e<0 
-    CALL    DIG 
-    CALL    RFROM
-    CALL    ONEP 
-    CALL    QDUP  
-    _QBRAN  FDOT3 
-    CALL    TOR 
-    JRA   FDOT2 
-FDOT3:
-    _DOLIT  '.' 
-    CALL    HOLD 
-    CALL    DIGS
-    JRA   FDOT9  
-FDOT6: ; e>=0 
-    _DOLIT '.' 
-    CALL HOLD  
-    JRA   FDOT8
-FDOT7:     
-    _DOLIT  '0'
-    CALL    HOLD 
-FDOT8:
-    _DONXT FDOT7 
-    CALL    DIGS
-FDOT9:
-    CALL    FNE 
-    _QBRAN  FDOT10 
-    _DOLIT '-' 
-    CALL   HOLD 
-FDOT10:
-    CALL    EDIGS 
-    CALL    TYPES 
-    CALL    RFROM 
-    CALL    BASE 
-    CALL    STORE 
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -438,7 +401,6 @@ max_mantissa: ; ( m -- m n )
     LD (1,X),A 
     _DROP_VARS VARS_SIZE 
     RET 
-
 
 
 
@@ -893,6 +855,7 @@ FALIGN:
     CALL QDUP 
     _TBRAN 1$ 
 ; delta=0, no scaling required     
+    CALL SWAPP 
     RET 
 1$:
 ; if delta > 5 out of scaling range 
@@ -1258,7 +1221,7 @@ FSLASH9:
     CALL RFROM  
     CALL DUPP   
     CALL ZLESS 
-    _QBRAN FTOS4 
+    _QBRAN FTOS4 ; um sign e 
 ; negative exponent
 ; divide m/10^e  
     CALL ABSS
@@ -1295,7 +1258,7 @@ FTOS4:
 ; positive exponent
 ; imply overflow 
 ; return -32768 
-    _DROP ; sign 
+    _DDROP ; sign e
     LDW Y,#0x8000
     LDW (X),Y
     BSET UFPSW+1,#OVBIT 

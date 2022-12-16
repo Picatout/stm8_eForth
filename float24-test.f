@@ -17,8 +17,6 @@ fvar v1
     3.1416 v1 f! 
     cr ." v1 f@  f. "
     cr v1 f@  f.
-    cr ." v1 f@  e. " 
-    cr v1 f@  e. 
 ;
 
 : const-test

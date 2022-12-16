@@ -1,5 +1,37 @@
 ### 2022-12-15
 
+* commit 22:15 
+
+* bogue: Corrigé. 
+```
+-32767. 2dup f- f. -3.2767E-32765 
+```
+
+* bogue: le zéro ne devrait pas être là. Bogue corrigé.
+```
+2e23 F>S .S
+ 0 -32768 <sp  ok
+```
+
+* bogue, seulement après un démarrage.  Problème corrigé. 
+```
+stm8eForth version 4.00
+float24 library,  version 1.00
+LICENSE GPL V3
+Copyright Jacques Deschenes, 2021, 2022
+ on NUCLEO-8S207K8
+32767. .S F.
+ 32767 0 <sp  3.27670E4 ok
+�
+stm8eForth version 4.00
+float24 library,  version 1.00
+LICENSE GPL V3
+Copyright Jacques Deschenes, 2021, 2022
+ on NUCLEO-8S207K8
+232767. f. 2.32771.00E5 ok
+
+```
+
 * commit 12:02 hre 
 
 * Supprimer __E.__ et modifié __F.__ pour imprimer les débordements comme __-INF__ ou __+INF__.
