@@ -709,53 +709,57 @@ Le fichier principal contient quelques opérations sur les entiers double de 32 
 
 ## Modules float.asm et float24.asm 
 L'une ou l'autre des librairies peut-être sélectionnée dans le fichier __inc/config.inc__.
-Le vocabulaire est le même pour les 2 librairies. 
+Le vocabulaire est le même pour les 2 librairies à l'exception de la conversiont de float vers entier et vice-versa. 
 
-* __FLOAT-VER__&nbsp;&nbsp; ( -- ) Imprime au terminal la version de la librairie.
+* __D>F__&nbsp;&nbsp; ( s -- f# ) Fichier [float.asm](float.asm), convertie un entier double en nombre à virgule flottante 32 bits. 
 
-* __FZE__&nbsp;&nbsp; ( -- Z ) Retourne l'État du bit __Z__ indiquant un résulat nul lors de la dernière opération. 
+* __F!__&nbsp;&nbsp; ( f# a -- ) Initialise la variable de type __FVAR__ située à l'adresse __a__ avec la valeur __f#__. 
 
-* __FNE__&nbsp;&nbsp; ( -- N ) Retourne l'état du bit __N__ indiquant un résultat négatif lors de la dernière opération. 
+* __F*__&nbsp;&nbsp; ( f#1 f#2 -- f#3 )  __f#3__ = __f#1__ * __f#2__.
 
-* __FOV__&nbsp;&nbsp; ( -- f ) Retourne l'état du bit __V__ indiquant un débordement lors de la dernière opération.
+* __F+__&nbsp;&nbsp; ( f#1 f#2 -- f#3 ) __f#3__ = __f#1__ + __f#2__.
 
-* __FABS__ &nbsp;&nbsp; ( f#1 -- f#2 ) Retourne la valeur absolue de __f#1__ .
+* __F-__&nbsp;&nbsp; ( f#1 f#2 -- f#3 ) __f#3__ = __f#1__ - __f#2__.
 
-* __FNEGATE__&nbsp;&nbsp; (f#1 -- f#2 )  Retourne l'inverse numérique de __f#1__.
+* __F.__&nbsp;&nbsp; ( f# -- ) Imprime le nombre en virgule flottante __f#__. Si l'exposant est négatif ou si le nombre ne peut-être représenté avec moins de 5 (10 pour float32) décimales alors il est imprimé en format scientifique.
+
+* __F/__&nbsp;&nbsp; ( f#1 f#2 -- f#3 )  __f#3__ = __f#1__ / __f#2__. 
+
+* __F0<__&nbsp;&nbsp; ( f#1 -- f ) Retourne VRAI si __f#1__ est négatif. 
 
 * __F0=__&nbsp;&nbsp; ( f#1 -- f ) Retourne VRAI si __f#1__ est nul. 
+
+* __F<__&nbsp;&nbsp; ( f#1 f#2 -- f ) Retourne VRAI si __f#1 &lt; __f#2__. 
 
 * __F=__&nbsp;&nbsp; ( f#1 f#2 -- f )  compare __f#1__ et __f#2__ retourne vrai s'ils sont égaux.
 
 * __F>__&nbsp;&nbsp; ( f#1 f#2 -- f ) Retourne VRAI si __f#1 &gt; __f#2__.
 
-* __F<__&nbsp;&nbsp; ( f#1 f#2 -- f ) Retourne VRAI si __f#1 &lt; __f#2__. 
+* __F>D__&nbsp;&nbsp; ( f# -- s ) Fichier [float.asm](float.asm), convertie un nombre en virgule flottante 32 bits en entier double. Les décimales sont tronquées.
 
-* __F0<__&nbsp;&nbsp; ( f#1 -- f ) Retourne VRAI si __f#1__ est négatif. 
-
-* __F>S__&nbsp;&nbsp; ( f# -- s ) Convertie un nombre en virgule flottante en entier. Les décimales sont tronquées. Si l'entier est plus grand que **32767** retourne **-32768**
-
-* __S>F__&nbsp;&nbsp; ( s -- f# ) Convertie un entier en nombre à virgule flottante. 
-
-* __F/__&nbsp;&nbsp; ( f#1 f#2 -- f#3 )  __f#3__ = __f#1__ / __f#2__. 
-
-* __F*__&nbsp;&nbsp; ( f#1 f#2 -- f#3 )  __f#3__ = __f#1__ * __f#2__.
-
-* __F-__&nbsp;&nbsp; ( f#1 f#2 -- f#3 ) __f#3__ = __f#1__ - __f#2__.
-
-* __F+__&nbsp;&nbsp; ( f#1 f#2 -- f#3 ) __f#3__ = __f#1__ + __f#2__.
+* __F>S__&nbsp;&nbsp; ( f# -- s ) Fichier [float24.asm](float24.asm), convertie un nombre en virgule flottante 24 bits en entier simple. Les décimales sont tronquées. Si l'entier est plus grand que **32767** retourne **-32768**
 
 * __F@__&nbsp;&nbsp; ( a -- f# ) Empile la valeur d'une variable de type __FVAR__ située à l'adresse __a__. 
 
-* __F!__&nbsp;&nbsp; ( f# a -- ) Initialise la variable de type __FVAR__ située à l'adresse __a__ avec la valeur __f#__. 
-
-* __FVAR__&nbsp;&nbsp; ( &lt;var_name&gt; ) Création d'une variable de type virgule flottante portant le nom **var_name**. 
+* __FABS__ &nbsp;&nbsp; ( f#1 -- f#2 ) Retourne la valeur absolue de __f#1__ .
 
 * __FCONST__&nbsp;&nbsp; (  &lt;var_name&gt; ) Création d'une constante de type virgule flottante portant le nom **var_name**. 
 
 * __FLITERAL__&nbsp;&nbsp; ( f# -- ) Compile le nombre en virgule flottante __f#__. 
 
-* __F.__&nbsp;&nbsp; ( f# -- ) Imprime le nombre en virgule flottante __f#__. Si l'exposant est négatif ou si le nombre ne peut-être représenté avec moins de 10 décimales alog il est imprimé en format scientifique.
+* __FLOAT-VER__&nbsp;&nbsp; ( -- ) Imprime au terminal la version de la librairie.
+
+* __FNE__&nbsp;&nbsp; ( -- N ) Retourne l'état du bit __N__ indiquant un résultat négatif lors de la dernière opération. 
+
+* __FNEGATE__&nbsp;&nbsp; (f#1 -- f#2 )  Retourne l'inverse numérique de __f#1__.
+
+* __FOV__&nbsp;&nbsp; ( -- f ) Retourne l'état du bit __V__ indiquant un débordement lors de la dernière opération.
+
+* __FVAR__&nbsp;&nbsp; ( &lt;var_name&gt; ) Création d'une variable de type virgule flottante portant le nom **var_name**. 
+
+* __FZE__&nbsp;&nbsp; ( -- Z ) Retourne l'État du bit __Z__ indiquant un résulat nul lors de la dernière opération. 
+
+* __S>F__&nbsp;&nbsp; ( s -- f# ) Fichier [float24.asm](float24.asm), convertie un entier simple en nombre à virgule flottante 24 bits. 
 
 
 [index](#index)

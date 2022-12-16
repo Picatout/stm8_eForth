@@ -1,3 +1,13 @@
+### 2022-12-16
+
+* commit 12:10 hre 
+
+* Travail sur [référence_eforth.md](référence_eforth.md).
+
+* Débogué et modifié __F.__. 
+
+* Retravaillé  [float24-test.f](float24-test.f).
+
 ### 2022-12-15
 
 * commit 22:15 

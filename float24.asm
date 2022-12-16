@@ -269,12 +269,10 @@ MINUS_INF:
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   E. ( f# -- )
+;   F. ( f# -- )
 ;   print float24 in scientific 
 ;   format 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;    _HEADER EDOT,2,"E."
-;EDOT: 
     _HEADER FDOT,2,"F."    
     LD A,(1,X) ; e 
     CP A,#-128 
@@ -290,40 +288,37 @@ MINUS_INF:
     CALL AT 
     CALL TOR 
     CALL DECIM 
-EDOT0: 
-    CALL DDUP 
-    _DOLIT -32767
-    CALL ZERO 
-    CALL FLESS 
-    _TBRAN 2$
-    CALL DDUP 
-    _DOLIT 32767
-    CALL ZERO 
-    CALL FGREAT 
-    _TBRAN 2$
-    CALL TOR 
-0$: CALL RAT 
-    CALL ZLESS 
-    _QBRAN 1$
-    LDW Y,(1,SP)
-    INCW Y 
-    LDW (1,SP),Y 
-    _DOLIT 10 
-    CALL SLASH  
-    _BRAN 0$ 
-1$:
-     _RDROP 
-    CALL DOT
-    JP EDOT5 
-2$:    
-    CALL TOR   ; R: e 
-    CALL SPACE 
+EDOT0:
+    CALL TOR ; r: e
+    CALL SPACE
     LD A,(X)
-    JRPL EDOT1
+    JRPL 1$
     LD A,#'- 
-    CALL putc  
+    CALL putc 
+    CALL NEGAT  
+1$:  
+; float in range {-32767. to 32767. } 
+; are printed as integer if no fraction 
+    LDW Y,(1,SP) ; E 
+    CPW Y,#1
+    JRPL 20$ 
+    CPW Y,#-4 
+    JRSLT 20$ 
+    CALL ZERO ; S>D
+    CALL RFROM 
     CALL ABSS 
-EDOT1: 
+    CALL POWER10  
+    CALL UMMOD
+    CALL STR 
+    CALL TYPES 
+    LD A,#'. 
+    CALL putc
+    CALL QDUP 
+    _QBRAN EDOT5 
+    CALL STR 
+    CALL TYPES
+    JP EDOT5 
+20$:    
     CALL BDIGS 
 EDOT2:
     LDW Y,X 

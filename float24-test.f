@@ -5,124 +5,151 @@
 
 fvar v1
 
-\ display expected result f2, and result f1 
-: result ( f1 f2 -- )
+\ 1) check for stack underflow 
+\ 2) check if last operation left data on stack 
+\    is so display stack state 
+: stack-check 
+    ?stack \ abort if stack underflow
+    depth if 
+        cr ." ERROR: left over on stack"
+        .s 
+    then 
+;
+
+\ display expected  f2, and result f1 
+: fresult ( f1 f2 -- )
     cr 
     ."  expected:" f.
     ."  result:" f. 
+    stack-check  
 ; 
 
+\ display expected integer i2 and result i1 
+: iresult ( i1 i2 -- )
+    cr
+    ."  expected: " . 
+    ."  result: " .
+    stack-check
+;
+
 : var-test
+    preset 
+    cr ." fvar test "
     cr ." 3.1416 v1 f! "
     3.1416 v1 f! 
     cr ." v1 f@  f. "
-    cr v1 f@  f.
+    cr v1 f@  3.1416 fresult 
 ;
 
 : const-test
+    preset 
     cr ." fconst test" 
     cr ." c1 f. "    
-    cr c1 2.2046 result
+    cr c1 2.2046 fresult
 ; 
 
 : convert  
+    preset 
     cr ." type conversion test"
     cr ." 32767 S>F "
-    32767 S>F  32767. result 
+    32767 S>F  32767. fresult 
     cr ." -12 S>F "
-    -12 S>F -12.000 result
+    -12 S>F -12.000 fresult
     cr ." -1.2 F>S "
-    -1.2 F>S  ." expected " -1 . ."  result " .
+    -1.2 F>S  -1 iresult 
     cr ." 21e-1 F>S "
-    21e-1 f>s  ." expected " 2 . ."  result " . 
+    21e-1 f>s  2 iresult  
     cr ." 21e-2 F>S "
-    21e-2 f>s  ." expected " 0 . ."  result " . 
+    21e-2 f>s  0 iresult  
     cr ." 2e6 F>S " 
-    2e6 f>s  ." expected" -32768 . ."  result " .
+    2e6 f>s  -32768 iresult
     cr ." 2e23 F>S "
-    2e23 f>s ." expected" -32768 . ."  result " . 
+    2e23 f>s -32768 iresult  
 ;
 
 : fabs-test
+    preset 
     cr ." FABS test" 
     cr ." 0.0 FABS " 
-    0.0  fabs 0.0  result
+    0.0  fabs 0.0  fresult
     cr ." 3.1416 FABS "
-    3.1416 FABS 3.1416  result
+    3.1416 FABS 3.1416  fresult
     cr ." -6.022e23 FABS "
-    -6.022e23 fabs 6.022e23  result 
+    -6.022e23 fabs 6.022e23  fresult 
 ;
 
 : fnegate-test 
+    preset 
     CR ." FNEGATE test"
     cr ." 0.0 FNEGATE " 
-    0.0 FNEGATE 0.0 result
+    0.0 FNEGATE 0.0 fresult
     CR ." 6.022E23 FNEGATE " 
-    6.022E23 FNEGATE -6.022E23 RESULT
+    6.022E23 FNEGATE -6.022E23 FRESULT
     CR ." -3.1416 FNEGATE "
-    -3.1416 FNEGATE 3.1416 RESULT 
+    -3.1416 FNEGATE 3.1416 FRESULT 
 ;
 
 \ add and subtract test 
 : add-test 
+    preset 
     cr ." f+ f- test"
     cr ." 3.1416 .014 f- "
-    3.1416 .014 f- 3.1276 result 
+    3.1416 .014 f- 3.1276 fresult 
+    cr ." -32767. -32767 f- "
+    -32767. -32767. f- 0.0 fresult 
     cr ." 3.1416 .14 f+ "
-    3.1416 .14 f+ 3.282 result 
+    3.1416 .14 f+ 3.282 fresult 
     cr ." -31416. -1400. f+"
-    -31416. -1400. f+ -3282e1 result  
+    -31416. -1400. f+ -3282e1 fresult 
 ;
 
 \ f* f/ test 
 : prod-test
+    preset 
     cr ." F* test"
     cr ." 3.1416e3 15.0 f* "  
-    3.1416e3 15. f* 4.712e4 result 
+    3.1416e3 15. f* 4.712e4 fresult 
     cr ." 3.1416e3 5.4 f* "
-    3.1416e3 5.4 f* 16965. result
+    3.1416e3 5.4 f* 16965. fresult
     cr ." -45.23e6 123. f* "
-    -45.23e6 123. f* -5.563e9 result 
+    -45.23e6 123. f* -5.563e9 fresult 
 ;
 
 : div-test
+    preset 
     cr ." F/ test "
     cr ." 32767. 2. f/  "
-    32767. 2. f/ 16384. result 
+    32767. 2. f/ 16384. fresult 
     cr ." 6.022e23 5.1e10 f/ "
-    6.022e23 5.1e10 f/  1.1808e13 result 
+    6.022e23 5.1e10 f/  1.1808e13 fresult 
     cr ." -6.022e23 5.1e10 f/ "
-    -6.022e23 5.1e10 f/ -1.1808e13 result 
-;
-
-: bool-result 
-    cr
-    ."  expected: " . ."  result: " .
+    -6.022e23 5.1e10 f/ -1.1808e13 fresult 
 ;
 
 : compare 
+    preset 
     cr ." comparisons test"
     cr ." -1.e-127 f0< "
-    -1.e-127 f0< -1 bool-result 
+    -1.e-127 f0< -1 iresult 
     cr ." 0.0 f0= "
-    0.0 f0= -1  bool-result 
+    0.0 f0= -1  iresult 
     cr ." 0.1e-0 f0= "
-    0.1e-0  f0= 0 bool-result 
+    0.1e-0  f0= 0 iresult 
     cr ." 4.15 -415. f> "
-    4.15 -415. f> -1 bool-result 
+    4.15 -415. f> -1 iresult 
     cr ." 415e-120 4.15 f< "
-    415e-120 4.15 f< -1 bool-result 
+    415e-120 4.15 f< -1 iresult 
     cr ." -41.5e-120 4.15 f> "
-    -41.5e-120 4.15 f> 0 bool-result 
+    -41.5e-120 4.15 f> 0 iresult 
     cr ." -41.5e-120 4.15 f< "
-    -41.5e-120 4.15 f< -1 bool-result 
-
+    -41.5e-120 4.15 f< -1 iresult 
 ; 
 
 : reps  ( n -- )
     ." ," . ."  times." cr 
 ;
 : performance 
+    preset 
     cr ." performance test" cr
     msec 1000 for 3.1416 2.51 f* 2drop next msec swap -  
     . ."  msec 3.1416 2.51 f*" 1000 reps 
@@ -133,7 +160,8 @@ fvar v1
     msec 1000 for 3.1416 414.2 f+ 2drop next msec swap - 
     . ."  msec 3.1416 414.2 f+" 1000 reps 
     msec 1000 for 3.1416 51.43 f- 2drop next msec swap - 
-    . ."  msec 3.1416 51.43 f-" 1000 reps   
+    . ."  msec 3.1416 51.43 f-" 1000 reps  
+    stack-check  
 ;
 
 : all-test
