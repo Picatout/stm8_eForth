@@ -1,4 +1,32 @@
+### 2022-12-17
+
+* commit 11:04
+
+* Travail d'optimisation de [float.asm](float.asm) à faire. Performance actuelle:
+```
+performance test
+ 325 msec for 1000 F*
+ 754 msec for 1000 F/
+ 258 msec for 1000 F+
+ 309 msec for 1000 F-
+ ok
+```
+
+* Modifié [float24-test.f](float24-test.f) pour vérifier l'égalité entre le résultat obtenu et celui attendu. Indique un échec si différent.
+
+* Modifié __F.__ dans [float24.asm](float24.asm) pour affichier un 'E' à la fin du nombre lorsqu'il n'y a pas d'exposant.
+
+* Modifié __D.__ dans [double.asm](double.asm) pour afficher __'.'__ à la fin du nombre.
+
+* Modifié __F.__ dans [float.asm](float.asm) pour afficher __'E'__ à la fin du nombre même lorsqu'il n'y a pas d'exposant.
+
+* Amélioration de [float-test.f](float-test.f)
+
+* Débuté travail sur module [float.asm](float.asm).
+
 ### 2022-12-16
+
+* commit 21:21 hre 
 
 * Mise à jour [référence_eforth.md](référence_eforth.md).
 

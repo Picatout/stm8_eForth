@@ -369,7 +369,7 @@ EDOT5:
     _QBRAN  FDOT1 
     JP      EDOT0 
 FDOT1:
-    CALL    SPACE 
+    CALL    SPACE
     CALL    TOR 
     CALL    FNE 
     _QBRAN  FDOT0 
@@ -409,6 +409,8 @@ FDOT9:
 FDOT10:
     CALL    EDIGS 
     CALL    TYPES 
+    LD  A,  #'E 
+    CALL    putc   
     CALL    RFROM 
     CALL    BASE 
     CALL    STORE 

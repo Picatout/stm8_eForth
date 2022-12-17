@@ -363,7 +363,7 @@ DSLMODb:
 ;   display double integer 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER DDOT,2,"D."
-    CALL SPACE 
+    CALL SPACE
     CALL DSIGN 
     CALL TOR
     CALL RAT 
@@ -378,7 +378,9 @@ DDOT0:
     CALL HOLD 
 DDOT1: 
     CALL EDIGS 
-    JP TYPES     
+    CALL TYPES     
+    LD A,#'.
+    JP putc  
      
 
 

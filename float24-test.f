@@ -16,19 +16,37 @@ fvar v1
     then 
 ;
 
+: 2OVER ( d1 d2 -- d1 d2 d1 )
+    >R OVER >R >R
+    OVER R> SWAP R> R> <ROT 
+;
+
 \ display expected  f2, and result f1 
 : fresult ( f1 f2 -- )
     cr 
+    2DUP >R >R 
+    2OVER >R >R
     ."  expected:" f.
     ."  result:" f. 
+    R> R> R> R> 
+    F= NOT IF 
+        ."  TEST FAILED " 
+        ABORT 
+    THEN 
     stack-check  
 ; 
 
 \ display expected integer i2 and result i1 
 : iresult ( i1 i2 -- )
     cr
+    2DUP >R >R 
     ."  expected: " . 
     ."  result: " .
+    R> R>  
+    = NOT IF 
+        ."  TEST FAILED " 
+        ABORT 
+    THEN 
     stack-check
 ;
 

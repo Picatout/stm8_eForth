@@ -311,7 +311,7 @@ EDOT0:
     CALL UMMOD
     CALL STR 
     CALL TYPES 
-    LD A,#'. 
+    LD A,#'E  
     CALL putc
     CALL QDUP 
     _QBRAN EDOT5 
