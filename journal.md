@@ -1,5 +1,18 @@
 ### 2022-12-17
 
+* commit 15:54 hre 
+
+* Amélioration de [double-test.f](double-test.f).
+```
+performance
+******** Performance test ******
+ 9msec for 1000 double additions.
+ 9msec for 1000 double substactions.
+ 82msec for 1000 double muliplications.
+ 340msec for 1000 double divisions.
+ ok
+```
+
 * commit 11:04
 
 * Travail d'optimisation de [float.asm](float.asm) à faire. Performance actuelle:

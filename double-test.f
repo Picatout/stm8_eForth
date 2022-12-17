@@ -1,17 +1,64 @@
 \ double.asm library test suite.
 
+decimal 
+
+
+\ 1) check for stack underflow 
+\ 2) check if last operation left data on stack 
+\    is so display stack state 
+: stack-check 
+    ?stack \ abort if stack underflow
+    depth if 
+        cr ." ERROR: left over on stack"
+        .s
+        abort  
+    then 
+;
+
+\ display expected double integer d2 and result d1 
+: dresult ( d1 d2 -- )
+    cr
+    2dup 2>r 
+    2over 2>r 
+    ."  expected: " d. 
+    ."  result: " d.
+    2r> 2r> 
+    D= NOT IF 
+        ."  TEST FAILED " 
+        ABORT 
+    THEN 
+    stack-check
+    cr
+;
+
+\ display expected integer i2 and result i1 
+: iresult ( i1 i2 -- )
+    cr
+    2DUP 2>R
+    ."  expected: " . 
+    ."  result: " .
+    2R>
+    = NOT IF 
+        ."  TEST FAILED " 
+        ABORT 
+    THEN 
+    stack-check
+    cr
+;
+
 
 : show-version 
     dbl-ver 
 ;
 
 : double? 
+    preset 
     cr 
     ." double parsing test." cr 
     ." enter positive double: "
     query
     eval 
-    d. CR 
+    d. CR stack-check  
     ." enter negative double: "
     query 
     eval 
@@ -19,10 +66,11 @@
     ." enter 0 double: "
     query 
     eval 
-    d. cr 
+    d. cr stack-check 
   ;
 
-: dabs-test 
+: dabs-test
+    preset 
     ." DABS test (d -- abs(d) ) " cr  
     ." enter negative double: " 
     query  
@@ -30,207 +78,232 @@
     2DUP D. ."  DABS" 
     dabs 
     d. 
-    cr
+    cr stack-check 
     ." enter positive double: " 
     query 
     eval 
     2DUP D. ." DABS" 
     dabs 
     d. 
-    cr 
+    cr stack-check 
 ;
 
 : dsign-test 
+  preset 
   cr ." DSIGN test ( d -- d sign )" cr
-  ." #4134124 dsign ."
-  #4134124 dsign . cr
-  ." #-5467 dsign ." 
-  #-5467 dsign . cr  
-  PRESET 
+  ." 4134124. dsign <ROT d. ." cr 
+  4134124. dsign <rot d. . cr stack-check 
+  ." -5467. dsign >rot d. ." cr   
+  -5467. dsign <rot d. . cr stack-check  
 ;
 
 : ds/mod-test 
-    ." ds/mod test ( ud us -- r dq )" cr 
-    #3141592 2 ds/mod 
-    ." #3141592 2 ds/mod quotient=" d. 
-    cr ." remainder=" . cr 
+    preset 
+    cr ." ds/mod test ( ud us -- r dq )" cr 
+    ." 3141.592 2 ds/mod"
+    3141592. 2 ds/mod  2>r 
+    cr ."  remainder=" 0 iresult 
+    2r> ."  quotient= " 1570796. dresult 
 ; 
 
-: ds*-test 
+: ds*-test
+    preset 
     cr
    ." double single product ds* ( d s -- d*s )"
    cr
-   #3141592 2 ds* 
-   ." #3141592 2 ds* d." d.
-   cr  
+   ." 3141592. 2 ds*" cr 
+   3141592. 2 ds* 6283.184 dresult 
 ;
 
 : 2swap-test 
     cr 
     ." 2swap test" cr  
-    #1 
-    #2 
+    1. 
+    2. 
     .s 
     2SWAP 
     .s 
-    preset
+    d. d. 
+    stack-check 
 ; 
 
 : dclz-test 
+    preset 
     cr 
     ." count leading 0's test dclz ( d -- n )" cr  
-    #1 dclz 
-    ." #1 dclz ." . cr
-    #$10000000 dclz 
-   ." #$1000000 clz ." .
-   cr  
+    ." 1. dclz ."  cr  
+    1. dclz 31 iresult 
+   ." $1000000. clz ." cr 
+    $10000000. dclz 3 iresult 
+   stack-check  
 ;
 
 : 2rot-test 
+    preset
     cr ." rotate doubles test" cr 
-    ." #1 #2 #3 2ROT .S" 
-    #1 #2 #3 2ROT .S CR 
-    ." #2 #3 #1 <2ROT .S" 
-    <2ROT .S CR 
-    preset 
+    ." 1. 2. 3. 2ROT" cr 
+    1. 2. 3. 2rot
+    2>r 2>r  2. dresult 
+    2r> 3. dresult 
+    2r> 1. dresult  
+    ." 2. 3. 1. <2ROT" cr 
+    2. 3. 1. <2ROT 
+    2>r 2>r 
+    1. dresult 
+    2r> 2. dresult 
+    2r> 3. dresult  
 ;  
 
 : d0=-test 
+    preset
     cr
     ." d0= test ( d -- -1|0 )" cr 
-    #0 D0= 
-    ." #0 D0= ." . CR
-    #1 D0= 
-    ." #1 D0= ." . CR
+    ." 0. D0=" CR
+    0. D0=  -1 iresult  
+    ." 1. D0="  CR
+    1. D0= 0 iresult 
 ;
 
 :  d=-test 
+    preset
     cr 
     ." D= ( d1 d2 -- f ) test" cr 
-    ." #-1 #1 D= ." 
-    #-1 #1 D= . CR 
-    ." #45 2DUP D= ." 
-    #45 2DUP D= . CR 
+    ." -1. #1. D=" cr  
+    -1. 1. D= 0 iresult  
+    ." 45. 2DUP D= " cr
+    45. 2DUP D= -1 iresult  
 ;
 
 : d>-test 
+    preset
     cr 
     ." D> ( d1 d2 -- d1>d2 )" cr 
-    #-33 #-32 d> 
-    ." #-33 #-32 d>" . cr 
-    #33 # 32 d> 
-    ." #33 #32 d>" . cr  
-    #-3 #2 d> 
-    ." #-3 #2 d>" . cr 
+    ." -33. -32. d>"  cr 
+    -33. -32. d> 0 iresult  
+    ." 33. 32. d>" cr  
+    33. 32. d> -1 iresult  
+    ." -3. 2. d>" cr 
+    -3. 2. d>  0 iresult
 ;
 
 : d<-test 
+    preset 
     cr
     ." D< ( d1 d2 -- d1<d2 )" cr 
-    #-33 #-32 d< 
-    ." #-33 #-32 d<" . cr 
-    #33 # 32 d< 
-    ." #33 #32 d<" . cr  
-    #-3 #2 d< 
-    ." #-3 #2 d<" . cr 
+    ." -33. -32. d<" cr 
+    -33. -32. d<  -1 iresult 
+    ." 33. 32. d<" cr  
+    33. 32. d< 0 iresult  
+    ." -3. 2. d<" cr 
+    -3. 2. d< -1 iresult 
 ;
 
 : d0<-test 
+    preset
     cr
     ." D0< test ( d -- d<0 )" cr 
-    #2 d0< 
-    ." #2 d0<" . cr 
-    #-33 d0< 
-    ." #-33 d0<" . cr 
+    ." 2. d0<" cr 
+    2. d0<  0 iresult 
+    ." -33. d0<" cr 
+    -33. d0< -1 iresult 
 ;
 
 : 2>r-test 
+    preset
     cr
     ." 2>R test" cr 
-    ." #1 #2 2>r .s"  
-    #1 #2 2>r .s cr 
-    ." 2r@ d."   
-    2r@ d. cr 
-    ." 2r> .s"  
-    2r> .s cr 
-    preset   
+    ." 1. 2. 2>r d." cr  
+    1. 2. 2>r 1. dresult  
+    ." 2r@ d." cr     
+    2r@  2. dresult  
+    ." 2r> d." 
+    2r> 2. dresult  
 ;
 
 : 2over-test 
+    preset
     cr
     ." 2over test ( d1 d2 -- d1 d2 d1 )" cr 
-    ." #1 #2 .s" cr 
-    #1 #2 .s 
-    ." 2over .s" cr
-    2over .s 
-    preset 
+    ." 1. 2. 2OVER D. D. D." cr 
+    1. 2. 2over 
+    2>r 2>r 
+    1. dresult 
+    2r> 2. dresult 
+    2r> 1. dresult 
 ;
 
 : d2/-test 
     cr ." d2/ test ( d -- d/2 )" cr 
-    ." #4096 d2/ d."  
-    #4096 d2/ d. cr
+    ." 131.072 d2/"  
+    131.072 d2/ 65536. dresult 
 ; 
 
 : d2*-test 
     cr ." D2* test ( d -- 2*d )" cr 
-    ." #2048 d2* d."  
-    #2048 d2* d. cr
+    ." 131.072 d2*"  
+    131.072 d2* 262.144 dresult
 ;
 
 : DSHIFT-TEST 
     cr ." shift double test ( d n -- d )" cr 
-    ." #1 4 DLSHIFT D."  
-    #1 4 DLSHIFT D. cr 
-    ." #16 4 DRSHIFT D."  
-    #16 4 DRSHIFT D. cr
+    ." #1 4 DLSHIFT" cr   
+    1. 4 DLSHIFT 16. dresult  
+    ." 16. 4 DRSHIFT"  cr
+    16. 4 DRSHIFT 1. dresult 
 ;
 
 : d*-test 
     cr ." D* ( d1 d2 -- d1*d2 )" cr 
-    ." #10 #351 d* d." 
-    #10 #351 d* d. cr 
-    ." #-32 #16 d* d."
-    #-32 #16 d* d. cr 
-    ." #-25 #-8 d* d."
-    #-25 #-8 d* d. cr 
+    ." 10. 351. d*" cr  
+    10. 351. d* 3510. dresult  
+    ." -32. 16. d*" cr
+    -32. 16. d* -512. dresult  
+    ." -25. -8. d*"
+    -25. -8. d* 200. dresult  
 ;
 
 : d/mod-test 
     cr ." D/MOD test ( d d -- dr dq )" cr 
-    ." #57 #5 d/mod" cr 
-    #57 #5 d/mod 
-    ." quotient=" d. 
-    ." , remainder=" d. cr 
-    ." #-57 #5 d/mod" cr 
-    #-57 #5 d/mod 
-    ." quotient=" d. 
-    ." , remainder=" d. cr 
-    ." #57 #-5 d/mod" cr 
-    #57 #-5 d/mod 
-    ." quotient=" d. 
-    ." , remainder=" d. cr 
-    ." #-57 #-5 d/mod" cr
-    #-57 #-5 d/mod 
-    ." quotient=" d.  
-    ." , remainder=" d. cr 
-    ." #-55 #-5 d/mod" cr
-    #-55 #-5 d/mod 
-    ." quotient=" d. 
-    ." , remainder=" d. cr  
+    ." 57.003 5. d/mod" cr  
+    57.003 5. d/mod 
+    2>r 
+    ."  remainder=" 3. dresult 
+    2r>  
+    ." quotient=" 11.400 dresult  
+    ." -57.003 5. d/mod" cr 
+    -57.003 5. d/mod 2>r  
+    ."  remainder=" 2. dresult  
+    2r>
+    ."  quotient=" -11.401 dresult  
+    ." 57.003 -5. d/mod" cr 
+    57.003 -5. d/mod 
+    2>r
+    ."  remainder="  -2. dresult 
+    2r> 
+    ."  quotient=" -11.401 dresult  
+    ." -57.003 -5. d/mod" cr
+    -57.003 -5. d/mod 2>r 
+    ."  remainder=" -3. dresult 
+    2r>
+    ."  quotient=" 11.400 dresult    
+    ." -55. -5. d/mod"
+    -55. -5. d/mod 2>R 
+    ."  remainder=" 0. dresult 
+    2r>
+    ."  quotient=" 11. dresult  
 ; 
 
 : +-test 
     cr ." d+ d- test" cr 
-    ." #-355 #-23 d+ d." 
-    #-355 #-23 d+ d. cr 
-    ." #6377 #523 d- d." 
-    #6377 #523 d- d. cr
+    ." -355. -23. d+" 
+    -355. -23. d+ -378. dresult  
+    ." 6377. 523. d-" 
+    6377. 523. d- 5854. dresult 
 ;
 
 : add-spd 
     msec 1000 for 
-    #-253353  #979788 d+ 
+    -253.353  979.788 d+ 
     2drop next 
     msec swap - 
     . ." msec for 1000 double additions." 
@@ -239,7 +312,7 @@
 
 : sub-spd 
     msec 1000 for 
-    #-254232 #34 d-
+    -254.232 34. d-
     2drop next 
     msec swap - 
     . ." msec for 1000 double substactions." 
@@ -248,7 +321,7 @@
 
 : mul-spd 
     msec 1000 for 
-    #324 #33 d* 
+    324. 332. d* 
     2drop 
     next
     msec swap -  
@@ -258,7 +331,7 @@
 
 : div-spd 
     msec 1000 for 
-    #324333 #56 d/ 2drop 
+    324.333 56. d/ 2drop 
     next 
     msec swap - 
     . ." msec for 1000 double divisions."
