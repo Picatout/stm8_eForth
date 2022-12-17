@@ -1234,16 +1234,7 @@ FSLASH9:
     LDW (X),Y 
 FTOS3:   
     CALL POWER10 
-    CALL DUPP 
-    CALL TOR 
-    CALL USLMOD 
-; rounding
-    CALL SWAPP 
-    CALL RFROM 
-    CALL TWOSL 
-    CALL LESS 
-    _TBRAN FTOS8   
-    CALL ONEP     
+    CALL SLASH 
 FTOS8:
     CALL SWAPP 
     _QBRAN FTOS9 
@@ -1339,4 +1330,3 @@ FTOS9:
     CALL ABSS 
     CALL RFROM 
     JP SET_FPSW
-     

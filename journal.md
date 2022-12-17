@@ -1,5 +1,9 @@
 ### 2022-12-16
 
+* Mise à jour [référence_eforth.md](référence_eforth.md).
+
+* Après consultation du [standard Forth](https://forth-standard.org/standard/float/FtoS)  les mots __F>S__  tronque la fraction sans arrondie. Modification faite dans [float24.asm](float24.asm).
+
 * commit 12:10 hre 
 
 * Travail sur [référence_eforth.md](référence_eforth.md).

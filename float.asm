@@ -32,13 +32,13 @@
 ;*************************************************
 ;  FLOAT format double for storage 
 ;  bits 23:0  signed mantissa
-;  bits  31:24  signed exponent
+;  bits  31:24  signed exponent log10 
 ; 
 ;  input float format:
 ;      float32::= ['-'|'+']digits+['.']'e'|'E'['-'|'+'][digits]*
 ;      the presence of 'e'|'E' character is mandatory 
 ;      to differentiate float32 from double.
-;    exmpample:
+;    example:
 ;         3.141593  is double 3141593
 ;         3.141593e is float32  PI 
 ;         0e   is valid null float. 

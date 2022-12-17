@@ -711,6 +711,34 @@ Le fichier principal contient quelques opérations sur les entiers double de 32 
 L'une ou l'autre des librairies peut-être sélectionnée dans le fichier __inc/config.inc__.
 Le vocabulaire est le même pour les 2 librairies à l'exception de la conversiont de float vers entier et vice-versa. 
 
+### float24 
+
+Le format est le suivant 
+
+bits | affecation
+-|-
+23:16 | exposant log10 {-127...127}, -128 signale un nombre en débordement 
+15:0 | mantisse {-32767...32767}, -32768 signal un débordement. 
+
+* m=-32768 e=-128 signifit débordement vers l'infini négatif  __-INF__.
+* m=0 e=-128 signifit débordement vers l'infini positif __+INF__.
+
+En mémoire les floats sont conservé sur 3 octets mais sur la pile ils utilisent 2 cellules soit 32 octets.
+
+### float32 
+
+Le format est le suivant
+
+bits | affectation 
+-|-
+31:24 | exposant log10  {-127...127}, -128 signale un nombre en débordement.
+23:0 | mantisse {-16277215...16277215} 
+
+* m=-16277216 e=-128 signifit débordement vers l'infini négatif  __-INF__.
+* m=0 e=-128 signifit débordement vers l'infini positif __+INF__.
+
+### vocabulaire 
+
 * __D>F__&nbsp;&nbsp; ( s -- f# ) Fichier [float.asm](float.asm), convertie un entier double en nombre à virgule flottante 32 bits. 
 
 * __F!__&nbsp;&nbsp; ( f# a -- ) Initialise la variable de type __FVAR__ située à l'adresse __a__ avec la valeur __f#__. 
