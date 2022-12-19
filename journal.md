@@ -1,6 +1,19 @@
 ### 2022-12-18
 
-* Modified division for a simple remainder truncate.  
+* Commit 22:32 
+
+* Amélioration de la performance de la routine __UD/MOD__.
+```
+performance
+******** Performance test ******
+ 9msec for 1000 double additions.
+ 9msec for 1000 double substactions.
+ 83msec for 1000 double muliplications.
+ 227msec for 1000 double divisions.
+```
+
+* Modifié le comportement de la division, maintenant le reste est simplement tronqué vers 0.
+
 
 * Travail sur module [double.asm](double.asm) pour améliorer la performance. Actuel:
 ```

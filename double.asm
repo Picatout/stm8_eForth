@@ -44,6 +44,8 @@
     DVER_MAJOR=1 
     DVER_MINOR=0 
 
+    DBL_SIZE=2*CELLL 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;  DBL-VER ( -- )
 ;  print library version 
@@ -194,7 +196,7 @@ parse_d5:
     _TBRAN 2$  ; parse not complete 
 ; invalid format clean stack     
     ADDW X,#3*CELLL ; drop ud a 
-    ADDW SP,#2*CELLL ; drop d? s? from r: 
+    ADDW SP,#DBL_SIZE ; drop d? s? from r: 
     JP BAD_FORMAT 
 2$:    
     CALL parse_digits ; 
@@ -228,7 +230,7 @@ parse_d5:
 ; error not a number 
 ; stack frame: dlo dhi a cnt r: base d? s? cnt 
 ; clean stacks 
-    ADDW X,#4*CELLL ; drop dlo dhi a cnt 
+    _DROPN 4*CELLL ; drop dlo dhi a cnt 
     ADDW SP,#3*CELLL ; drop d? s? cnt   
     JP BAD_FORMAT      
 8$:
@@ -642,7 +644,7 @@ DZLESS1:
     _HEADER DRFROM,3,"2R>"
     POPW Y      ; d hi 
     LDW YTEMP,Y 
-    SUBW X,#4
+    SUBW X,#DBL_SIZE
     POPW Y       ; d hi 
     LDW (X),Y 
     POPW Y       ; d low  
@@ -656,7 +658,7 @@ DZLESS1:
     _HEADER DRAT,3,"2R@"
     POPW Y 
     LDW YTEMP,Y 
-    SUBW X,#4 
+    SUBW X,#DBL_SIZE  
     LDW Y,(1,SP)
     LDW (X),Y 
     LDW Y,(3,SP)
@@ -706,7 +708,7 @@ DZLESS1:
 
 ; runtime for 2LITERAL 
 do2lit:
-    SUBW X,#4 
+    SUBW X,#DBL_SIZE  
     LDW Y,(1,SP)
     LDW Y,(Y)
     LDW (X),Y 
@@ -714,7 +716,7 @@ do2lit:
     LDW Y,(2,Y)
     LDW (2,X),Y 
     POPW Y 
-    JP (4,Y)
+    JP (DBL_SIZE,Y)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -722,7 +724,7 @@ do2lit:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER DOVER,5,"2OVER"
     LDW Y,X 
-    SUBW X,#4 
+    SUBW X,#DBL_SIZE 
     PUSHW Y 
     LDW Y,(4,Y)  ; d1 hi 
     LDW (X),Y 
@@ -857,18 +859,26 @@ DDSTAR3:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER UDSLMOD,6,"UD/MOD"
 ;;;;;;;;;;;LOCAL VARIABLES ;;;;;;;;;;;;;;;;
-    QLO = 7   ;   int16 
-    QHI = 5   ;   int16 
-    CNT1 = 4  ;   byte 
-    CNT2 = 3  ;   byte 
-    QLBIT = 1 ;   int16
-    VARS_SIZE=4*CELLL  
+    QLO = 9   ;   int16 
+    QHI = 7   ;   int16 
+    CNT1 = 6  ;   byte 
+    CNT2 = 5  ;   byte 
+    DIVISOR=1 ;   double 
+    VARS_SIZE=10   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; unsigned double division 
     _VARS VARS_SIZE  ; space for local variables 
     CLRW Y 
     LDW (QLO,SP),Y 
     LDW (QHI,SP),Y ; quotient=0  
+    LDW Y,X 
+    LDW Y,(Y)
+    PUSHW Y 
+    LDW Y,X 
+    LDW Y,(CELLL,Y)
+    SUBW Y,(1,SP)
+    _RDROP 
+    JREQ UDSLA1 
     CALL DOVER 
     CALL DCLZ ; n2, dividend leading zeros  
     CALL TOR 
@@ -882,48 +892,62 @@ DDSTAR3:
     LD (CNT1,SP),A
     LD (CNT2,SP),A 
     TNZW Y 
-    JRMI UDSLA7 ; quotient is null 
-    CALL DLSHIFT ; align divisor with dividend 
-    CLRW Y  
-    LDW (QLBIT,SP),Y ; quotient least bit R: qlo qhi cntr qlbit 
+    JRPL UDSLA2
+; quotient is null
+; replace divisor by 0 
+; and exit  
+    _DROP ; shift count 
+    CLRW Y 
+    LDW (X),Y 
+    LDW (CELLL,X),Y 
+    _DROP_VARS VARS_SIZE  
+    RET 
+UDSLA1: ; divisor=0
+; return r=q=$8000.0000
+    LDW Y,#0X8000 
+    LDW (X),Y 
+    LDW (DBL_SIZE,X),Y 
+    CLRW Y 
+    LDW (DBL_SIZE+CELLL,X),Y 
+    _DROP_VARS VARS_SIZE 
+    RET 
+UDSLA2:
+    CALL DLSHIFT ; align divisor with dividend
+    _DRDROP  
+    CALL DTOR ; R: divisor   
 UDSLA3: ; division loop -- dividend divisor  
-    CLR (QLBIT+1,SP)  ; qlbit=0 
-    CALL DOVER 
-    CALL DOVER 
-    CALL DSUB
+    CALL DDUP
+    CALL DRAT   ; dividend dividend divisor 
+    CALL DSUB   ; dividend diff 
     LD A,(X)
-    JRMI UDSLA4  
-    CALL DSWAP 
-    CALL DROT 
-    INC (QLBIT+1,SP) ; quotient least bit 1 
+    JRMI UDSLA4 ; dividend diff  
+    CALL DSWAP ; diff dividend  
 UDSLA4: ; shift quotient and add qlbit 
     _DDROP 
     LDW Y,(QLO,SP) ; quotient low 
-    RCF 
+    SLL A
+    CCF   
     RLCW Y
     LDW (QLO,SP),Y 
     LDW Y,(QHI,SP) ; quotient hi 
     RLCW Y 
     LDW (QHI,SP),Y 
-    LDW Y,(QLO,SP) 
-    ADDW Y,(QLBIT,SP)
-    LDW (QLO,SP),Y 
     LD A,(CNT2,SP)
     JREQ UDSLA8 
     DEC (CNT2,SP) ; loop counter  
-; shift dividend left 1 bit      
-    CALL DSWAP 
-    CALL D2STAR 
-    CALL DSWAP 
+; shift dividend left 1 bit   DIVIDEND:A LSHIFT 1    
+    LDW Y,X 
+    LDW Y,(CELLL,Y)
+    RCF 
+    RLCW Y 
+    LDW (CELLL,X),Y 
+    LDW Y,X 
+    LDW Y,(Y)
+    RLCW Y 
+    LDW (X),Y 
     JRA UDSLA3 
-UDSLA7:
-    _DROP 
-    CALL ZERO 
-    _DOLIT 2   ; cnt1 local var 
-    CALL NRSTO ; R: 0 0 cnt1 cnt2 qlbit     
 UDSLA8:
-     ADDW X,#4 ; drop divisor
-     ADDW SP,#3 ; drop cnt2 qlbit   
+    ADDW SP,#DBL_SIZE+1  ; drop divisor and cnt2 
     POP A 
     CLRW Y 
     LD YL,A 
@@ -934,13 +958,14 @@ UDSLA8:
     CALL DRFROM  ; quotient 
     RET 
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   D/MOD  ( d1 d2 -- dr dq )
 ;   double division dq=d1/d2
 ;   dr remainder double 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER DDSLMOD,5,"D/MOD"  
-    LD A,(2*CELLL,X) ; dividend sign 
+    LD A,(DBL_SIZE,X) ; dividend sign 
     PUSH A 
     LD A,(X) 
     PUSH A ; divisor sign 
@@ -999,7 +1024,7 @@ UDSLA8:
 1$:
     ADDW Y,(D2HI,SP)
     LDW (X),Y 
-    ADDW SP,#2*CELLL ; drop d2 from r: 
+    ADDW SP,#DBL_SIZE ; drop d2 from r: 
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1027,6 +1052,6 @@ UDSLA8:
 1$: 
     SUBW Y,(D2HI,SP)
     LDW (X),Y 
-    ADDW SP,#2*CELLL ; drop d2 from r: 
+    ADDW SP,#DBL_SIZE ; drop d2 from r: 
     RET 
 

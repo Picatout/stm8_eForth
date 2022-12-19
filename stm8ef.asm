@@ -1171,10 +1171,10 @@ EXIT:
         MUL Y,A 
         ADDW Y,YTEMP
         PUSHW X 
-        LDW X,(2,X)
+        LDW X,(CELLL,X)
         LDW (Y),X
         POPW X 
-        ADDW X,#2*CELLL 
+        _DROPN DBL_SIZE  
         RET 
 
 
