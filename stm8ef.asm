@@ -1581,12 +1581,12 @@ QDUP1:  RET
 ;       Duplicate top two items.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER DDUP,4,"2DUP"
-        SUBW X,#4
+        SUBW X,#2*CELLL 
         LDW Y,X
-        LDW Y,(6,Y)
-        LDW (2,X),Y
+        LDW Y,(3*CELLL,Y)
+        LDW (CELLL,X),Y
         LDW Y,X
-        LDW Y,(4,Y)
+        LDW Y,(2*CELLL,Y)
         LDW (X),Y
         RET
 
@@ -2017,10 +2017,10 @@ SLMOD8:
         _HEADER UMSTA,3,"UM*"
 ; stack have 4 bytes u1=a:b u2=c:d
         ;; bytes offset on data stack 
-        da=2 
-        db=3 
-        dc=0 
-        dd=1 
+        u1hi=2 
+        u1lo=3 
+        u2hi=0 
+        u2lo=1 
         ;;;;;; local variables ;;;;;;;;;
         ;; product bytes offset on return stack 
         UD1=1  ; ud bits 31..24
@@ -2031,35 +2031,35 @@ SLMOD8:
         clrw y 
         pushw y  ; bits 15..0
         pushw y  ; bits 31..16 
-        ld a,(db,x) ; b 
+        ld a,(u1lo,x) ;  
         ld yl,a 
-        ld a,(dd,x)   ; d
-        mul y,a    ; b*d  
+        ld a,(u2lo,x)   ; 
+        mul y,a    ; u1lo*u2lo  
         ldw (UD3,sp),y ; lowest weight product 
-        ld a,(db,x)
+        ld a,(u1lo,x)
         ld yl,a 
-        ld a,(dc,x)
-        mul y,a  ; b*c 
+        ld a,(u2hi,x)
+        mul y,a  ; u1lo*u2hi 
         ;;; do the partial sum 
         addw y,(UD2,sp)
         clr a 
         rlc a
         ld (UD1,sp),a 
         ldw (UD2,sp),y 
-        ld a,(da,x)
+        ld a,(u1hi,x)
         ld yl,a 
-        ld a,(dd,x)
-        mul y,a   ; a*d 
+        ld a,(u2lo,x)
+        mul y,a   ; u1hi*u2lo  
         ;; do partial sum 
         addw y,(UD2,sp)
         clr a 
         adc a,(UD1,sp)
         ld (UD1,sp),a  
         ldw (UD2,sp),y 
-        ld a,(da,x)
+        ld a,(u1hi,x)
         ld yl,a 
-        ld a,(dc,x)
-        mul y,a  ;  a*c highest weight product 
+        ld a,(u2hi,x)
+        mul y,a  ;  u1hi*u2hi highest weight product 
         ;;; do partial sum 
         addw y,(UD1,sp)
         ldw (x),y  ; udh 
@@ -2075,7 +2075,8 @@ SLMOD8:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         _HEADER STAR,1,"*"
 	CALL	UMSTA
-        JP	DROP
+        _DROP 
+        RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;       M*      ( n n -- d )

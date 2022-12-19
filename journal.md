@@ -1,3 +1,9 @@
+### 2022-12-19
+
+* commit 13:35 
+
+* Modifié routine *parse_digits* dans [double.asm](double.asm).
+
 ### 2022-12-18
 
 * Commit 22:32 

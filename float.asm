@@ -59,6 +59,8 @@
     F32_MAJOR=1 
     F32_MINOR=0 
 
+    FLOAT_SIZE=2*CELLL 
+
 ; floatting point state bits in FPSW 
     ZBIT=1 ; zero bit flag
     NBIT=2 ; negative flag 

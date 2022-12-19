@@ -67,49 +67,66 @@
 ; output:
 ;   ud    = uint32*uint8   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    ; local vars 
+    M8U=3 ; uint8 multiplier 
+    OVF_LO=2 ; product overflow low byte
+    OVF_HI=1 ; product overflow hi byte always 0.  
     _HEADER UDU8STAR,5,"UDU8*"
 ;UDU8STAR: ; ( ud u8 -- prod )
     CALL TOR ; ud r: u8 
     PUSH #0  ; R: uint8 0 0
-    LD A,(3,X) ; ud bits 7:0
+    LD A,(CELLL+1,X) ; ud bits 7:0
     LD YL,A    
-    LD A,(3,SP) ; uint8 
+    LD A,(M8U,SP) ; uint8 
     MUL Y,A
     LD A,YL   
-    LD (3,X),A  ; product bits 7:0 
+    LD (CELLL+1,X),A  ; product bits 7:0 
     LD A,YH     ; partial prodcut bits 15:8
-    LD (2,SP),A ; r: uint8 ovf  0 
-    LD A,(2,X)  ; ud bits 15:8 
+    LD (OVF_LO,SP),A ; r: uint8 ovf  0 
+    LD A,(CELLL,X)  ; ud bits 15:8 
     LD YL,A     
-    LD A,(3,SP) ; uint8 
+    LD A,(M8U,SP) ; uint8 
     MUL Y,A    
-    ADDW Y,(1,SP) ; Y+=overflow 1  
+    ADDW Y,(OVF_HI,SP) ; Y+=overflow 1  
     LD A,YL        
-    LD (2,X),A  ; product bits 15:8
+    LD (CELLL,X),A  ; product bits 15:8
     LD A,YH     
-    LD (2,SP),A ; overflow 
+    LD (OVF_LO,SP),A ; overflow 
     LD A,(1,X)  ; ud bits 23:16 
     LD YL,A 
-    LD A,(3,SP) ; uint8 
+    LD A,(M8U,SP) ; uint8 
     MUL Y,A 
-    ADDW Y,(1,SP) ; Y+=overflow 
+    ADDW Y,(OVF_HI,SP) ; Y+=overflow 
     LD A,YL    
     LD (1,X),A  ; product bits 23:16
     LD A,YH     
-    LD (2,SP),A ; overflow 
+    LD (OVF_LO,SP),A ; overflow 
     LD A,(X)    
     LD YL,A     ; ud bits 31:24
-    LD A,(3,SP) ; uint8 
+    LD A,(M8U,SP) ; uint8 
     MUL Y,A 
-    ADDW Y,(1,SP) ; Y+= overflow 
-    LD A,YL    
+    ADDW Y,(OVF_HI,SP) ; Y+= overflow 
+    LD A,YL
+    TNZ A 
+    JRMI 1$  ; product overflow 
     LD (X),A  ; product bits 31:24 
-    ADD SP,#CELLL+1 ; drop u8 and YH from r: 
+; if overflow return 2^32-1
+    LD A,YH
+    TNZ A  
+    JREQ 2$
+1$: ; product overflow 
+    LDW Y,#0X8000 
+    LDW (X),Y 
+    CLRW Y 
+    LDW (CELLL,X),Y  
+2$:    
+    ADD SP,#CELLL+1 ; drop M8U, OVF_2  and OVF_1 from r: 
     RET
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; get all digits in row 
-; stop at first non-digit or end of string 
+; stop at first non-digit or end of string
+; if number>2^30 abort with overflow  
 ; ( dlo dhi a cnt -- dlo dhi a cnt )
 ; input:
 ;   dlo     low word of integer 
@@ -136,6 +153,16 @@ parse_digits: ; ( dlo dhi a cnt -- dlo dhi a cnt )
     CALL AT 
 ;    CALL UDSSTAR
     CALL UDU8STAR 
+    LD A,(X)
+    JRPL parse_d2 
+; overflow 
+    _DOLIT 10 
+    CALL BASE 
+    CALL STORE 
+    CALL ABORQ 
+    .byte 15
+    .ascii " input overflow"
+parse_d2:     
     CALL RFROM 
     CALL ZERO 
     CALL DPLUS 
@@ -402,7 +429,6 @@ DDOT1:
     CALL UMSTA ; udhi*u 
     _DROP  ; drop overflow 
     JP PLUS  ; udlo*u+(uhi*u<<16)
-     
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; multiply double by unsigned single 
@@ -839,7 +865,7 @@ DRSHIFT2:
     CALL DABS
     CALL DDUP   ; ud1 ud1  
     CALL RFROM  ; ud1 ud1 ud2hi 
-    CALL DSSTAR ; ud1 dprodhi 
+    CALL DSSTAR ; ud1 drop udhi 
 ; shift partial product 16 bits left 
     _DROP   ; drop overflow 
     CALL ZERO   ; ud1 prodhi 
