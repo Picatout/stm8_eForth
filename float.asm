@@ -61,7 +61,7 @@
 
     FLOAT_SIZE=2*CELLL 
 
-; floatting point state bits in FPSW 
+; floating point state bits in FPSW 
     ZBIT=1 ; zero bit flag
     NBIT=2 ; negative flag 
     OVBIT=4 ; overflow flag 
@@ -229,24 +229,27 @@ SET_FPSW:
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;  F>ME ( f# -- m e )
-;  split float in mantissa/exponent 
-;  m mantissa as a double 
-;  e exponent as a single 
+;  FSPLIT( f# -- m e )
+;  split float in mantissa/exponent/sign 
+; input:
+;   f#   float32 
+; output: 
+;  m mantissa as a signed double 
+;  e exponent as a signed single
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;    _HEADER ATEXP,4,"F>ME"             
-ATEXP:
-    CALL FINIT 
-    CALL SFN
-    CALL SFZ 
+;    _HEADER FSPLIT,6,"FSPLIT"             
+FSPLIT:
+;    CALL FINIT 
+;    CALL SFN
+;    CALL SFZ 
     LDW Y,X 
     LDW Y,(Y)
     PUSHW Y 
     CLR A  
     SWAPW Y 
-    JRPL ATEXP1 
+    JRPL FSPLIT1 
     CPL A 
-ATEXP1: ; sign extend mantissa 
+FSPLIT1: ; sign extend mantissa 
     SWAPW Y 
     LD YH,A 
     LDW (X),Y 
@@ -254,9 +257,9 @@ ATEXP1: ; sign extend mantissa
     POPW Y 
     CLR A 
     TNZW Y 
-    JRPL ATEXP2 
+    JRPL FSPLIT2 
     CPL A 
-ATEXP2:
+FSPLIT2:
     SWAPW Y 
     LD YH,A 
     LDW (X),Y 
@@ -264,11 +267,11 @@ ATEXP2:
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;    ME>F ( m e -- f# )
+;    FMERGE ( m e -- f# )
 ;    built float from mantissa/exponent 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;   _HEADER STEXP,4,"ME>F"
-STEXP:
+;   _HEADER FMERGE,6,"FMERGE"
+FMERGE:
     CALL DUPP 
     CALL ABSS 
     CALL SFV
@@ -307,7 +310,7 @@ STEXP2:
     _DOLIT 10 
     CALL BASE 
     CALL STORE 
-    CALL ATEXP ; m e 
+    CALL FSPLIT ; m e 
 EDOT0:
     CALL TOR   
     CALL DABS 
@@ -363,7 +366,7 @@ EDOT5:
     _DOLIT 10 
     CALL BASE 
     CALL STORE 
-    CALL    ATEXP
+    CALL    FSPLIT
     CALL    DUPP  
     CALL    ABSS 
     _DOLIT  8
@@ -496,7 +499,7 @@ FLOATQ:
     CALL ROT   ; ud a r: base e 
     CALL DROP  ; ud r: base e 
     CALL RFROM ; ud e r: base 
-    CALL STEXP ; ME>F 
+    CALL FMERGE ; ME>F 
     _DOLIT -3  ; ud e -3 
     JP FLOAT_EXIT 
 FLOAT_ERROR: ; a ud a cnt r: base sign digits 
@@ -517,14 +520,14 @@ FLOAT_EXIT:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    _HEADER LSCALE,6,"LSCALE"
 LSCALE:
-    CALL ATEXP 
+    CALL FSPLIT 
     CALL ONE 
     CALL SUBB 
     CALL TOR
     _DOLIT 10 
     CALL DSSTAR
     CALL RFROM 
-    CALL STEXP 
+    CALL FMERGE 
     RET  
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -533,7 +536,7 @@ LSCALE:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    _HEADER RSCALE,6,"RSCALE"
 RSCALE:
-    CALL ATEXP 
+    CALL FSPLIT 
     CALL ONE 
     CALL PLUS 
     CALL TOR 
@@ -542,7 +545,7 @@ RSCALE:
     CALL ROT 
     _DROP 
     CALL RFROM 
-    CALL STEXP 
+    CALL FMERGE 
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -605,10 +608,10 @@ SCALDN3:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    _HEADER FALIGN,7,"F-ALIGN"
 FALIGN:
-    CALL ATEXP 
+    CALL FSPLIT 
     CALL TOR 
     CALL DSWAP 
-    CALL ATEXP 
+    CALL FSPLIT 
     CALL TOR    ; m2 m1 R: e2 e1 
     CALL DSWAP 
     CALL DRAT 
@@ -697,7 +700,7 @@ FPLUS1:
     CALL ROT   
     CALL RFROM
     CALL PLUS  
-    CALL STEXP 
+    CALL FMERGE 
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -719,7 +722,7 @@ FSUB1:
     CALL ROT 
     CALL RFROM
     CALL PLUS  
-    CALL STEXP 
+    CALL FMERGE 
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -910,17 +913,17 @@ MMSTA7:
 ;    f#3=f#1 * f#2 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FSTAR,2,"F*"
-    CALL ATEXP ; f#1 m2 e2 
+    CALL FSPLIT ; f#1 m2 e2 
     CALL TOR   
     CALL DSWAP ; m2 f#1
-    CALL ATEXP ; m2 m1 e1 
+    CALL FSPLIT ; m2 m1 e1 
     CALL RFROM ; m2 m1 e1 e2 
     CALL PLUS  ; m2 m1 e 
     CALL TOR   ; m2 m1 R: e 
     CALL MMSTAR ; m2*m1 e   
     CALL RFROM 
     CALL PLUS 
-    CALL STEXP ; f#3 
+    CALL FMERGE ; f#3 
     RET 
 
 ; unsigned mutliply by 10 
@@ -955,46 +958,29 @@ UMUL10:
 ;  f#3 = f#1/f#2
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FSLASH,2,"F/"
-    CALL ATEXP  ; f#1 m2 e2 
-    CALL TOR    ; f#1 m2   R: e2 
-; m2 sign 
-    CLRW  Y
-    LD A,(X)
-    JRPL 1$  
-    CPLW Y  
-1$: PUSHW Y     ; f#1 m2 R: e2 m2s  
+    CALL FSPLIT  ; f#1 m2 e2 
+    LD A,(CELLL,X) ; msign 0|-1
+    LD YH,A 
+    LD YL,A 
+    PUSHW Y  
+    CALL TOR ; f#1 m2   R: m2s e2 
     CALL DABS   ; F#1 um2 
-    CALL DSWAP  ; m2 f#1 
-    CALL ATEXP  ; m2 m1 e1 
+    CALL DSWAP  ; um2 f#1 
+    CALL FSPLIT  ; um2 m1 e1 
 ; substract expoenents e1-e2 
     LDW Y,X 
     LDW Y,(Y)
-    ADDW X,#CELLL 
-    SUBW Y,(3,SP)
-    LDW (3,SP),Y     
-;    CALL ONE    ; e2 slot on rstack  
-;    CALL NRAT   ; m2 m1 e1 e2 
-;    CALL SUBB   ; m2 m1 e 
-;    CALL ONE    ; e slot on rstack 
-;    CALL NRSTO  ; m2 m1 R: e m2s 
-; m1 sign xor m2 sign 
-    CLR A
-    LDW Y,X 
-    LDW Y,(Y)
-    JRPL 2$
-    CPL A  
-2$: XOR A,(1,SP)
-    LD YTEMP,A 
-    LD YTEMP+1,A 
-; swap e qs on rstack 
-    LDW Y,(3,SP) ; e 
-    ldw (1,SP),Y 
-    LDW Y,YTEMP 
-    LDW (3,SP),Y ; m2 m1 R: qs e 
+    SUBW Y,(1,SP) ; e1-e2
+    LDW (1,SP),Y ; um2 m1 r: m2s e     
+    _DROP ; e1 
+; quotient sign = m1 sign xor m2 sign 
+    LD A,(3,SP) 
+    XOR A,(X)
+    LD (3,SP),A 
     CALL DABS   ; um2 um1 R: qs e  
-    CALL DSWAP  ; m1 m2 R: qs e
-    CALL DDUP  ; m1 m2 m2 R: qs e
-    CALL DTOR  ; m1 m2 R: qs e m2 ( keep divisor needed later ) 
+    CALL DSWAP  ; um1 um2 R: qs e
+    CALL DDUP  ; um1 um2 um2 R: qs e
+    CALL DTOR  ; um1 um2 R: qs e um2 ( keep divisor needed later ) 
     CALL UDSLMOD ; remainder m1/m2 R: e m2 
 FSLASH1: ; fraction loop 
 ; check for null remainder 
@@ -1016,21 +1002,9 @@ FSLASH1: ; fraction loop
     CALL DGREAT 
     _TBRAN FSLASH8 ; another loop would result in mantissa overflow 
 ; multiply mantissa by 10 
-;    SUBW X,#2*CELLL 
-;    LDW Y,#10 
-;    LDW (2,X),Y 
-;    CLRW Y 
-;    LDW (X),Y 
-;    CALL DSTAR
     CALL UMUL10 
 ; mutliply remainder by 10     
     CALL DSWAP 
-;    SUBW X,#2*CELLL 
-;    LDW Y,#10 
-;    LDW (2,X),Y 
-;    CLRW Y 
-;    LDW (X),Y
-;    CALL DSTAR 
     CALL UMUL10 
 ; divide remainder by m2     
     CALL DRAT  ; mantissa remainder divisor R: e divisor 
@@ -1054,7 +1028,7 @@ FSLASH8: ; remainder mantissa R: qs e divisor
     CALL DNEGA  
 FSLASH9:
     CALL RFROM  ; exponent 
-    CALL STEXP 
+    CALL FMERGE 
     ADDW SP,#CELLL ; drop qs on rstack 
     RET 
 
@@ -1074,7 +1048,7 @@ DTOF1:
     CALL DNEGA 
 DTOF2: 
     CALL ROT 
-    CALL STEXP 
+    CALL FMERGE 
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1082,7 +1056,7 @@ DTOF2:
 ;  convert float to double 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FTOD,3,"F>D"
-    CALL ATEXP ; m e 
+    CALL FSPLIT ; m e 
     CALL QDUP
     _QBRAN FTOD9
     CALL TOR 
@@ -1140,7 +1114,7 @@ FTOD9:
 ;   true if f#<0
 ;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FZLESS,3,"F0<"
-    CALL ATEXP 
+    CALL FSPLIT 
     _DROP 
     CALL SWAPP 
     _DROP 
@@ -1175,7 +1149,7 @@ FTOD9:
 ;   true if f# is 0.0 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FZEQUAL,3,"F0="
-    CALL ATEXP 
+    CALL FSPLIT 
     _DROP 
     JP DZEQUAL  
 
@@ -1184,11 +1158,11 @@ FTOD9:
 ;  f#2 is negation of f#1 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FNEGA,7,"FNEGATE"
-    CALL ATEXP 
+    CALL FSPLIT 
     CALL TOR 
     CALL DNEGA
     CALL RFROM 
-    CALL STEXP 
+    CALL FMERGE 
     CALL SFN 
     RET 
 
@@ -1196,7 +1170,7 @@ FTOD9:
 ;  FABS ( f#1 -- abs(f#1) )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER FABS,4,"FABS"
-    CALL ATEXP 
+    CALL FSPLIT 
     CALL TOR 
     CALL DUPP 
     _DOLIT 0X80 
@@ -1205,6 +1179,6 @@ FTOD9:
     CALL DNEGA 
 FABS1: 
     CALL RFROM 
-    CALL STEXP 
+    CALL FMERGE 
     CALL SFN 
     RET 

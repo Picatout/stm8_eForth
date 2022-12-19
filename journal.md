@@ -1,5 +1,23 @@
 ### 2022-12-19
 
+* Optimisation de __F/__.
+```
+performance test
+ 242 msec for 1000 F*
+ 508 msec for 1000 F/
+ 176 msec for 1000 F+
+ 226 msec for 1000 F-
+```
+
+* Débute révision de [float.asm](float.asm).
+```
+performance test
+ 325 msec for 1000 F*
+ 593 msec for 1000 F/
+ 259 msec for 1000 F+
+ 310 msec for 1000 F-
+```
+
 * commit 13:35 
 
 * Modifié routine *parse_digits* dans [double.asm](double.asm).
