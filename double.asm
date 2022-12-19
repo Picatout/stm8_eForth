@@ -1,26 +1,28 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Copyright Jacques Deschênes 2019,2020,2021 
-;; This file is part of stm32_eforth  
+;; Copyright Jacques Deschênes 2019,2020,2021,2022 
+;; This file is part of stm8_eforth  
 ;;
 ;;     stm8_eforth is free software: you can redistribute it and/or modify
 ;;     it under the terms of the GNU General Public License as published by
 ;;     the Free Software Foundation, either version 3 of the License, or
 ;;     (at your option) any later version.
 ;;
-;;     stm32_eforth is distributed in the hope that it will be useful,
+;;     stm8_eforth is distributed in the hope that it will be useful,
 ;;     but WITHOUT ANY WARRANTY;; without even the implied warranty of
 ;;     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;;     GNU General Public License for more details.
 ;;
 ;;     You should have received a copy of the GNU General Public License
-;;     along with stm32_eforth.  If not, see <http:;;www.gnu.org/licenses/>.
+;;     along with stm8_eforth.  If not, see <http:;;www.gnu.org/licenses/>.
 ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;************************************
 ;    doubles integers library 
-;    doubles are signed 32 bits 
-;
+;    doubles are signed 32 bits, two's complement 
+;    range: {-2147483647...2147483647}  
+;    -2147483648  is reserved as an overflow marker 
+; 
 ;  double input formats:
 ;    decimal_base::= ['-'|'+']dec_digits+['.'][dec_digits]*
 ;    hexadecimal_base::=['-'|'+']'$'hex_digits+['.'][hex_digits]*
@@ -851,7 +853,7 @@ DDSTAR3:
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;  UD/MOD ( ud1 ud2 -- dr udq )
+;  UD/MOD ( ud1 ud2 -- udr udq )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER UDSLMOD,6,"UD/MOD"
 ;;;;;;;;;;;LOCAL VARIABLES ;;;;;;;;;;;;;;;;
@@ -860,9 +862,10 @@ DDSTAR3:
     CNT1 = 4  ;   byte 
     CNT2 = 3  ;   byte 
     QLBIT = 1 ;   int16
+    VARS_SIZE=4*CELLL  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; unsigned double division 
-    SUB SP,#4*CELLL ; space for local variables 
+    _VARS VARS_SIZE  ; space for local variables 
     CLRW Y 
     LDW (QLO,SP),Y 
     LDW (QHI,SP),Y ; quotient=0  
@@ -884,7 +887,7 @@ DDSTAR3:
     CLRW Y  
     LDW (QLBIT,SP),Y ; quotient least bit R: qlo qhi cntr qlbit 
 UDSLA3: ; division loop -- dividend divisor  
-    CLR (2,SP)  ; qlbit=0 
+    CLR (QLBIT+1,SP)  ; qlbit=0 
     CALL DOVER 
     CALL DOVER 
     CALL DSUB
@@ -892,7 +895,7 @@ UDSLA3: ; division loop -- dividend divisor
     JRMI UDSLA4  
     CALL DSWAP 
     CALL DROT 
-    INC (2,SP) ; quotient least bit 1 
+    INC (QLBIT+1,SP) ; quotient least bit 1 
 UDSLA4: ; shift quotient and add qlbit 
     _DDROP 
     LDW Y,(QLO,SP) ; quotient low 
@@ -919,8 +922,8 @@ UDSLA7:
     _DOLIT 2   ; cnt1 local var 
     CALL NRSTO ; R: 0 0 cnt1 cnt2 qlbit     
 UDSLA8:
-    ADDW X,#4 ; drop divisor
-    ADDW SP,#3 ; drop cnt2 qlbit   
+     ADDW X,#4 ; drop divisor
+     ADDW SP,#3 ; drop cnt2 qlbit   
     POP A 
     CLRW Y 
     LD YL,A 
@@ -937,39 +940,26 @@ UDSLA8:
 ;   dr remainder double 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     _HEADER DDSLMOD,5,"D/MOD"  
-    LD A,(X) ; disisor sign 
+    LD A,(2*CELLL,X) ; dividend sign 
     PUSH A 
-    LD A,(4,X) ; dividend sign 
-    PUSH A   ; R: sdivsor sdivnd 
+    LD A,(X) 
+    PUSH A ; divisor sign 
     CALL DABS 
     CALL DTOR ; R: sign abs(divisor)
     CALL DABS  ; ud1  
-    CALL DRAT  ; ud1 ud2 R: sign abs(divisor) 
-    CALL UDSLMOD ; ud1/ud2 -- dr dq  
-    LD A,(5,SP) ; sdivnd 
-    XOR A,(6,SP) ; 
-    JRPL DSLA8 
-    CALL DNEGA ; negate quotient  
-    CALL DOVER 
-    CALL DZEQUAL
-    _TBRAN DSLA9 
-    CALL ONE 
-    CALL ZERO 
-    CALL DSUB  
-    CALL DRAT 
-    CALL DROT 
-    CALL DSUB  ; corrected_remainder=divisor-remainder 
-    CALL DSWAP
-DSLA8:      
-; check for divisor sign 
-; if negative change negate remainder 
-    LD A,(6,SP) ; divisor sign 
-    JRPL DSLA9 
+    CALL DRFROM  ; ud1 ud2 R: sign 
+    CALL UDSLMOD ; ud1/ud2 -- udr udq  
+    POP  A ; divisor sign  
+    XOR A,(1,SP)
+    JREQ 1$ 
+    CALL DNEGA
+1$: POP A  
+    TNZ A 
+    JREQ 2$ 
     CALL DTOR 
     CALL DNEGA 
-    CALL DRFROM 
-DSLA9:
-    ADDW SP,#6 
+    CALL DRFROM
+2$:        
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -987,50 +977,56 @@ DSLA9:
 ;   add 2 doubles 
 ;   d3=d1+d2 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    D2LO=3 
+    D2HI=1 
     _HEADER DPLUS,2,"D+"
+; 2>R 
+    LDW Y,X 
+    LDW Y,(CELLL,Y)
+    PUSHW Y   ; d2 lo  
+    LDW Y,X 
+    LDW Y,(Y) 
+    PUSHW Y ; d2 hi 
+    _DROPN 2 ; d2 
+    LDW Y,X 
+    LDW Y,(CELLL,Y) ; d1lo 
+    ADDW Y,(D2LO,SP)
+    LDW (CELLL,X),Y 
     LDW Y,X 
     LDW Y,(Y)
-    LDW YTEMP,Y ; d2 hi 
-    LDW Y,X 
-    LDW Y,(2,Y)
-    LDW XTEMP,Y ; d2 lo 
-    ADDW X,#4 
-    LDW Y,X 
-    LDW Y,(2,Y) ; d1 lo
-    ADDW Y,XTEMP
-    LDW (2,X),Y 
-    LDW Y,X 
-    LDW Y,(Y) ; d1 hi 
-    JRNC DPLUS1 
-    ADDW Y,#1 
-DPLUS1: 
-    ADDW Y,YTEMP 
+    JRNC 1$
+    INCW Y 
+1$:
+    ADDW Y,(D2HI,SP)
     LDW (X),Y 
+    ADDW SP,#2*CELLL ; drop d2 from r: 
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   D- ( d1 d2 -- d3 )
 ;   d3=d1-d2 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    D2LO=3 
+    D2HI=1 
     _HEADER DSUB,2,"D-"
     LDW Y,X 
+    LDW Y,(CELLL,Y)
+    PUSHW Y ; d2 lo 
+    LDW Y,X 
     LDW Y,(Y)
-    LDW YTEMP,Y ; d2 hi 
+    PUSHW Y ; d2 hi 
+    _DROPN 2 ; d2 
     LDW Y,X 
-    LDW Y,(2,Y)
-    LDW XTEMP,Y ; d2 lo 
-    ADDW X,#4 
+    LDW Y,(CELLL,Y)
+    SUBW Y,(D2LO,SP)
+    LDW (CELLL,X),Y 
     LDW Y,X 
-    LDW Y,(2,Y) ; d1 lo
-    SUBW Y,XTEMP
-    LDW (2,X),Y 
-    LDW Y,X 
-    LDW Y,(Y) ; d1 hi 
-    JRNC DSUB1 
-    SUBW Y,#1 
-DSUB1: 
-    SUBW Y,YTEMP 
+    LDW Y,(Y)
+    JRNC 1$
+    DECW Y 
+1$: 
+    SUBW Y,(D2HI,SP)
     LDW (X),Y 
+    ADDW SP,#2*CELLL ; drop d2 from r: 
     RET 
-
 

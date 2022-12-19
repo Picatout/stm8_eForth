@@ -1,3 +1,16 @@
+### 2022-12-18
+
+* Modified division for a simple remainder truncate.  
+
+* Travail sur module [double.asm](double.asm) pour améliorer la performance. Actuel:
+```
+******** Performance test ******
+ 9msec for 1000 double additions.
+ 9msec for 1000 double substactions.
+ 82msec for 1000 double muliplications.
+ 340msec for 1000 double divisions.
+```
+
 ### 2022-12-17
 
 * commit 15:54 hre 

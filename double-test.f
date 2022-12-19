@@ -272,21 +272,21 @@ decimal
     ." quotient=" 11.400 dresult  
     ." -57.003 5. d/mod" cr 
     -57.003 5. d/mod 2>r  
-    ."  remainder=" 2. dresult  
+    ."  remainder=" -3. dresult  
     2r>
-    ."  quotient=" -11.401 dresult  
+    ."  quotient=" -11.400 dresult  
     ." 57.003 -5. d/mod" cr 
     57.003 -5. d/mod 
     2>r
-    ."  remainder="  -2. dresult 
+    ."  remainder="  3. dresult 
     2r> 
-    ."  quotient=" -11.401 dresult  
-    ." -57.003 -5. d/mod" cr
+    ."  quotient=" -11.400 dresult  
+    ." -57.003 -5. d/mod" cr 
     -57.003 -5. d/mod 2>r 
     ."  remainder=" -3. dresult 
     2r>
     ."  quotient=" 11.400 dresult    
-    ." -55. -5. d/mod"
+    ." -55. -5. d/mod" cr 
     -55. -5. d/mod 2>R 
     ."  remainder=" 0. dresult 
     2r>
