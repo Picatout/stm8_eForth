@@ -1,5 +1,18 @@
 ### 2022-12-19
 
+* commit 22:23 
+
+* Continué travail d'optimisation  de [float.asm](float.asm).
+```
+performance test
+ 283 msec for 1000 F*
+ 763 msec for 1000 F/
+ 112 msec for 1000 F+
+ 117 msec for 1000 F-
+```
+
+* commit 16:13 
+
 * Optimisation de __F/__.
 ```
 performance test

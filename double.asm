@@ -71,8 +71,11 @@
     M8U=3 ; uint8 multiplier 
     OVF_LO=2 ; product overflow low byte
     OVF_HI=1 ; product overflow hi byte always 0.  
+.if 0
     _HEADER UDU8STAR,5,"UDU8*"
-;UDU8STAR: ; ( ud u8 -- prod )
+.else 
+UDU8STAR: ; ( ud u8 -- prod )
+.endif 
     CALL TOR ; ud r: u8 
     PUSH #0  ; R: uint8 0 0
     LD A,(CELLL+1,X) ; ud bits 7:0

@@ -481,7 +481,32 @@ FLOATQ:
     CALL AT 
     _DOLIT 10 
     CALL EQUAL 
-    _QBRAN FLOAT_ERROR 
+    _QBRAN FLOAT_ERROR
+    CALL DOVER 
+    CALL DZEQUAL 
+    _QBRAN 0$
+    _DDROP 
+    CALL ROT 
+    _DROP
+    ADDW SP,#2*CELLL 
+    _DOLIT -3 
+    JP FLOAT_EXIT  
+0$:    
+; scale mantissa <=0x7fffff
+    CALL DSWAP 
+    LDW Y,X 
+    LDW Y,(Y)
+    CPW Y,#0x7f
+    JRMI 1$ 
+; too big scale down 
+    CALL SCALETOMIN 
+    LDW Y,X 
+    LDW Y,(Y)
+    ADDW Y,(1,SP) 
+    LDW (1,SP),Y 
+    _DROP
+1$:
+    CALL DSWAP ; a ud a+ cnt- 
 ; next char must be 'E' 
     _DOLIT 'E' 
     CALL ACCEPT_CHAR 
@@ -490,16 +515,21 @@ FLOATQ:
     _QBRAN FLOAT_ERROR 
     CALL RFROM 
     CALL SUBB ; e - digits 
-    CALL NROT ; a e ud 
+    CALL TOR ; a ud 
+    CALL SCALETOMAX 
+    CALL RFROM 
+    CALL SWAPP 
+    CALL SUBB 
+    CALL NROT 
     CALL RFROM ; a e ud msign 
     _QBRAN 2$ 
     CALL DNEGA ; a e -ud 
-2$: CALL ROT   ; ud e 
+2$: CALL ROT   ; a ud e 
     CALL TOR   ; a ud r: base e 
     CALL ROT   ; ud a r: base e 
     CALL DROP  ; ud r: base e 
     CALL RFROM ; ud e r: base 
-    CALL FMERGE ; ME>F 
+    CALL FMERGE ; ud e -- float  
     _DOLIT -3  ; ud e -3 
     JP FLOAT_EXIT 
 FLOAT_ERROR: ; a ud a cnt r: base sign digits 
@@ -600,6 +630,90 @@ SCALDN2:
     CALL DRFROM 
 SCALDN3:
     RET 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; scale up ud while <=MAX_MANTISSA
+; ud*10^e 
+; input:
+;   ud     unsigned double 
+; output:
+;   ud*10^e  
+;   e      log scaling factor 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+.if 1 
+    _HEADER SCALETOMAX,5,"M>MAX"
+.else     
+SCALETOMAX:
+.endif 
+    PUSH #0 
+1$: 
+    CALL DDUP 
+    _DOLIT 0xcccc ; ((MAX_MANTISSA/10) & 0XFFFF)
+    _DOLIT 0xc ; ((MAX_MANTISSA/10)>>16)  
+    CALL DGREAT 
+    _TBRAN 9$ 
+    _DOLIT 10 
+    CALL UDU8STAR
+    INC (1,SP) 
+    _BRAN 1$
+9$: 
+POP_EXP:
+    POP A 
+    CLRW Y 
+    LD YL,A 
+    SUBW X,#CELLL 
+    LDW (X),Y 
+    RET 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; scale down ud until <= MAX_MANTISSA 
+; input:
+;   ud 
+; output:
+;   ud/10^e 
+;   e 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    EXP=3 
+    REMDR=1 
+.if 1 
+    _HEADER SCALETOMIN,5,"M>MIN"
+.else 
+SCALETOMIN:
+.endif 
+    PUSH #0 ; EXP  
+    CLRW Y  ; REMDR
+    PUSHW Y ; remainder  
+1$:
+    CALL DDUP 
+    _DOLIT 0xcccc ; ((MAX_MANTISSA/10) & 0XFFFF)
+    _DOLIT 0xc ; ((MAX_MANTISSA/10)>>16)  
+    CALL DGREAT 
+    _TBRAN 3$
+; round it 
+    POPW Y 
+    CPW Y,#5 
+    JRMI POP_EXP 
+    LDW Y,X 
+    LDW Y,(CELLL,Y)
+    ADDW Y,#1 
+    JRNC 2$ 
+    INC (3,X)
+2$: LDW (CELLL,X),Y 
+    JRA POP_EXP 
+3$:
+    _DOLIT 10 
+    _DOLIT 0 
+    CALL UDSLMOD
+    CALL DSWAP 
+    _DROP   
+    LDW Y,X 
+    LDW Y,(Y)
+    LDW (REMDR,SP),Y 
+    INC (EXP,SP)
+    _DROP 
+    JRA 1$
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -745,9 +859,21 @@ UMOD10:
 ;   ud2 is scaled down ud1 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    _HEADER SCALETOM,7,"SCALE>M"
-SCALETOM: 
+SCALETOM:
     CALL ZERO 
     CALL NROT 
+    LDW Y,X 
+    LDW Y,(Y)
+    PUSHW Y 
+    LD A,(1,SP)
+    OR A,(2,SP)
+    LDW Y,X 
+    LDW Y,(CELLL,Y)
+    LDW (1,SP),Y 
+    OR A,(1,SP)
+    OR A,(2,SP)
+    _RDROP 
+    JREQ SCAL2     
 SCAL1:
     CALL DUPP 
     _DOLIT 0X7F 
@@ -759,7 +885,7 @@ SCAL1:
     CALL ONEP 
     CALL NROT  
     JRA SCAL1 
-SCAL2: 
+SCAL2:
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
