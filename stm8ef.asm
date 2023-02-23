@@ -180,7 +180,7 @@ APP_VP = APP_CP+2      ; free data space pointer
 ;; Version control
 
 VER     =     4         ;major release version
-EXT     =     0         ;minor extension
+EXT     =     1         ;minor extension
 
 ;; Constants
 
@@ -191,6 +191,7 @@ IMEDD   =     0x80     ;lexicon immediate bit
 MASKK   =     0x1F7F  ;lexicon bit mask
 
 CELLL   =     2       ;size of a cell
+DBL_SIZE =    2*CELLL ; size of double integer 
 BASEE   =     10      ;default radix
 BKSPP   =     8       ;back space
 LF      =     10      ;line feed
@@ -3329,14 +3330,9 @@ PARS8:  CALL     OVER
 ;       Ignore following text till
 ;       end of line.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        _HEADER BKSLA,IMEDD+1,"\\"
-        ldw y,#UCTIB ; #TIB  
-        ldw y,(y)
-        pushw y ; count in TIB 
-        ldw y,#UINN ; >IN 
-        ldw YTEMP,y
-        popw y 
-        ldw [YTEMP],y
+        _HEADER BKSLA,IMEDD+1,'\'
+
+        mov UINN+1,UCTIB+1
         ret 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -3782,7 +3778,7 @@ QUIT2:  CALL     QUERY   ;get input
 ;         Compile an integer into
 ;         variable space.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        _HEADER COMMA,1,^/"\,"/
+        _HEADER COMMA,1,^/","/
         CALL     HERE
         CALL     DUPP
         CALL     CELLP   ;cell boundary
@@ -4650,8 +4646,8 @@ WORS2:  RET
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 COPYRIGHT:
     CALL DOTQP 
-    .byte 40 
-    .ascii "Copyright Jacques Deschenes, 2021, 2022\n"
+    .byte 45 
+    .ascii "Copyright Jacques Deschenes, 2021, 2022,2023\n"
     RET 
 
 

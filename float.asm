@@ -57,7 +57,7 @@
     MAX_MANTISSA = 0x7FFFFF 
 
     F32_MAJOR=1 
-    F32_MINOR=0 
+    F32_MINOR=1 
 
     FLOAT_SIZE=2*CELLL 
 
@@ -438,7 +438,7 @@ parse_exponent: ; a cnt -- e -1 | 0
     CALL RFROM ; 0 0 a cnt 
     CALL NSIGN  
     CALL TOR  ; 0 0 a cnt r: esign 
-    CALL QDUP 
+    CALL QDUP
     _QBRAN PARSE_SUCCESS ; no digits e=0
     CALL parse_digits
     _QBRAN PARSE_SUCCESS ; parsed to end of string 
@@ -482,16 +482,10 @@ FLOATQ:
     _DOLIT 10 
     CALL EQUAL 
     _QBRAN FLOAT_ERROR
-    CALL DOVER 
-    CALL DZEQUAL 
-    _QBRAN 0$
-    _DDROP 
-    CALL ROT 
-    _DROP
-    ADDW SP,#2*CELLL 
-    _DOLIT -3 
-    JP FLOAT_EXIT  
-0$:    
+; next char must be 'E' 
+    _DOLIT 'E' 
+    CALL ACCEPT_CHAR 
+    _QBRAN FLOAT_ERROR
 ; scale mantissa <=0x7fffff
     CALL DSWAP 
     LDW Y,X 
@@ -507,10 +501,6 @@ FLOATQ:
     _DROP
 1$:
     CALL DSWAP ; a ud a+ cnt- 
-; next char must be 'E' 
-    _DOLIT 'E' 
-    CALL ACCEPT_CHAR 
-    _QBRAN FLOAT_ERROR
     CALL parse_exponent ; -- e -1 | 0 
     _QBRAN FLOAT_ERROR 
     CALL RFROM 
@@ -647,6 +637,9 @@ SCALDN3:
 SCALETOMAX:
 .endif 
     PUSH #0 
+    CALL DDUP 
+    CALL ORR
+    _QBRAN 9$  
 1$: 
     CALL DDUP 
     _DOLIT 0xcccc ; ((MAX_MANTISSA/10) & 0XFFFF)
@@ -664,6 +657,7 @@ POP_EXP:
     LD YL,A 
     SUBW X,#CELLL 
     LDW (X),Y 
+SCALETOM_EXIT:  
     RET 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

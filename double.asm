@@ -44,7 +44,7 @@
     DVER_MAJOR=1 
     DVER_MINOR=0 
 
-    DBL_SIZE=2*CELLL 
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;  DBL-VER ( -- )
@@ -219,7 +219,7 @@ parse_d5:
     CALL ACCEPT_CHAR
     _QBRAN 1$ 
     CALL HEX 
-1$:     
+1$:    
 ; now parse digits 
 ; check for end of string     
     CALL QDUP ; dlo dhi a cnt R: base d? s? 

@@ -1,3 +1,14 @@
+### 2023-02-23 
+
+1. Corrigé bogue #1 avec mot __\\__.  En fait le bogue était dans l'entête **_HEADER COMMA,1,^/","/**.  Il y avait un __\\__ avant la virgule dans la chaîne de caractères.
+1. Corrigé bogue #2 en modifiant __SCALETOMAX__ du fichier [float.asm](float.asm) pour tenir compte d'une mantisse nulle.
+
+### 2023-02-20
+
+* Découvert 2 bogues
+    1. les commentaires __\\__ gèlent sur la ligne de commande.
+    1. la saisie d'un mot non définie ne génère pas d'erreur mais laisse un entier double sur la pile.
+
 ### 2022-12-19
 
 * commit 22:23 
